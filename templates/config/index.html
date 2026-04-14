@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Configuración | Contabilidad Arroceras{% endblock %}
+{% block content %}
+<div class="page-hero">
+  <div class="container page-hero__inner">
+    <div class="page-hero__icon"><i class="fa-solid fa-gear"></i></div>
+    <div><h1 class="page-hero__title">Configuración</h1><p class="page-hero__sub">Parámetros del sistema</p></div>
+  </div>
+</div>
+<section class="section"><div class="container" style="max-width:580px">
+  {% if message %}<div class="alert alert--success"><i class="fa-solid fa-circle-check"></i> {{message}}</div>{% endif %}
+  {% if error %}<div class="alert alert--danger">{{error}}</div>{% endif %}
+  <div class="form-card">
+    <div class="form-section">
+      <h3 class="form-section__title"><i class="fa-solid fa-hashtag"></i> Seriales</h3>
+      <div class="config-info-box">
+        <i class="fa-solid fa-circle-info"></i>
+        <div><strong>Total de recibos:</strong> {{total_recibos}}<br><strong>Serial inicial configurado:</strong> {{config.get('serial_inicial', '1')}}</div>
+      </div>
+      <form method="POST">
+        <div class="form-group" style="max-width:280px;margin-top:1.5rem">
+          <label for="serial_inicial">Serial inicial para nuevos recibos</label>
+          <input type="number" id="serial_inicial" name="serial_inicial" value="{{config.get('serial_inicial', '1')}}" min="1" required>
+          <p class="field-hint">Define desde qué número empezarán los seriales cuando no haya recibos previos.{% if total_recibos > 0 %} <strong>Nota:</strong> ya hay {{total_recibos}} recibo(s); el próximo serial se calcula automáticamente.{% endif %}</p>
+        </div>
+        <div class="form-actions"><button type="submit" class="button button--primary"><i class="fa-solid fa-floppy-disk"></i> Guardar configuración</button></div>
+      </form>
+    </div>
+  </div>
+</div></section>
+{% endblock %}

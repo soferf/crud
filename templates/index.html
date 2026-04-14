@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contabilidad Arroceras | Acceso Seguro</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+<header class="topbar">
+    <div class="container topbar__inner">
+
+        <a class="brand" href="{{ url_for('home') }}">
+            <i class="fa-solid fa-seedling brand__icon"></i>
+            <div>
+                <span class="brand__name">Contabilidad Arroceras</span>
+                <span class="brand__tagline">Acceso y seguridad de usuarios</span>
+            </div>
+        </a>
+
+        <nav class="nav">
+            <a href="#acceso"><i class="fa-solid fa-lock"></i> Acceso</a>
+            <a href="#seguridad"><i class="fa-solid fa-shield-halved"></i> Seguridad</a>
+            <a href="#experiencia"><i class="fa-solid fa-sparkles"></i> Experiencia</a>
+            {% if logged_in %}
+            <a class="nav__cta" href="{{ url_for('dashboard') }}"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+            <a class="nav__cta nav__cta--alt" href="{{ url_for('logout') }}"><i class="fa-solid fa-right-from-bracket"></i> Salir</a>
+            {% endif %}
+        </nav>
+
+    </div>
+</header>
+
+<main>
+<section class="hero auth-hero" id="acceso">
+    <div class="container hero__grid">
+
+        <div class="hero__content">
+            <div class="hero__badge">
+                <i class="fa-solid fa-user-shield"></i> Sistema de autenticación
+            </div>
+
+            <h1>
+                Inicio de sesión y registro para
+                <em class="accent">Contabilidad Arroceras</em>.
+            </h1>
+
+            <p class="hero__lead">
+                Esta nueva versión del inicio centraliza acceso seguro, creación de cuenta
+                y recuperación de contraseña, con un diseño coherente con la identidad del sistema.
+            </p>
+
+            <div class="hero__stats">
+                <div class="stat">
+                    <span class="stat__num">3</span>
+                    <span class="stat__label">Formularios</span>
+                </div>
+                <div class="stat">
+                    <span class="stat__num">Hash</span>
+                    <span class="stat__label">Contraseñas</span>
+                </div>
+                <div class="stat">
+                    <span class="stat__num">UX</span>
+                    <span class="stat__label">Flujo guiado</span>
+                </div>
+            </div>
+        </div>
+
+        <aside class="auth-card-wrap">
+            {% if auth_message %}
+            <div class="auth-alert auth-alert--{{ auth_message_type }}">
+                {{ auth_message }}
+            </div>
+            {% endif %}
+
+            {% if logged_in %}
+            <article class="auth-card auth-card--logged">
+                <h3><i class="fa-solid fa-circle-check"></i> Bienvenido, {{ user_name }}</h3>
+                <p>Tu sesión está activa. Ve al panel de control para gestionar recibos, trabajadores, producción y reportes.</p>
+                <div class="hero__actions auth-actions">
+                    <a class="button button--primary" href="{{ url_for('dashboard') }}">
+                        <i class="fa-solid fa-gauge"></i> Ir al Dashboard
+                    </a>
+                    <a class="button button--ghost" href="{{ url_for('logout') }}">
+                        <i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión
+                    </a>
+                </div>
+            </article>
+            {% else %}
+            <article class="auth-card" data-active-form="{{ active_form }}">
+                <div class="auth-tabs" role="tablist" aria-label="Formularios de autenticación">
+                    <button class="auth-tab {% if active_form == 'login' %}is-active{% endif %}" data-target="login" type="button">Iniciar sesión</button>
+                    <button class="auth-tab {% if active_form == 'signup' %}is-active{% endif %}" data-target="signup" type="button">Crear cuenta</button>
+                    <button class="auth-tab {% if active_form == 'forgot' %}is-active{% endif %}" data-target="forgot" type="button">Olvidé contraseña</button>
+                </div>
+
+                <form class="auth-form {% if active_form == 'login' %}is-active{% endif %}" data-form="login" method="post" action="{{ url_for('login') }}">
+                    <h3>Accede a tu cuenta</h3>
+                    <div class="auth-inline-alert" aria-live="polite"></div>
+
+                    <label for="login-email">Correo electrónico</label>
+                    <input id="login-email" type="email" name="email" placeholder="correo@ejemplo.com" value="{{ form_data.login.email if form_data else '' }}" required data-rule="email">
+                    <p class="field-message" data-for="login-email"></p>
+
+                    <label for="login-password">Contraseña</label>
+                    <input id="login-password" type="password" name="password" placeholder="Tu contraseña" required data-rule="required">
+                    <p class="field-message" data-for="login-password"></p>
+
+                    <div class="auth-form__row">
+                        <label class="check-inline">
+                            <input type="checkbox" name="remember_me" {% if form_data and form_data.login.remember_me %}checked{% endif %}>
+                            Recordarme en este equipo
+                        </label>
+                        <button class="auth-link" type="button" data-open="forgot">Olvidé mi contraseña</button>
+                    </div>
+
+                    <button class="button button--primary auth-submit" type="submit">
+                        <i class="fa-solid fa-right-to-bracket"></i> Entrar
+                    </button>
+                </form>
+
+                <form class="auth-form {% if active_form == 'signup' %}is-active{% endif %}" data-form="signup" method="post" action="{{ url_for('signup') }}">
+                    <h3>Crea una cuenta nueva</h3>
+                    <div class="auth-inline-alert" aria-live="polite"></div>
+
+                    <label for="signup-name">Nombre completo</label>
+                    <input id="signup-name" type="text" name="full_name" placeholder="Nombre y apellido" value="{{ form_data.signup.full_name if form_data else '' }}" required data-rule="name">
+                    <p class="field-message" data-for="signup-name"></p>
+
+                    <label for="signup-email">Correo electrónico</label>
+                    <input id="signup-email" type="email" name="email" placeholder="correo@ejemplo.com" value="{{ form_data.signup.email if form_data else '' }}" required data-rule="email">
+                    <p class="field-message" data-for="signup-email"></p>
+
+                    <label for="signup-password">Contraseña</label>
+                    <input id="signup-password" type="password" name="password" placeholder="Mínimo 8 caracteres" required data-rule="password">
+                    <p class="field-message" data-for="signup-password"></p>
+
+                    <ul class="field-rules" data-rules-for="signup-password">
+                        <li data-check="length">Mínimo 8 caracteres</li>
+                        <li data-check="upper">Al menos una mayúscula</li>
+                        <li data-check="lower">Al menos una minúscula</li>
+                        <li data-check="digit">Al menos un número</li>
+                    </ul>
+
+                    <label for="signup-confirm">Confirmar contraseña</label>
+                    <input id="signup-confirm" type="password" name="confirm_password" placeholder="Repite la contraseña" required data-rule="confirm-password" data-password-source="signup-password">
+                    <p class="field-message" data-for="signup-confirm"></p>
+
+                    <p class="auth-help">Debe incluir mayúscula, minúscula y número.</p>
+
+                    <button class="button button--primary auth-submit" type="submit">
+                        <i class="fa-solid fa-user-plus"></i> Crear cuenta
+                    </button>
+                </form>
+
+                <form class="auth-form {% if active_form == 'forgot' %}is-active{% endif %}" data-form="forgot" method="post" action="{{ url_for('forgot_password') }}">
+                    <h3>Recupera tu contraseña</h3>
+                    <div class="auth-inline-alert" aria-live="polite"></div>
+                    <p class="auth-help">Te enviaremos instrucciones al correo registrado.</p>
+
+                    <label for="forgot-email">Correo electrónico</label>
+                    <input id="forgot-email" type="email" name="email" placeholder="correo@ejemplo.com" value="{{ form_data.forgot.email if form_data else '' }}" required data-rule="email">
+                    <p class="field-message" data-for="forgot-email"></p>
+
+                    <button class="button button--primary auth-submit" type="submit">
+                        <i class="fa-solid fa-paper-plane"></i> Enviar solicitud
+                    </button>
+
+                    <button class="auth-link auth-link--center" type="button" data-open="login">Volver a iniciar sesión</button>
+                </form>
+            </article>
+            {% endif %}
+        </aside>
+
+    </div>
+</section>
+
+<section class="section section--muted" id="seguridad">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-eyebrow"><i class="fa-solid fa-shield-halved"></i> Seguridad inicial</span>
+            <h2 class="section-title">Base lista para endurecer</h2>
+            <p class="section-sub">La autenticación ya incluye hash de contraseña, validaciones de formulario y control de sesiones.</p>
+        </div>
+
+        <div class="grid-4">
+            <div class="card">
+                <div class="card__icon"><i class="fa-solid fa-key"></i></div>
+                <h3>Contraseñas hasheadas</h3>
+                <p>Las credenciales no se guardan en texto plano, se almacenan con hash seguro.</p>
+            </div>
+            <div class="card">
+                <div class="card__icon"><i class="fa-solid fa-user-check"></i></div>
+                <h3>Acceso protegido</h3>
+                <p>El módulo de trabajadores solo permite entrada con sesión iniciada.</p>
+            </div>
+            <div class="card">
+                <div class="card__icon"><i class="fa-solid fa-hourglass-half"></i></div>
+                <h3>Sesión persistente</h3>
+                <p>Opción de recordarme para mejorar continuidad sin perder seguridad básica.</p>
+            </div>
+            <div class="card">
+                <div class="card__icon"><i class="fa-solid fa-envelope-circle-check"></i></div>
+                <h3>Flujo de recuperación</h3>
+                <p>Formulario de olvido de contraseña listo para integrar envío de correo/token.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section" id="experiencia">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-eyebrow"><i class="fa-solid fa-sparkles"></i> Experiencia de usuario</span>
+            <h2 class="section-title">Flujo simple, claro y consistente</h2>
+        </div>
+
+        <div class="objectives">
+            <div class="objective">
+                <span class="objective__num">01</span>
+                <div>
+                    <h4><i class="fa-solid fa-toggle-on"></i> Cambio rápido entre formularios</h4>
+                    <p>Login, registro y recuperación viven en una sola pantalla con pestañas dinámicas.</p>
+                </div>
+            </div>
+            <div class="objective">
+                <span class="objective__num">02</span>
+                <div>
+                    <h4><i class="fa-solid fa-circle-info"></i> Mensajes de estado</h4>
+                    <p>El usuario recibe feedback inmediato para saber cómo continuar en cada paso.</p>
+                </div>
+            </div>
+            <div class="objective">
+                <span class="objective__num">03</span>
+                <div>
+                    <h4><i class="fa-solid fa-mobile-screen"></i> Diseño responsive</h4>
+                    <p>La interfaz mantiene legibilidad y jerarquía visual en escritorio y móvil.</p>
+                </div>
+            </div>
+            <div class="objective">
+                <span class="objective__num">04</span>
+                <div>
+                    <h4><i class="fa-solid fa-puzzle-piece"></i> Base para mejoras futuras</h4>
+                    <p>Queda lista para agregar verificación por correo, tokens de recuperación y 2FA.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+</main>
+<footer class="footer">
+    <div class="container footer__inner">
+        <div class="footer__brand">
+            <i class="fa-solid fa-seedling"></i>
+            <span>Contabilidad Arroceras</span>
+        </div>
+        <p class="footer__copy">Proyecto académico 2026 · Acceso de usuarios en evolución</p>
+    </div>
+</footer>
+
+<script src="{{ url_for('static', filename='css/js/script.js') }}"></script>
+</body>
+</html>

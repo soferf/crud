@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Producción | Contabilidad Arroceras{% endblock %}
+{% block content %}
+<div class="page-hero">
+  <div class="container page-hero__inner">
+    <div class="page-hero__icon"><i class="fa-solid fa-wheat-awn"></i></div>
+    <div>
+      <h1 class="page-hero__title">Producción / Cosechas</h1>
+      <p class="page-hero__sub">{{total_cargas}} cargas de {{min_cargas}} requeridas ({{pct_produccion}}%)</p>
+    </div>
+    <div class="page-hero__actions">
+      <a href="{{url_for('nueva_cosecha')}}" class="button button--primary"><i class="fa-solid fa-plus"></i> Registrar</a>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="container">
+
+  <!-- Gauge producción -->
+  <div class="gauge-section" style="margin-bottom:var(--s6)">
+    <div class="gauge-header">
+      <span class="gauge-title"><i class="fa-solid fa-wheat-awn"></i> Avance de producción</span>
+      <span class="gauge-amount"><strong>{{total_cargas}} cargas</strong> / {{min_cargas}} mínimo</span>
+    </div>
+    <div class="gauge-bar-wrap">
+      <div class="gauge-bar {% if pct_produccion >= 100 %}gauge-bar--green{% elif pct_produccion >= 60 %}gauge-bar--yellow{% else %}gauge-bar--red{% endif %}"
+           style="width:{{[pct_produccion,100]|min}}%">{{pct_produccion}}%</div>
+    </div>
+  </div>
+
+  {% if cosechas %}
+
+  <!-- Tabs siembra / cosecha -->
+  <div style="display:flex;gap:var(--s2);margin-bottom:var(--s5);border-bottom:2px solid var(--border);">
+    <button onclick="filtrar('todos')" id="tab-todos"
+            class="button button--sm button--ghost-dark tab-btn is-active"
+            style="border-bottom:3px solid var(--clr-700);border-radius:0;">
+      <i class="fa-solid fa-list"></i> Todos
+    </button>
+    <button onclick="filtrar('cosecha')" id="tab-cosecha"
+            class="button button--sm button--ghost-dark tab-btn">
+      <i class="fa-solid fa-wheat-awn"></i> Cosechas
+    </button>
+    <button onclick="filtrar('siembra')" id="tab-siembra"
+            class="button button--sm button--ghost-dark tab-btn">
+      <i class="fa-solid fa-seedling"></i> Siembras
+    </button>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table" id="tablaProd">
+      <thead>
+        <tr>
+          <th>Fase</th>
+          <th>Fecha</th>
+          <th>Lote</th>
+          <th>Variedad semilla</th>
+          <th>Método siembra</th>
+          <th>Bultos/Ha</th>
+          <th>Total bultos</th>
+          <th>Cargas</th>
+          <th>Kg totales</th>
+          <th>Notas</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in cosechas %}
+        {% set fase = c.fase if c.fase else 'cosecha' %}
+        <tr data-fase="{{fase}}">
+          <td>
+            {% if fase == 'siembra' %}
+              <span class="badge badge--green"><i class="fa-solid fa-seedling"></i> Siembra</span>
+            {% else %}
+              <span class="badge badge--gold"><i class="fa-solid fa-wheat-awn"></i> Cosecha</span>
+            {% endif %}
+          </td>
+          <td class="txt-muted">{{c.fecha.strftime('%d/%m/%Y') if c.fecha else '—'}}</td>
+          <td>{{c.lote or '—'}}</td>
+          <td>
+            {% if c.variedad_semilla %}
+              <strong>{{c.variedad_semilla}}</strong>
+              {% if c.origen_semilla %}<br><span class="txt-muted" style="font-size:.8rem;">{{c.origen_semilla}}</span>{% endif %}
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if c.metodo_siembra %}
+              {% set met_map = {'al_voleo': 'Al voleo', 'sembradora': 'Sembradora', 'labranza_minima': 'Labranza mín.', 'otro': 'Otro'} %}
+              {{met_map.get(c.metodo_siembra, c.metodo_siembra)}}
+            {% else %}—{% endif %}
+          </td>
+          <td>{{c.bultos_ha if c.bultos_ha else '—'}}</td>
+          <td>{{"{:.1f}".format(c.total_bultos) if c.total_bultos else '—'}}</td>
+          <td><strong>{{c.cargas if c.cargas else '—'}}</strong></td>
+          <td class="txt-muted">{{"{:,.1f}".format(c.kg_total).replace(",",".") if c.kg_total else '—'}}</td>
+          <td class="small txt-muted">{{c.observaciones or ''}}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      {% if total_cargas > 0 %}
+      <tfoot>
+        <tr class="table-foot">
+          <td colspan="7" style="text-align:right;font-weight:600">Totales cosechas:</td>
+          <td><strong>{{total_cargas}}</strong></td>
+          <td class="txt-muted">
+            {{"{:,.1f}".format(cosechas|selectattr('kg_total')|sum(attribute='kg_total')).replace(",",".") if cosechas else '0'}} kg
+          </td>
+          <td></td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+
+  {% else %}
+  <div class="empty-state">
+    <span class="empty-state__icon"><i class="fa-solid fa-seedling"></i></span>
+    <h3>Sin registros de producción</h3>
+    <a href="{{url_for('nueva_cosecha')}}" class="button button--primary"><i class="fa-solid fa-plus"></i> Registrar</a>
+  </div>
+  {% endif %}
+
+</div></section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filtrar(fase){
+  document.querySelectorAll('#tablaProd tbody tr').forEach(tr=>{
+    tr.style.display = (fase==='todos'||tr.dataset.fase===fase) ? '' : 'none';
+  });
+  document.querySelectorAll('.tab-btn').forEach(b=>b.style.borderBottom='none');
+  const btn = document.getElementById('tab-'+fase);
+  if(btn) btn.style.borderBottom='3px solid var(--clr-700)';
+}
+</script>
+{% endblock %}

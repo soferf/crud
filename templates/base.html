@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Contabilidad Arroceras{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+<header class="topbar">
+    <div class="container topbar__inner">
+        <a class="brand" href="{{ url_for('home') }}">
+            <i class="fa-solid fa-seedling brand__icon"></i>
+            <div>
+                <span class="brand__name">Contabilidad Arroceras</span>
+                <span class="brand__tagline">Sistema de gestión agrícola</span>
+            </div>
+        </a>
+        <nav class="nav">
+            <a href="{{ url_for('dashboard') }}" class="{{ 'nav__active' if request.endpoint == 'dashboard' else '' }}">
+                <i class="fa-solid fa-gauge"></i> Dashboard
+            </a>
+            <div class="nav__dropdown">
+                <span class="nav__dropdown-toggle"><i class="fa-solid fa-users"></i> Trabajadores</span>
+                <div class="nav__dropdown-menu">
+                    <a href="{{ url_for('lista_workers') }}"><i class="fa-solid fa-list"></i> Ver todos</a>
+                    <a href="{{ url_for('create_worker') }}"><i class="fa-solid fa-user-plus"></i> Registrar</a>
+                </div>
+            </div>
+            <div class="nav__dropdown">
+                <span class="nav__dropdown-toggle"><i class="fa-solid fa-file-invoice-dollar"></i> Recibos</span>
+                <div class="nav__dropdown-menu">
+                    <a href="{{ url_for('lista_recibos') }}"><i class="fa-solid fa-list"></i> Ver todos</a>
+                    <a href="{{ url_for('nuevo_recibo') }}"><i class="fa-solid fa-plus"></i> Nuevo recibo</a>
+                    <a href="{{ url_for('nuevo_recibo_lote') }}"><i class="fa-solid fa-users-between-lines"></i> Por lote</a>
+                    <div class="nav__dropdown-divider"></div>
+                    <a href="{{ url_for('labores_desague') }}"><i class="fa-solid fa-droplet"></i> Desagüe / Despalillada</a>
+                    <a href="{{ url_for('labores_abonada') }}"><i class="fa-solid fa-seedling"></i> Abonada / Fumigación</a>
+                </div>
+            </div>
+            <a href="{{ url_for('reportes') }}" class="{{ 'nav__active' if request.endpoint == 'reportes' else '' }}">
+                <i class="fa-solid fa-chart-bar"></i> Reportes
+            </a>
+            <a href="{{ url_for('lista_produccion') }}" class="{{ 'nav__active' if request.endpoint in ['lista_produccion','nueva_cosecha'] else '' }}">
+                <i class="fa-solid fa-wheat-awn"></i> Producción
+            </a>
+            <a href="{{ url_for('config_app') }}" class="{{ 'nav__active' if request.endpoint == 'config_app' else '' }}">
+                <i class="fa-solid fa-gear"></i> Config
+            </a>
+            <a class="nav__cta nav__cta--alt" href="{{ url_for('logout') }}">
+                <i class="fa-solid fa-right-from-bracket"></i> Salir
+            </a>
+        </nav>
+    </div>
+</header>
+
+<main>
+{% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+    <div class="container footer__inner">
+        <div class="footer__brand">
+            <i class="fa-solid fa-seedling"></i>
+            <span>Contabilidad Arroceras</span>
+        </div>
+        <p class="footer__copy">Sistema de gestión agrícola · 2026</p>
+    </div>
+</footer>
+
+{% block scripts %}{% endblock %}
+<script>
+// ── Dropdown navigation: click + hover con delay ──────────────────────────
+(function() {
+  document.querySelectorAll('.nav__dropdown').forEach(function(dd) {
+    var closeTimer = null;
+    function openDD() {
+      clearTimeout(closeTimer);
+      document.querySelectorAll('.nav__dropdown').forEach(function(o){ if(o!==dd) o.classList.remove('is-open'); });
+      dd.classList.add('is-open');
+    }
+    function closeDD() {
+      closeTimer = setTimeout(function(){ dd.classList.remove('is-open'); }, 180);
+    }
+    dd.addEventListener('mouseenter', openDD);
+    dd.addEventListener('mouseleave', closeDD);
+    dd.querySelector('.nav__dropdown-toggle').addEventListener('click', function(e) {
+      e.stopPropagation();
+      dd.classList.toggle('is-open');
+    });
+    dd.querySelector('.nav__dropdown-menu').addEventListener('mouseenter', function(){ clearTimeout(closeTimer); });
+    dd.querySelector('.nav__dropdown-menu').addEventListener('mouseleave', closeDD);
+  });
+  document.addEventListener('click', function(){
+    document.querySelectorAll('.nav__dropdown').forEach(function(d){ d.classList.remove('is-open'); });
+  });
+})();
+</script>
+</body>
+</html>

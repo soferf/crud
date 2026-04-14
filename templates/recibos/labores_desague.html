@@ -1,0 +1,432 @@
+{% extends "base.html" %}
+{% block title %}Nómina de Jornales | Contabilidad Arroceras{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="container page-hero__inner">
+    <div class="page-hero__icon"><i class="fa-solid fa-droplet"></i></div>
+    <div>
+      <h1 class="page-hero__title">Nómina de Jornales</h1>
+      <p class="page-hero__sub">Desagüe · Despalillada · Bordeada — marca asistencia y días por trabajador.</p>
+    </div>
+    <div class="page-hero__actions">
+      <a href="{{ url_for('lista_recibos') }}" class="button button--ghost"><i class="fa-solid fa-list"></i> Ver recibos</a>
+      <a href="{{ url_for('nuevo_recibo') }}" class="button button--ghost"><i class="fa-solid fa-file-invoice-dollar"></i> Individual</a>
+      <a href="{{ url_for('nuevo_recibo_lote') }}" class="button button--ghost"><i class="fa-solid fa-users-between-lines"></i> Por lote</a>
+      <a href="{{ url_for('labores_abonada') }}" class="button button--ghost"><i class="fa-solid fa-seedling"></i> Abonada</a>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="container">
+  {% if success %}<div class="alert alert--success"><i class="fa-solid fa-circle-check"></i> {{ success }}</div>{% endif %}
+  {% if error %}<div class="alert alert--danger"><i class="fa-solid fa-circle-xmark"></i> {{ error }}</div>{% endif %}
+
+  <form method="POST" id="nomForm">
+
+    <!-- ── PASO 1: Tipo + datos comunes ── -->
+    <div class="form-card" style="margin-bottom:var(--s6)">
+      <div class="form-section">
+        <h3 class="form-section__title"><span class="step-badge">1</span> Tipo de labor y datos</h3>
+
+        <div class="labor-type-grid" style="margin-bottom:var(--s5)">
+          {% for key, info in tipos_labor.items() %}
+          <label class="labor-type-card">
+            <input type="radio" name="tipo_labor" value="{{ key }}" {% if loop.first %}checked{% endif %}>
+            <span class="labor-type-card__icon"><i class="fa-solid {{ info.icon }}"></i></span>
+            <span class="labor-type-card__label">{{ info.label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+
+        <div class="form-grid form-grid--3">
+          <div class="form-group">
+            <label for="serial_inicio">Serial de inicio <span class="req-star">*</span></label>
+            <input type="number" id="serial_inicio" name="serial_inicio" value="{{ next_serial }}" min="1" required oninput="updateResumen()">
+            <p class="field-hint">Se asigna un serial por trabajador presente.</p>
+          </div>
+          <div class="form-group">
+            <label for="fecha">Fecha <span class="req-star">*</span></label>
+            <input type="date" id="fecha" name="fecha" value="{{ today }}" required>
+          </div>
+          <div class="form-group">
+            <label for="lote_nombre">Lote / Ubicación</label>
+            <input type="text" id="lote_nombre" name="lote_nombre" value="El Mangon" placeholder="Ej: Lote El Mangon">
+          </div>
+        </div>
+
+        <div class="form-grid form-grid--2">
+          <div class="form-group">
+            <label for="ciudad">Ciudad</label>
+            <input type="text" id="ciudad" name="ciudad" value="Natagaima">
+          </div>
+          <div class="form-group">
+            <label for="vdia_global">Valor por día (global) <span class="req-star">*</span></label>
+            <input type="text" id="vdia_global" name="vdia_global" value="60.000"
+                   oninput="fmtCOP(this);aplicarVdiaGlobal()" placeholder="60.000">
+            <p class="field-hint">Se puede ajustar individualmente en la tabla.</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="concepto_base">Concepto base <small>(opcional — se genera automático)</small></label>
+          <input type="text" id="concepto_base" name="concepto_base"
+                 placeholder="Ej: Despalillada en lote El Mangon — dejar vacío para generar">
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PASO 2: Seleccionar trabajadores ── -->
+    <div class="form-card" style="margin-bottom:var(--s6)">
+      <div class="form-section">
+        <h3 class="form-section__title" style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+          <span><span class="step-badge">2</span> Trabajadores</span>
+          <span class="badge badge--info" id="presCounter">0 añadidos</span>
+        </h3>
+
+        {% if db_workers %}
+        <!-- ── Buscador desplegable ── -->
+        <div class="worker-add-bar" style="position:relative;max-width:520px;margin-bottom:var(--s5)">
+          <label style="font-weight:600;margin-bottom:.4rem;display:block">
+            <i class="fa-solid fa-user-plus" style="color:var(--clr-500)"></i> Añadir trabajador
+          </label>
+          <div style="display:flex;gap:var(--s2)">
+            <div style="position:relative;flex:1">
+              <input type="text" id="workerSearch" class="form-control" autocomplete="off"
+                     placeholder="Escribir nombre o cargo..."
+                     oninput="filterDropdown()" onfocus="openDropdown()"
+                     style="padding:.55rem .8rem;border:1px solid var(--brd);border-radius:var(--radius-md);width:100%;background:var(--bg-input)">
+              <div id="workerDropdown" class="worker-dropdown" style="display:none"></div>
+            </div>
+            <button type="button" class="button button--primary" onclick="addSelectedWorker()" id="btnAddWorker" disabled>
+              <i class="fa-solid fa-plus"></i> Añadir
+            </button>
+          </div>
+          <p class="field-hint">Selecciona del menú, luego «Añadir» — o haz doble clic en el nombre.</p>
+        </div>
+
+        <!-- ── Mensaje vacío ── -->
+        <div id="emptyMsg" style="text-align:center;padding:var(--s6) 0;color:var(--txt-muted)">
+          <i class="fa-solid fa-user-plus" style="font-size:2rem;opacity:.3;display:block;margin-bottom:.6rem"></i>
+          Usa el buscador para añadir trabajadores a la nómina
+        </div>
+
+        <!-- ── Tabla de jornales (inicia vacía) ── -->
+        <div class="att-table-wrap" id="attTableWrap" style="display:none">
+          <table class="att-table" id="attTable">
+            <thead>
+              <tr>
+                <th>Trabajador</th>
+                <th style="width:75px;text-align:center">Días</th>
+                <th style="width:130px;text-align:center">+ Fracción</th>
+                <th style="width:130px">$/día</th>
+                <th style="width:130px;text-align:right">Total</th>
+                <th style="width:42px"></th>
+              </tr>
+            </thead>
+            <tbody id="attBody"></tbody>
+            <tfoot>
+              <tr style="background:var(--bg-subtle)">
+                <td colspan="4" style="text-align:right;font-weight:700;padding:var(--s3)">Total nómina:</td>
+                <td class="text-right" id="totalNomina" style="font-weight:700;font-size:1.1rem;color:var(--clr-700);padding:var(--s3)">$ 0</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        {% else %}
+        <div class="alert alert--warning">
+          No hay trabajadores activos. <a href="{{ url_for('create_worker') }}">Registrar trabajadores</a> primero.
+        </div>
+        {% endif %}
+
+        <div id="selResumen" style="display:none;margin-top:var(--s4);padding:var(--s3) var(--s4);background:var(--bg-subtle);border-radius:var(--radius-md);font-size:.9rem">
+          <i class="fa-solid fa-receipt" style="color:var(--clr-500)"></i>
+          Se generarán <strong id="numRecibos">0</strong> recibos — seriales <strong id="serialRange">–</strong>
+        </div>
+
+        <!-- hidden inputs for worker_ids (rebuilt by JS) -->
+        <div id="hiddenWorkerInputs"></div>
+      </div>
+    </div>
+
+    <!-- ── PASO 3: RTE FTE + enviar ── -->
+    <div class="form-card">
+      <div class="form-section">
+        <h3 class="form-section__title"><span class="step-badge">3</span> Finalizar</h3>
+        <div class="form-grid form-grid--3">
+          <div class="form-group">
+            <label for="rte_fte">RTE FTE (%)</label>
+            <input type="number" id="rte_fte" name="rte_fte" value="0" min="0" max="100" step="0.1"
+                   oninput="updateSummary()">
+          </div>
+        </div>
+
+        <!-- Resumen financiero -->
+        <div class="summary-box" id="summaryBox" style="margin-top:var(--s4);padding:var(--s4);background:var(--bg-subtle);border-radius:var(--radius-md);border:1px solid var(--brd);display:none">
+          <div style="display:flex;justify-content:space-between;margin-bottom:.4rem">
+            <span style="color:var(--txt-muted)">Subtotal nómina:</span>
+            <strong id="sumSubtotal">$ 0</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:.4rem;color:var(--clr-danger,#d32f2f)">
+            <span>Retención RTE FTE (<span id="sumPct">0</span>%):</span>
+            <span id="sumRetencion">- $ 0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:1.1rem;font-weight:700;border-top:2px solid var(--brd);padding-top:.6rem;margin-top:.4rem">
+            <span>Neto total a pagar:</span>
+            <strong id="sumNeto" style="color:var(--clr-700)">$ 0</strong>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:var(--s3);justify-content:flex-end;margin-top:var(--s4)">
+          <a href="{{ url_for('lista_recibos') }}" class="button button--ghost">Cancelar</a>
+          <button type="submit" id="btnSubmit" class="button button--primary" disabled>
+            <i class="fa-solid fa-paper-plane"></i> Generar recibos
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </form>
+</div></section>
+{% endblock %}
+
+{% block scripts %}
+<script type="application/json" id="workersJson">{{ db_workers | tojson }}</script>
+<script>
+// ── Data from backend ─────────────────────────────────────────────────────────
+const ALL_WORKERS = JSON.parse(document.getElementById('workersJson').textContent);
+const workerMap = {};
+ALL_WORKERS.forEach(w => { workerMap[w.id_worker] = w; });
+
+// ── State ─────────────────────────────────────────────────────────────────────
+const addedIds = new Set();
+let selectedDropdownId = null;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function parseCOP(s){ return parseFloat((s||'0').replace(/\./g,'').replace(',','.').replace(/[^0-9.]/g,''))||0; }
+function formatCOP(n){ return Math.round(n).toLocaleString('es-CO'); }
+function fmtCOP(inp){ const r=inp.value.replace(/[^\d]/g,''); inp.value=r?parseInt(r).toLocaleString('es-CO'):''; }
+
+// ── Dropdown ──────────────────────────────────────────────────────────────────
+function openDropdown(){
+  filterDropdown();
+  document.getElementById('workerDropdown').style.display='block';
+}
+
+function filterDropdown(){
+  const q = document.getElementById('workerSearch').value.toLowerCase().trim();
+  const dd = document.getElementById('workerDropdown');
+  const available = ALL_WORKERS.filter(w =>
+    !addedIds.has(w.id_worker) &&
+    (w.nombre_completo.toLowerCase().includes(q) || (w.cargo||'').toLowerCase().includes(q))
+  );
+  if(available.length === 0){
+    dd.innerHTML='<div class="wd-empty">Sin coincidencias</div>';
+    selectedDropdownId=null;
+    document.getElementById('btnAddWorker').disabled=true;
+    dd.style.display='block';
+    return;
+  }
+  dd.innerHTML = available.map(w=>`
+    <div class="wd-item" data-id="${w.id_worker}"
+         onclick="selectFromDropdown(${w.id_worker})"
+         ondblclick="quickAdd(${w.id_worker})">
+      <div class="wd-item__name">${w.nombre_completo}</div>
+      <div class="wd-item__cargo">${(w.cargo||'sin cargo').replace(/_/g,' ')}</div>
+    </div>`).join('');
+  dd.style.display='block';
+}
+
+function selectFromDropdown(id){
+  selectedDropdownId = id;
+  const w = workerMap[id];
+  document.getElementById('workerSearch').value = w.nombre_completo;
+  document.querySelectorAll('.wd-item').forEach(el =>
+    el.classList.toggle('wd-item--selected', parseInt(el.dataset.id)===id));
+  document.getElementById('btnAddWorker').disabled = false;
+}
+
+function quickAdd(id){
+  selectFromDropdown(id);
+  addSelectedWorker();
+}
+
+function addSelectedWorker(){
+  if(!selectedDropdownId) return;
+  addWorker(selectedDropdownId);
+  selectedDropdownId = null;
+  document.getElementById('workerSearch').value = '';
+  document.getElementById('workerDropdown').style.display='none';
+  document.getElementById('btnAddWorker').disabled = true;
+}
+
+document.addEventListener('click', function(e){
+  if(!e.target.closest('.worker-add-bar'))
+    document.getElementById('workerDropdown').style.display='none';
+});
+
+// ── Add / Remove rows ─────────────────────────────────────────────────────────
+function addWorker(id){
+  if(addedIds.has(id)) return;
+  addedIds.add(id);
+  const w = workerMap[id];
+  const vdia = (w.valor_habitual && w.valor_habitual > 0) ? w.valor_habitual : 60000;
+  const tr = document.createElement('tr');
+  tr.id = `arow_${id}`;
+  tr.className = 'att-row';
+  tr.dataset.id = id;
+  tr.innerHTML = `
+    <td>
+      <div class="att-name">${w.nombre_completo}</div>
+      <div class="att-cargo">${(w.cargo||'').replace(/_/g,' ')}</div>
+    </td>
+    <td>
+      <input type="number" class="att-dias" id="dias_${id}" name="dias_w_${id}"
+             value="1" min="0" step="1" oninput="recalcRow(${id})" style="width:60px;text-align:center">
+    </td>
+    <td>
+      <select class="att-frac" id="frac_${id}" name="frac_w_${id}" onchange="recalcRow(${id})">
+        <option value="0">ninguna</option>
+        <option value="0.25">+ ¼</option>
+        <option value="0.5">+ ½</option>
+        <option value="0.75">+ ¾</option>
+      </select>
+    </td>
+    <td>
+      <input type="text" class="att-vdia" id="vdia_${id}" name="vdia_w_${id}"
+             value="${formatCOP(vdia)}"
+             oninput="fmtCOP(this);recalcRow(${id})" style="width:110px">
+    </td>
+    <td class="att-total text-right" id="total_${id}" style="font-weight:600;color:var(--clr-700)">$ 0</td>
+    <td>
+      <button type="button" class="cr-remove" onclick="removeWorker(${id})" title="Quitar">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </td>`;
+  document.getElementById('attBody').appendChild(tr);
+  document.getElementById('attTableWrap').style.display='block';
+  document.getElementById('emptyMsg').style.display='none';
+  recalcRow(id);
+  updateAll();
+}
+
+function removeWorker(id){
+  addedIds.delete(id);
+  const row = document.getElementById(`arow_${id}`);
+  if(row) row.remove();
+  if(addedIds.size===0){
+    document.getElementById('attTableWrap').style.display='none';
+    document.getElementById('emptyMsg').style.display='block';
+  }
+  updateAll();
+  filterDropdown();
+}
+
+// ── Recalculate ───────────────────────────────────────────────────────────────
+function recalcRow(id){
+  const dias = parseFloat(document.getElementById(`dias_${id}`)?.value)||0;
+  const frac = parseFloat(document.getElementById(`frac_${id}`)?.value)||0;
+  const vdia = parseCOP(document.getElementById(`vdia_${id}`)?.value);
+  document.getElementById(`total_${id}`).textContent='$ '+formatCOP((dias+frac)*vdia);
+  recalcTotalNomina();
+}
+
+function recalcTotalNomina(){
+  let t=0;
+  addedIds.forEach(id=>{
+    t+=(parseFloat(document.getElementById(`dias_${id}`)?.value)||0
+       +parseFloat(document.getElementById(`frac_${id}`)?.value)||0)
+      *parseCOP(document.getElementById(`vdia_${id}`)?.value);
+  });
+  document.getElementById('totalNomina').textContent='$ '+formatCOP(t);
+  updateSummary();
+}
+
+function updateSummary(){
+  let sub=0;
+  addedIds.forEach(id=>{
+    sub+=(parseFloat(document.getElementById(`dias_${id}`)?.value)||0
+        +parseFloat(document.getElementById(`frac_${id}`)?.value)||0)
+       *parseCOP(document.getElementById(`vdia_${id}`)?.value);
+  });
+  const pct=parseFloat(document.getElementById('rte_fte')?.value)||0;
+  const ret=sub*pct/100, neto=sub-ret;
+  const box=document.getElementById('summaryBox');
+  if(box) box.style.display=sub>0?'block':'none';
+  const s=id=>document.getElementById(id);
+  if(s('sumSubtotal')) s('sumSubtotal').textContent='$ '+formatCOP(sub);
+  if(s('sumPct'))      s('sumPct').textContent=pct.toFixed(pct%1===0?0:1);
+  if(s('sumRetencion'))s('sumRetencion').textContent='- $ '+formatCOP(ret);
+  if(s('sumNeto'))     s('sumNeto').textContent='$ '+formatCOP(neto);
+}
+
+// ── Global $/día ──────────────────────────────────────────────────────────────
+function aplicarVdiaGlobal(){
+  const v=document.getElementById('vdia_global').value;
+  addedIds.forEach(id=>{
+    const inp=document.getElementById(`vdia_${id}`);
+    if(inp && !inp.dataset.overridden) inp.value=v;
+    recalcRow(id);
+  });
+}
+
+// ── Counter / hidden inputs / resumen ────────────────────────────────────────
+function updateAll(){ updateCounter(); updateHiddenInputs(); updateResumen(); updateSummary(); }
+
+function updateCounter(){
+  const n=addedIds.size;
+  document.getElementById('presCounter').textContent=n+' añadido'+(n!==1?'s':'');
+  document.getElementById('btnSubmit').disabled=n===0;
+}
+
+function updateHiddenInputs(){
+  document.querySelectorAll('#hiddenWorkerInputs input').forEach(i=>i.remove());
+  addedIds.forEach(id=>{
+    const inp=document.createElement('input');
+    inp.type='hidden'; inp.name='worker_ids'; inp.value=id;
+    document.getElementById('hiddenWorkerInputs').appendChild(inp);
+  });
+}
+
+function updateResumen(){
+  const n=addedIds.size, res=document.getElementById('selResumen');
+  if(n===0){res.style.display='none';return;}
+  const ini=parseInt(document.getElementById('serial_inicio')?.value)||1;
+  res.style.display='block';
+  document.getElementById('numRecibos').textContent=n;
+  document.getElementById('serialRange').textContent=n===1?ini:ini+' – '+(ini+n-1);
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  updateAll();
+  const vg=document.getElementById('vdia_global');
+  if(vg) vg.value='60.000';
+  document.addEventListener('focus',function(e){
+    if(e.target.classList.contains('att-vdia')) e.target.dataset.overridden='1';
+  },true);
+});
+</script>
+
+<style>
+.worker-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg);border:1px solid var(--brd);border-radius:var(--radius-md);box-shadow:0 6px 20px rgba(0,0,0,.13);max-height:280px;overflow-y:auto;z-index:200}
+.wd-item{padding:.55rem .9rem;cursor:pointer;border-bottom:1px solid var(--brd)}
+.wd-item:last-child{border-bottom:none}
+.wd-item:hover,.wd-item--selected{background:var(--clr-50,#f0fdf4)}
+.wd-item__name{font-weight:600;font-size:.9rem}
+.wd-item__cargo{font-size:.76rem;color:var(--txt-muted);text-transform:capitalize}
+.wd-empty{padding:.7rem 1rem;color:var(--txt-muted);font-size:.88rem}
+.att-table-wrap{overflow-x:auto;border-radius:var(--radius-md);border:1px solid var(--brd)}
+.att-table{width:100%;border-collapse:collapse;font-size:.9rem}
+.att-table thead th{background:var(--bg-subtle);padding:.6rem .8rem;font-weight:600;border-bottom:2px solid var(--brd);white-space:nowrap}
+.att-table tbody td{padding:.55rem .8rem;border-bottom:1px solid var(--brd)}
+.att-table tfoot td{padding:.6rem .8rem}
+.att-name{font-weight:600;font-size:.88rem}
+.att-cargo{font-size:.76rem;color:var(--txt-muted);text-transform:capitalize}
+.att-dias,.att-vdia{padding:.35rem .5rem;border:1px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg-input)}
+.att-frac{padding:.35rem .4rem;border:1px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg-input);font-size:.82rem}
+.cr-remove{background:none;border:none;cursor:pointer;color:var(--clr-danger,#c62828);padding:.3rem .5rem;border-radius:var(--radius-sm);transition:background .15s}
+.cr-remove:hover{background:rgba(198,40,40,.1)}
+</style>
+{% endblock %}

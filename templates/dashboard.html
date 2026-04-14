@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | Contabilidad Arroceras{% endblock %}
+
+{% block content %}
+
+<!-- ── PAGE HERO ──────────────────────────────────────────────────────────── -->
+<div class="page-hero">
+  <div class="container page-hero__inner">
+    <div class="page-hero__icon">
+      <i class="fa-solid fa-gauge"></i>
+    </div>
+    <div>
+      <h1 class="page-hero__title">
+        Bienvenido, <em style="color:var(--gold-300);font-style:normal;">{{ user_name }}</em>
+      </h1>
+      <p class="page-hero__sub" id="dashDate">{{ today }}</p>
+    </div>
+    <div class="page-hero__actions">
+      <a href="{{ url_for('nuevo_recibo') }}" class="button button--primary">
+        <i class="fa-solid fa-plus"></i> Nuevo recibo
+      </a>
+      <a href="{{ url_for('reportes') }}" class="button button--ghost">
+        <i class="fa-solid fa-chart-bar"></i> Reportes
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN CONTENT ───────────────────────────────────────────────────────── -->
+<section class="section">
+<div class="container">
+
+  <!-- KPI STATS GRID -->
+  <div class="stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr));margin-bottom:var(--s8);">
+
+    <a href="{{ url_for('lista_recibos') }}" style="text-decoration:none;color:inherit;">
+      <div class="stat-card">
+        <div class="stat-card__label">
+          <i class="fa-solid fa-file-invoice-dollar" style="color:var(--clr-500);margin-right:.3rem;"></i>Recibos
+        </div>
+        <div class="stat-card__value">{{ stats.total_recibos }}</div>
+        <div class="stat-card__sub">registrados en total</div>
+      </div>
+    </a>
+
+    <div class="stat-card">
+      <div class="stat-card__label">
+        <i class="fa-solid fa-coins" style="color:var(--clr-500);margin-right:.3rem;"></i>Total gastado
+      </div>
+      <div class="stat-card__value" style="font-size:1.4rem;">{{ stats.total_gastos_fmt }}</div>
+      <div class="stat-card__sub">acumulado histórico</div>
+    </div>
+
+    <a href="{{ url_for('lista_workers') }}" style="text-decoration:none;color:inherit;">
+      <div class="stat-card">
+        <div class="stat-card__label">
+          <i class="fa-solid fa-users" style="color:var(--clr-500);margin-right:.3rem;"></i>Trabajadores
+        </div>
+        <div class="stat-card__value">{{ stats.total_workers }}</div>
+        <div class="stat-card__sub">activos en el sistema</div>
+      </div>
+    </a>
+
+    <div class="stat-card">
+      <div class="stat-card__label">
+        <i class="fa-solid fa-calendar-week" style="color:var(--clr-500);margin-right:.3rem;"></i>Esta semana
+      </div>
+      <div class="stat-card__value" style="font-size:1.4rem;">{{ stats.gasto_semana_fmt }}</div>
+      <div class="stat-card__sub">{{ stats.recibos_semana }} recibo(s) emitidos</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-card__label">
+        <i class="fa-solid fa-calendar-days" style="color:var(--clr-500);margin-right:.3rem;"></i>Este mes
+      </div>
+      <div class="stat-card__value" style="font-size:1.4rem;">{{ stats.gasto_mes_fmt }}</div>
+      <div class="stat-card__sub">gasto mensual</div>
+    </div>
+
+    <a href="{{ url_for('lista_produccion') }}" style="text-decoration:none;color:inherit;">
+      <div class="stat-card {{ 'stat-card--success' if stats.total_cargas >= 2000 else 'stat-card--warning' }}">
+        <div class="stat-card__label">
+          <i class="fa-solid fa-wheat-awn" style="color:var(--clr-500);margin-right:.3rem;"></i>Producción
+        </div>
+        <div class="stat-card__value">{{ stats.total_cargas }}</div>
+        <div class="stat-card__sub">cargas cosechadas</div>
+      </div>
+    </a>
+
+  </div>
+
+  <!-- PROGRESS GAUGES -->
+  <div class="charts-row" style="margin-bottom:var(--s8);">
+
+    <div class="gauge-section" style="margin-bottom:0;">
+      <div class="gauge-header">
+        <div class="gauge-title">
+          <i class="fa-solid fa-gauge-high"></i> Gasto por hectárea
+        </div>
+        <div class="gauge-amount">
+          <strong>{{ stats.gasto_x_ha_fmt }}</strong> &nbsp;/&nbsp; $11.000.000 límite
+        </div>
+      </div>
+      <div class="gauge-bar-wrap">
+        <div class="gauge-bar {{ 'gauge-bar--red' if stats.alerta_gasto else 'gauge-bar--green' }}"
+             style="width:{{ [stats.gasto_pct, 100]|min }}%;">
+          {{ stats.gasto_pct }}%
+        </div>
+      </div>
+      <p class="gauge-footnote">
+        {% if stats.alerta_gasto %}
+          <i class="fa-solid fa-triangle-exclamation" style="color:#c0392b;"></i>
+          Límite superado — revisar gastos.
+        {% else %}
+          <i class="fa-solid fa-circle-check" style="color:var(--clr-500);"></i>
+          Dentro del límite permitido por hectárea.
+        {% endif %}
+      </p>
+    </div>
+
+    <div class="gauge-section" style="margin-bottom:0;">
+      <div class="gauge-header">
+        <div class="gauge-title">
+          <i class="fa-solid fa-wheat-awn"></i> Meta de producción
+        </div>
+        <div class="gauge-amount">
+          <strong>{{ stats.total_cargas }}</strong> &nbsp;/&nbsp; 2 000 cargas mínimas
+        </div>
+      </div>
+      <div class="gauge-bar-wrap">
+        <div class="gauge-bar {{ 'gauge-bar--green' if stats.total_cargas >= 2000 else 'gauge-bar--yellow' }}"
+             style="width:{{ [stats.cargas_pct, 100]|min }}%;">
+          {{ stats.cargas_pct }}%
+        </div>
+      </div>
+      <p class="gauge-footnote">
+        {% if stats.total_cargas >= 2000 %}
+          <i class="fa-solid fa-circle-check" style="color:var(--clr-500);"></i>
+          Meta alcanzada (100 cargas/Ha en 20 Ha).
+        {% else %}
+          <i class="fa-solid fa-circle-xmark" style="color:#c77f00;"></i>
+          Faltan <strong>{{ 2000 - stats.total_cargas }}</strong> cargas para la meta mínima.
+        {% endif %}
+      </p>
+    </div>
+
+  </div>
+
+  <!-- TWO COLUMNS: acciones rápidas + últimos recibos -->
+  <div class="charts-row">
+
+    <!-- ── ACCIONES RÁPIDAS ── -->
+    <div>
+      <h2 style="font-family:var(--ff-heading);font-size:1.25rem;color:var(--clr-900);
+                 margin-bottom:var(--s4);display:flex;align-items:center;gap:.5rem;">
+        <i class="fa-solid fa-bolt" style="color:var(--clr-500);"></i> Acciones rápidas
+      </h2>
+
+      <div style="display:grid;gap:var(--s3);">
+
+        <!-- Recibos -->
+        <div class="card" style="padding:var(--s4) var(--s6);">
+          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+                      color:var(--txt-muted);margin-bottom:var(--s3);display:flex;align-items:center;gap:.4rem;">
+            <i class="fa-solid fa-file-invoice-dollar" style="color:var(--clr-500);"></i> Recibos
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:var(--s2);">
+            <a href="{{ url_for('nuevo_recibo') }}" class="button button--sm button--ghost-dark">
+              <i class="fa-solid fa-plus"></i> Individual
+            </a>
+            <a href="{{ url_for('nuevo_recibo_lote') }}" class="button button--sm button--ghost-dark">
+              <i class="fa-solid fa-users-between-lines"></i> Por lote
+            </a>
+            <a href="{{ url_for('lista_recibos') }}" class="button button--sm button--ghost-dark">
+              <i class="fa-solid fa-list"></i> Ver todos
+            </a>
+          </div>
+        </div>
+
+        <!-- Labores -->
+        <div class="card" style="padding:var(--s4) var(--s6);">
+          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+                      color:var(--txt-muted);margin-bottom:var(--s3);display:flex;align-items:center;gap:.4rem;">
+            <i class="fa-solid fa-hard-hat" style="color:var(--clr-500);"></i> Labores del lote
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:var(--s2);">
+            <a href="{{ url_for('labores_desague') }}" class="button button--sm button--ghost-dark">
+              <i class="fa-solid fa-droplet"></i> Desagüe / Despalillada
+            </a>
+            <a href="{{ url_for('labores_abonada') }}" class="button button--sm button--ghost-dark">
+              <i class="fa-solid fa-seedling"></i> Abonada / Fumigación
+            </a>
+          </div>
+        </div>
+
+        <!-- Trabajadores -->
+        <div class="card" style="padding:var(--s4) var(--s6);">
+          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+                      color:var(--txt-muted);margin-bottom:var(--s3);display:flex;align-items:center;gap:.4rem;">
+            <i class="fa-solid fa-users" style="color:var(--clr-500);"></i> Trabajadores
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:var(--s2);">
+            <a href="{{ url_for('create_worker') }}" class="button button--sm button--ghost-dark">
+              <i class="fa-solid fa-user-plus"></i> Registrar
+            </a>
+            <a href="{{ url_for('lista_workers') }}" class="button button--sm button--ghost-dark">
+              <i class="fa-solid fa-list"></i> Ver todos
+            </a>
+          </div>
+        </div>
+
+        <!-- Reportes y producción -->
+        <div class="card" style="padding:var(--s4) var(--s6);">
+          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+                      color:var(--txt-muted);margin-bottom:var(--s3);display:flex;align-items:center;gap:.4rem;">
+            <i class="fa-solid fa-chart-bar" style="color:var(--clr-500);"></i> Reportes y producción
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:var(--s2);">
+            <a href="{{ url_for('reportes') }}" class="button button--sm button--ghost-dark">
+              <i class="fa-solid fa-chart-pie"></i> Reportes
+            </a>
+            <a href="{{ url_for('generar_pdf', tipo='gastos') }}" class="button button--sm button--ghost-dark" target="_blank">
+              <i class="fa-solid fa-file-pdf"></i> PDF
+            </a>
+            <a href="{{ url_for('generar_excel', tipo='recibos') }}" class="button button--sm button--ghost-dark" target="_blank">
+              <i class="fa-solid fa-file-excel"></i> Excel
+            </a>
+            <a href="{{ url_for('nueva_cosecha') }}" class="button button--sm button--ghost-dark">
+              <i class="fa-solid fa-plus"></i> Cosecha
+            </a>
+            <a href="{{ url_for('config_app') }}" class="button button--sm button--ghost-dark">
+              <i class="fa-solid fa-gear"></i> Config
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── ÚLTIMOS RECIBOS ── -->
+    <div>
+      <h2 style="font-family:var(--ff-heading);font-size:1.25rem;color:var(--clr-900);
+                 margin-bottom:var(--s4);display:flex;align-items:center;gap:.5rem;">
+        <i class="fa-solid fa-clock-rotate-left" style="color:var(--clr-500);"></i> Últimos recibos
+        <a href="{{ url_for('lista_recibos') }}"
+           style="margin-left:auto;font-size:.82rem;font-weight:600;color:var(--clr-500);font-family:var(--ff-body);">
+          Ver todos <i class="fa-solid fa-arrow-right"></i>
+        </a>
+      </h2>
+
+      {% if recibos_recientes %}
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="col-serial">#</th>
+              <th class="col-fecha">Fecha</th>
+              <th>Proveedor</th>
+              <th style="text-align:right;">Neto a pagar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in recibos_recientes %}
+            <tr style="cursor:pointer;"
+                onclick="location.href='{{ url_for('detalle_recibo', serial=r.serial) }}'">
+              <td><span class="serial-badge">{{ r.serial }}</span></td>
+              <td class="txt-muted">{{ r.fecha.strftime('%d/%m/%Y') if r.fecha else '—' }}</td>
+              <td><strong>{{ (r.proveedor or '—')[:28] }}</strong></td>
+              <td class="valor-cell">
+                $ {{ '{:,.0f}'.format(r.neto_a_pagar or 0).replace(',','.') }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding:var(--s12) var(--s6);">
+        <span class="empty-state__icon"><i class="fa-solid fa-file-circle-xmark"></i></span>
+        <h3>Sin recibos aún</h3>
+        <p>Crea tu primer recibo para empezar a registrar los gastos del lote.</p>
+        <a href="{{ url_for('nuevo_recibo') }}" class="button button--primary">
+          <i class="fa-solid fa-plus"></i> Nuevo recibo
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- Resumen financiero debajo de la tabla -->
+      <div style="margin-top:var(--s4);background:var(--surface);border:1px solid var(--border);
+                  border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-sm);">
+        <div style="padding:var(--s3) var(--s6);background:var(--clr-50);border-bottom:1px solid var(--border);
+                    font-family:var(--ff-heading);font-size:.95rem;color:var(--clr-900);
+                    display:flex;align-items:center;gap:.4rem;">
+          <i class="fa-solid fa-scale-balanced" style="color:var(--clr-500);"></i> Resumen financiero
+          <a href="{{ url_for('reportes') }}"
+             style="margin-left:auto;font-size:.78rem;font-weight:600;color:var(--clr-500);font-family:var(--ff-body);">
+            Detalles <i class="fa-solid fa-arrow-right"></i>
+          </a>
+        </div>
+        {% for label, icon, val in [
+          ('Gasto total',      'fa-arrow-trend-up',   stats.total_gastos_fmt),
+          ('Esta semana',      'fa-calendar-week',    stats.gasto_semana_fmt),
+          ('Este mes',         'fa-calendar-days',    stats.gasto_mes_fmt),
+          ('Gasto / hectárea', 'fa-gauge-high',       stats.gasto_x_ha_fmt),
+        ] %}
+        <div style="display:flex;justify-content:space-between;align-items:center;
+                    padding:.6rem var(--s6);border-bottom:1px solid var(--border);">
+          <span style="font-size:.875rem;color:var(--txt-muted);display:flex;align-items:center;gap:.4rem;">
+            <i class="fa-solid {{ icon }}" style="color:var(--clr-500);"></i> {{ label }}
+          </span>
+          <span style="font-weight:700;font-family:var(--ff-heading);color:var(--clr-700);">{{ val }}</span>
+        </div>
+        {% endfor %}
+        <div style="display:flex;justify-content:space-between;align-items:center;
+                    padding:.6rem var(--s6);">
+          <span style="font-size:.875rem;color:var(--txt-muted);display:flex;align-items:center;gap:.4rem;">
+            <i class="fa-solid fa-wheat-awn" style="color:var(--clr-500);"></i> Producción
+          </span>
+          <span style="font-weight:700;font-family:var(--ff-heading);color:var(--clr-700);">
+            {{ stats.total_cargas }} / 2 000 cargas
+          </span>
+        </div>
+      </div>
+
+    </div><!-- /últimos recibos col -->
+
+  </div><!-- /charts-row -->
+
+</div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  const d    = new Date();
+  const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
+  const el   = document.getElementById('dashDate');
+  if(el) el.textContent = d.toLocaleDateString('es-CO', opts);
+})();
+</script>
+{% endblock %}

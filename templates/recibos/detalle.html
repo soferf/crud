@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Recibo #{{ recibo.serial }} | Contabilidad Arroceras{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="container page-hero__inner">
+    <div class="page-hero__icon"><i class="fa-solid fa-file-invoice"></i></div>
+    <div>
+      <h1 class="page-hero__title">Recibo #{{ recibo.serial }}</h1>
+      <p class="page-hero__sub">
+        {{ recibo.fecha.strftime('%d/%m/%Y') if recibo.fecha else 'Sin fecha' }}
+        &nbsp;&middot;&nbsp; {{ recibo.proveedor }}
+      </p>
+    </div>
+    <div class="page-hero__actions">
+      <a href="{{ url_for('lista_recibos') }}" class="button button--ghost">
+        <i class="fa-solid fa-arrow-left"></i> Volver
+      </a>
+      <button type="button" class="button button--ghost" onclick="window.print()">
+        <i class="fa-solid fa-print"></i> Imprimir
+      </button>
+    </div>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container" style="max-width:700px;">
+
+    <!-- Tarjeta de recibo -->
+    <div class="recibo-card print-area">
+      <div class="recibo-card__header">
+        <div class="recibo-card__logo">
+          <i class="fa-solid fa-wheat-awn"></i>
+        </div>
+        <div class="recibo-card__empresa">
+          <span class="recibo-card__empresa-nombre">Arrocera El Mangón</span>
+          <span class="recibo-card__empresa-sub">Contabilidad Interna</span>
+        </div>
+        <div class="recibo-card__serial">
+          <span class="recibo-card__serial-label">RECIBO</span>
+          <span class="recibo-card__serial-num">#{{ recibo.serial }}</span>
+        </div>
+      </div>
+
+      <dl class="recibo-dl">
+        <div class="recibo-dl__row">
+          <dt>Fecha</dt>
+          <dd>{{ recibo.fecha.strftime('%d/%m/%Y') if recibo.fecha else '—' }}</dd>
+        </div>
+        <div class="recibo-dl__row">
+          <dt>Proveedor</dt>
+          <dd><strong>{{ recibo.proveedor }}</strong></dd>
+        </div>
+        <div class="recibo-dl__row">
+          <dt>NIT / Cédula</dt>
+          <dd>{{ recibo.nit or '—' }}</dd>
+        </div>
+        <div class="recibo-dl__row">
+          <dt>Dirección</dt>
+          <dd>{{ recibo.direccion or '—' }}</dd>
+        </div>
+        <div class="recibo-dl__row">
+          <dt>Teléfono</dt>
+          <dd>{{ recibo.telefono or '—' }}</dd>
+        </div>
+        <div class="recibo-dl__row">
+          <dt>Ciudad</dt>
+          <dd>{{ recibo.ciudad or '—' }}</dd>
+        </div>
+        {% if conceptos_lineas %}
+        <div class="recibo-dl__row recibo-dl__row--full">
+          <dt>Conceptos</dt>
+          <dd>
+            <table class="conceptos-detalle">
+              <thead>
+                <tr><th>Descripción</th><th>Valor</th></tr>
+              </thead>
+              <tbody>
+                {% for ln in conceptos_lineas %}
+                <tr>
+                  <td>{{ ln.concepto }}</td>
+                  <td class="valor-cell">{% if ln.valor %}$ {{ "{:,.0f}".format(ln.valor).replace(",",".") }}{% else %}—{% endif %}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot>
+                <tr class="conceptos-subtotal">
+                  <td><strong>Subtotal operación</strong></td>
+                  <td class="valor-cell">
+                    {% if recibo.valor_operacion %}
+                      <strong>$ {{ "{:,.0f}".format(recibo.valor_operacion).replace(",",".") }}</strong>
+                    {% else %}—{% endif %}
+                  </td>
+                </tr>
+                {% if recibo.rte_fte and recibo.rte_fte > 0 %}
+                <tr class="conceptos-rte">
+                  <td>RTE FTE (Retención en la Fuente)</td>
+                  <td class="valor-cell rte-neg">
+                    − $ {{ "{:,.0f}".format(recibo.rte_fte).replace(",",".") }}
+                  </td>
+                </tr>
+                {% endif %}
+              </tfoot>
+            </table>
+          </dd>
+        </div>
+        {% else %}
+        <div class="recibo-dl__row recibo-dl__row--full">
+          <dt>Concepto</dt>
+          <dd>{{ recibo.concepto or '—' }}</dd>
+        </div>
+        <div class="recibo-dl__row">
+          <dt>Valor operación</dt>
+          <dd class="valor-cell">
+            {% if recibo.valor_operacion %}
+              $ {{ "{:,.0f}".format(recibo.valor_operacion).replace(",",".") }}
+            {% else %}—{% endif %}
+          </dd>
+        </div>
+        {% if recibo.rte_fte and recibo.rte_fte > 0 %}
+        <div class="recibo-dl__row">
+          <dt>RTE FTE</dt>
+          <dd class="valor-cell rte-neg">
+            − $ {{ "{:,.0f}".format(recibo.rte_fte).replace(",",".") }}
+          </dd>
+        </div>
+        {% endif %}
+        {% endif %}
+        <div class="recibo-dl__row recibo-dl__row--highlight">
+          <dt>Neto a pagar</dt>
+          <dd class="valor-cell">
+            {% if recibo.neto_a_pagar %}
+              <strong>$ {{ "{:,.0f}".format(recibo.neto_a_pagar).replace(",",".") }}</strong>
+            {% else %}—{% endif %}
+          </dd>
+        </div>
+      </dl>
+
+      <div class="recibo-card__footer no-print">
+        <div class="recibo-firma">
+          <div class="recibo-firma__linea"></div>
+          <span>Firma del trabajador</span>
+        </div>
+        <div class="recibo-firma">
+          <div class="recibo-firma__linea"></div>
+          <span>Firma del empleador</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Acciones -->
+    <div class="form-actions no-print" style="margin-top:1.5rem">
+      <a href="{{ url_for('lista_recibos') }}" class="button button--ghost-dark">
+        <i class="fa-solid fa-arrow-left"></i> Volver a la lista
+      </a>
+      <form method="POST"
+            action="{{ url_for('eliminar_recibo', serial=recibo.serial) }}"
+            onsubmit="return confirm('\u00bfEliminar el recibo #{{ recibo.serial }}? Esta acci\u00f3n no se puede deshacer.')"
+            style="margin:0">
+        <button type="submit" class="button button--danger">
+          <i class="fa-solid fa-trash"></i> Eliminar recibo
+        </button>
+      </form>
+    </div>
+
+  </div>
+</section>
+{% endblock %}

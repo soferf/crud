@@ -1,0 +1,431 @@
+{% extends "base.html" %}
+{% block title %}Recibo por Lote | Contabilidad Arroceras{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="container page-hero__inner">
+    <div class="page-hero__icon"><i class="fa-solid fa-users-between-lines"></i></div>
+    <div>
+      <h1 class="page-hero__title">Recibo por Lote</h1>
+      <p class="page-hero__sub">Mismo concepto, varios trabajadores — un recibo por cada uno con valor individual.</p>
+    </div>
+    <div class="page-hero__actions">
+      <a href="{{ url_for('lista_recibos') }}" class="button button--ghost"><i class="fa-solid fa-list"></i> Ver recibos</a>
+      <a href="{{ url_for('nuevo_recibo') }}" class="button button--ghost"><i class="fa-solid fa-file-invoice-dollar"></i> Individual</a>
+      <a href="{{ url_for('labores_desague') }}" class="button button--ghost"><i class="fa-solid fa-droplet"></i> Desagüe</a>
+      <a href="{{ url_for('labores_abonada') }}" class="button button--ghost"><i class="fa-solid fa-seedling"></i> Abonada</a>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="container">
+  {% if success %}<div class="alert alert--success"><i class="fa-solid fa-circle-check"></i> {{ success }}</div>{% endif %}
+  {% if error %}<div class="alert alert--danger"><i class="fa-solid fa-circle-xmark"></i> {{ error }}</div>{% endif %}
+
+  <form method="POST" id="loteForm">
+
+    <!-- PASO 1: Datos comunes -->
+    <div class="form-card" style="margin-bottom:var(--s6)">
+      <div class="form-section">
+        <h3 class="form-section__title"><span class="step-badge">1</span> Datos comunes del lote</h3>
+        <div class="form-grid form-grid--3">
+          <div class="form-group">
+            <label for="serial_inicio">Serial de inicio <span class="req-star">*</span></label>
+            <input type="number" id="serial_inicio" name="serial_inicio" value="{{ next_serial }}" min="1" required>
+            <p class="field-hint">Se asignan seriales consecutivos.</p>
+          </div>
+          <div class="form-group">
+            <label for="fecha">Fecha</label>
+            <input type="date" id="fecha" name="fecha" value="{{ today }}">
+          </div>
+          <div class="form-group">
+            <label for="direccion">Dirección (opcional)</label>
+            <input type="text" id="direccion" name="direccion" placeholder="Ej: El Tambo">
+          </div>
+          <div class="form-group">
+            <label for="ciudad">Ciudad (opcional)</label>
+            <input type="text" id="ciudad" name="ciudad" placeholder="Ej: Natagaima">
+          </div>
+        </div>
+
+        <!-- Conceptos comunes multi-línea -->
+        <div style="margin-top:1.2rem">
+          <label style="font-weight:600;font-size:.9rem;color:var(--txt);display:block;margin-bottom:.5rem">
+            Concepto(s) <span class="req-star">*</span>
+            <span style="font-weight:400;color:var(--txt-muted);font-size:.82rem"> — hasta 7 líneas · el valor en la tabla individual</span>
+          </label>
+          <div class="conceptos-table" id="loteConceptosTable">
+            <div class="conceptos-header">
+              <span class="ch-num">#</span>
+              <span class="ch-concepto">Concepto / Descripción</span>
+              <span class="ch-valor">Valor base (COP)</span>
+              <span class="ch-action"></span>
+            </div>
+            {% for i in range(1, 8) %}
+            <div class="concepto-row" id="lrow{{ i }}" style="{{ 'display:flex' if i == 1 else 'display:none' }}">
+              <span class="cr-num">{{ i }}</span>
+              <input type="text" name="concepto_{{ i }}" class="cr-concepto"
+                     placeholder="Descripción del trabajo…" {{ 'required' if i == 1 else '' }}>
+              <input type="text" name="valor_{{ i }}" class="cr-valor lote-valor-input"
+                     placeholder="0" inputmode="numeric"
+                     oninput="formatLoteValor(this); recalcLoteSubtotal()">
+              {% if i > 1 %}
+              <button type="button" class="cr-remove" onclick="loteRemoveRow({{ i }})" title="Quitar"><i class="fa-solid fa-xmark"></i></button>
+              {% else %}
+              <span class="cr-remove cr-remove--ph"></span>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          <div class="conceptos-footer">
+            <button type="button" id="loteAddBtn" class="button button--sm button--ghost" onclick="loteAddLinea()">
+              <i class="fa-solid fa-plus"></i> Agregar línea
+            </button>
+            <div class="subtotal-box">
+              <span class="subtotal-label">Subtotal conceptos:</span>
+              <span class="subtotal-valor" id="loteSubtotal">$ 0</span>
+            </div>
+          </div>
+        </div>
+
+        <details class="calc-inline" style="margin-top:1rem">
+          <summary class="calc-inline__toggle"><i class="fa-solid fa-calculator"></i> Calculadora rápida de jornales</summary>
+          <div class="calc-inline__body">
+            <div class="form-grid form-grid--3" style="margin-top:.8rem">
+              <div class="form-group"><label>Días (acepta .5)</label><input type="number" id="lc_dias" min="0.25" step="0.25" value="1" oninput="calcLote()"></div>
+              <div class="form-group"><label>Valor por jornal/día (COP)</label><input type="text" id="lc_vdia" value="60.000" oninput="calcLote()"></div>
+              <div class="form-group"><label>Resultado</label><input type="text" id="lc_resultado" readonly style="background:var(--clr-50);font-weight:600"></div>
+            </div>
+            <button type="button" class="button button--sm button--primary" onclick="aplicarLoteCalc()">
+              <i class="fa-solid fa-arrow-right"></i> Aplicar tasa a todos
+            </button>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <!-- PASO 2: Seleccionar trabajadores -->
+    <div class="form-card" style="margin-bottom:var(--s6)">
+      <div class="form-section">
+        <div class="worker-selector-header">
+          <h3 class="worker-selector-title"><span class="step-badge">2</span> Seleccionar trabajadores</h3>
+          <span class="selection-counter" id="selCounter">0 seleccionados</span>
+        </div>
+        <div class="cargo-filters" id="cargoFilters">
+          <button type="button" class="cargo-filter-btn is-active" data-cargo="todos">Todos</button>
+          {% set cvs = namespace(lista=[]) %}
+          {% for w in db_workers %}{% if w.trabajo_desarrolla and w.trabajo_desarrolla not in cvs.lista %}
+            {% set cvs.lista = cvs.lista + [w.trabajo_desarrolla] %}
+            <button type="button" class="cargo-filter-btn" data-cargo="{{ w.trabajo_desarrolla }}">{{ w.trabajo_desarrolla|replace('_',' ')|title }}</button>
+          {% endif %}{% endfor %}
+        </div>
+        <div style="margin:.6rem 0 1rem">
+          <input type="text" id="workerSearch" placeholder="Filtrar por nombre…" class="lista-search-input" style="max-width:320px" oninput="filterWorkers()">
+        </div>
+        {% if db_workers %}
+        <div class="workers-grid" id="workersGrid">
+          {% for w in db_workers %}
+          <div class="worker-card-sel"
+               data-id="{{ w.id_worker }}"
+               data-cargo="{{ w.trabajo_desarrolla or '' }}"
+               data-nombre="{{ (w.name ~ ' ' ~ w.lastname)|lower }}"
+               data-nombre-display="{{ w.name }} {{ w.lastname }}"
+               data-vhabitual="{{ w.valor_habitual or 0 }}"
+               onclick="toggleWorker(this)">
+            <i class="fa-solid fa-check worker-card-sel__check"></i>
+            <div class="worker-card-sel__name">{{ w.name }} {{ w.lastname }}</div>
+            <span class="worker-card-sel__cargo">{{ (w.trabajo_desarrolla or 'sin cargo')|replace('_',' ') }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state" style="padding:var(--s12)">
+          <i class="fa-solid fa-user-plus empty-state__icon"></i><h3>No hay trabajadores registrados</h3>
+          <a href="{{ url_for('create_worker') }}" class="button button--primary">Registrar trabajador</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- PASO 3: Detalle por trabajador -->
+    <div class="form-card" id="workerDetailCard" style="display:none;margin-bottom:var(--s6)">
+      <div class="form-section">
+        <h3 class="form-section__title"><span class="step-badge">3</span> Detalle por trabajador</h3>
+        <p class="field-hint" style="margin-bottom:1rem">Ajusta días, fracción y valor/día. Si usas valor fijo en la tabla de conceptos, ese se toma para todos. El cálculo individual sobreescribe el valor base.</p>
+        <div class="per-worker-table-wrap">
+          <table class="per-worker-table" id="perWorkerTable">
+            <thead>
+              <tr>
+                <th>Trabajador</th>
+                <th style="width:80px">Días</th>
+                <th style="width:130px">+ Fracción</th>
+                <th style="width:130px">$ / Día</th>
+                <th style="width:140px" class="text-right">Total individual</th>
+                <th style="width:36px"></th>
+              </tr>
+            </thead>
+            <tbody id="workerDetailRows"></tbody>
+            <tfoot>
+              <tr class="pw-total-row">
+                <td colspan="4" class="text-right" style="font-weight:600;padding:.7rem 1rem">Total del lote:</td>
+                <td class="text-right pw-grand-total" id="grandTotal">$ 0</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div id="hiddenWorkerInputs"></div>
+        <div id="selResumen" class="alert alert--info" style="margin-top:1rem;display:none">
+          <i class="fa-solid fa-circle-info"></i>
+          Se crearán <strong id="numRecibos">0</strong> recibos (seriales <strong id="serialRange">—</strong>).
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="button button--primary" id="btnSubmitLote" disabled>
+        <i class="fa-solid fa-floppy-disk"></i> Crear recibos del lote
+      </button>
+      <a href="{{ url_for('lista_recibos') }}" class="button button--ghost-dark"><i class="fa-solid fa-list"></i> Ver recibos</a>
+    </div>
+  </form>
+</div></section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let selectedIds = new Set();
+let activeCargo = 'todos';
+let searchTerm  = '';
+
+// ── COP helpers ────────────────────────────────────────────────────────────────
+function parseCOP(s) { return parseFloat((s||'0').replace(/\./g,'').replace(',','.').replace(/[^0-9.]/g,'')) || 0; }
+function formatCOP(n) { return Math.round(n).toLocaleString('es-CO'); }
+
+// ── Worker selection ──────────────────────────────────────────────────────────
+function toggleWorker(card) {
+  const id = card.dataset.id;
+  if (selectedIds.has(id)) {
+    selectedIds.delete(id);
+    card.classList.remove('is-selected');
+    removeWorkerRow(id);
+  } else {
+    selectedIds.add(id);
+    card.classList.add('is-selected');
+    addWorkerRow(card);
+  }
+  updateCounter();
+  updateHiddenInputs();
+  updateResumen();
+  updateDetailCard();
+}
+
+function addWorkerRow(card) {
+  const id     = card.dataset.id;
+  const nombre = card.dataset.nombreDisplay || card.querySelector('.worker-card-sel__name').textContent.trim();
+  const cargo  = (card.dataset.cargo || 'sin cargo').replace(/_/g,' ');
+  const vhab   = parseFloat(card.dataset.vhabitual) || 60000;
+  const row    = document.createElement('tr');
+  row.id = `prow_${id}`;
+  row.innerHTML = `
+    <td>
+      <div style="font-weight:600;font-size:.9rem">${nombre}</div>
+      <div style="font-size:.78rem;color:var(--txt-muted)">${cargo}</div>
+    </td>
+    <td><input type="number" class="pw-dias" id="dias_${id}" min="0" step="1" value="1"
+         oninput="recalcWorkerRow('${id}')" style="width:65px;text-align:center"></td>
+    <td>
+      <select class="pw-frac" id="frac_${id}" onchange="recalcWorkerRow('${id}')">
+        <option value="0">— sin fracción</option>
+        <option value="0.25">+ ¼ día</option>
+        <option value="0.5">+ ½ día</option>
+        <option value="0.75">+ ¾ día</option>
+      </select>
+    </td>
+    <td><input type="text" class="pw-vdia" id="vdia_${id}" value="${formatCOP(vhab)}"
+         oninput="fmtPW(this);recalcWorkerRow('${id}')" style="width:115px"></td>
+    <td class="text-right pw-total" id="ptotal_${id}" style="font-weight:600;color:var(--clr-700)">$ 0</td>
+    <td><button type="button" class="cr-remove" onclick="deselect('${id}')" title="Quitar"><i class="fa-solid fa-xmark"></i></button></td>
+  `;
+  document.getElementById('workerDetailRows').appendChild(row);
+  recalcWorkerRow(id);
+}
+
+function removeWorkerRow(id) {
+  const row = document.getElementById(`prow_${id}`);
+  if (row) row.remove();
+  const hv = document.getElementById(`hv_${id}`);
+  if (hv) hv.remove();
+  recalcGrandTotal();
+}
+
+function deselect(id) {
+  selectedIds.delete(id);
+  const card = document.querySelector(`.worker-card-sel[data-id="${id}"]`);
+  if (card) card.classList.remove('is-selected');
+  removeWorkerRow(id);
+  updateCounter();
+  updateHiddenInputs();
+  updateResumen();
+  updateDetailCard();
+}
+
+function fmtPW(inp) {
+  const raw = inp.value.replace(/[^\d]/g,'');
+  inp.value = raw ? parseInt(raw).toLocaleString('es-CO') : '';
+}
+
+function recalcWorkerRow(id) {
+  const dias  = parseFloat(document.getElementById(`dias_${id}`)?.value) || 0;
+  const frac  = parseFloat(document.getElementById(`frac_${id}`)?.value) || 0;
+  const vdia  = parseCOP(document.getElementById(`vdia_${id}`)?.value);
+  const total = (dias + frac) * vdia;
+  const el    = document.getElementById(`ptotal_${id}`);
+  if (el) el.textContent = '$ ' + formatCOP(total);
+
+  let hv = document.getElementById(`hv_${id}`);
+  if (!hv) {
+    hv = document.createElement('input');
+    hv.type = 'hidden'; hv.id = `hv_${id}`; hv.name = `valor_w_${id}`;
+    document.getElementById('hiddenWorkerInputs').appendChild(hv);
+  }
+  hv.value = total;
+  recalcGrandTotal();
+}
+
+function recalcGrandTotal() {
+  let total = 0;
+  document.querySelectorAll('.pw-total').forEach(el => {
+    total += parseCOP(el.textContent.replace('$','').trim());
+  });
+  document.getElementById('grandTotal').textContent = '$ ' + formatCOP(total);
+}
+
+function updateCounter() {
+  const n = selectedIds.size;
+  document.getElementById('selCounter').textContent = n + ' seleccionado' + (n !== 1 ? 's' : '');
+  document.getElementById('btnSubmitLote').disabled = n === 0;
+}
+
+function updateHiddenInputs() {
+  document.querySelectorAll('#hiddenWorkerInputs input[name="worker_ids"]').forEach(i => i.remove());
+  selectedIds.forEach(id => {
+    const inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'worker_ids'; inp.value = id;
+    document.getElementById('hiddenWorkerInputs').appendChild(inp);
+  });
+}
+
+function updateDetailCard() {
+  document.getElementById('workerDetailCard').style.display = selectedIds.size > 0 ? '' : 'none';
+}
+
+function updateResumen() {
+  const n   = selectedIds.size;
+  const res = document.getElementById('selResumen');
+  if (!res) return;
+  if (n === 0) { res.style.display = 'none'; return; }
+  const ini = parseInt(document.getElementById('serial_inicio').value) || 1;
+  res.style.display = 'block';
+  document.getElementById('numRecibos').textContent = n;
+  document.getElementById('serialRange').textContent = n === 1 ? ini : ini + ' – ' + (ini + n - 1);
+}
+
+document.getElementById('serial_inicio').addEventListener('input', updateResumen);
+
+// ── Cargo filters ──────────────────────────────────────────────────────────────
+document.getElementById('cargoFilters').addEventListener('click', function(e) {
+  const btn = e.target.closest('.cargo-filter-btn');
+  if (!btn) return;
+  document.querySelectorAll('.cargo-filter-btn').forEach(b => b.classList.remove('is-active'));
+  btn.classList.add('is-active');
+  activeCargo = btn.dataset.cargo;
+  applyFilters();
+});
+
+function filterWorkers() {
+  searchTerm = document.getElementById('workerSearch').value.toLowerCase();
+  applyFilters();
+}
+
+function applyFilters() {
+  document.querySelectorAll('.worker-card-sel').forEach(card => {
+    const cargoOk  = activeCargo === 'todos' || card.dataset.cargo === activeCargo;
+    const searchOk = !searchTerm || card.dataset.nombre.includes(searchTerm);
+    card.style.display = (cargoOk && searchOk) ? '' : 'none';
+  });
+}
+
+// ── Multi-concepto lote ────────────────────────────────────────────────────────
+let loteLineaActual = 1;
+
+function formatLoteValor(inp) {
+  const raw = inp.value.replace(/[^\d]/g,'');
+  inp.value = raw ? parseInt(raw).toLocaleString('es-CO') : '';
+}
+
+function recalcLoteSubtotal() {
+  let total = 0;
+  document.querySelectorAll('.lote-valor-input').forEach(function(inp) {
+    if (inp.closest('.concepto-row').style.display !== 'none') total += parseCOP(inp.value);
+  });
+  const el = document.getElementById('loteSubtotal');
+  if (el) el.textContent = '$ ' + formatCOP(total);
+}
+
+function loteAddLinea() {
+  if (loteLineaActual >= 7) return;
+  loteLineaActual++;
+  const row = document.getElementById('lrow' + loteLineaActual);
+  if (row) { row.style.display = 'flex'; row.querySelector('.cr-concepto').focus(); }
+  if (loteLineaActual >= 7) { const btn = document.getElementById('loteAddBtn'); if (btn) btn.disabled = true; }
+}
+
+function loteRemoveRow(n) {
+  const row = document.getElementById('lrow' + n);
+  if (!row) return;
+  row.style.display = 'none';
+  row.querySelector('.cr-concepto').value = '';
+  row.querySelector('.lote-valor-input').value = '';
+  if (loteLineaActual >= n) loteLineaActual = n - 1;
+  const btn = document.getElementById('loteAddBtn'); if (btn) btn.disabled = false;
+  recalcLoteSubtotal();
+}
+
+// ── Calculadora lote ───────────────────────────────────────────────────────────
+function calcLote() {
+  const dias = parseFloat(document.getElementById('lc_dias').value) || 0;
+  const vdia = parseCOP(document.getElementById('lc_vdia').value);
+  const res  = dias * vdia;
+  document.getElementById('lc_resultado').value = res > 0 ? '$ ' + formatCOP(res) : '';
+}
+
+function aplicarLoteCalc() {
+  const dias = parseFloat(document.getElementById('lc_dias').value) || 0;
+  const vdia = parseCOP(document.getElementById('lc_vdia').value);
+  if (dias <= 0 || vdia <= 0) return;
+  // Apply to all worker rows
+  selectedIds.forEach(id => {
+    const diasInp = document.getElementById(`dias_${id}`);
+    const vdiaInp = document.getElementById(`vdia_${id}`);
+    if (diasInp) diasInp.value = Math.floor(dias);
+    const fracSel = document.getElementById(`frac_${id}`);
+    if (fracSel) {
+      const frac = dias % 1;
+      const fracVal = [0,0.25,0.5,0.75].reduce((a,b) => Math.abs(b-frac)<Math.abs(a-frac)?b:a);
+      fracSel.value = fracVal;
+    }
+    if (vdiaInp) vdiaInp.value = formatCOP(vdia);
+    recalcWorkerRow(id);
+  });
+  const c1 = document.querySelector('[name="concepto_1"]');
+  const v1  = document.querySelector('[name="valor_1"]');
+  if (v1 && !parseCOP(v1.value)) {
+    const res = Math.floor(dias) * vdia;
+    if (c1 && !c1.value) c1.value = `${dias} día(s) × $ ${formatCOP(vdia)}/día`;
+    v1.value = formatCOP(res);
+    recalcLoteSubtotal();
+  }
+}
+</script>
+{% endblock %}

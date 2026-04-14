@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Recibos | Contabilidad Arroceras{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="container page-hero__inner">
+    <div class="page-hero__icon"><i class="fa-solid fa-list-check"></i></div>
+    <div>
+      <h1 class="page-hero__title">Recibos</h1>
+      <p class="page-hero__sub" id="counterSub">{{ recibos|length }} recibo(s) registrado(s) en total.</p>
+    </div>
+    <div class="page-hero__actions">
+      <a href="{{ url_for('nuevo_recibo') }}" class="button button--primary">
+        <i class="fa-solid fa-plus"></i> Nuevo recibo
+      </a>
+      <a href="{{ url_for('nuevo_recibo_lote') }}" class="button button--ghost">
+        <i class="fa-solid fa-users-between-lines"></i> Por lote
+      </a>
+      <a href="{{ url_for('exportar_txt') }}" class="button button--ghost">
+        <i class="fa-solid fa-file-export"></i> Exportar TXT
+      </a>
+    </div>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+
+    {% if recibos %}
+
+    <!-- Barra de búsqueda y resumen -->
+    <div class="lista-toolbar">
+      <div class="lista-search-wrap">
+        <i class="fa-solid fa-magnifying-glass lista-search-icon"></i>
+        <input type="text" id="searchInput" placeholder="Buscar por proveedor, NIT, concepto..." class="lista-search-input">
+      </div>
+      <div class="lista-summary">
+        Total: <strong id="totalVisible">{{ recibos|length }}</strong> recibos &nbsp;|&nbsp;
+        Suma: <strong id="sumaVisible">
+          $ {{ "{:,.0f}".format(recibos | sum(attribute='neto_a_pagar') if recibos else 0).replace(",",".") }}
+        </strong>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table" id="recibosTable">
+        <thead>
+          <tr>
+            <th class="col-serial">Serial</th>
+            <th class="col-fecha">Fecha</th>
+            <th>Proveedor</th>
+            <th class="col-nit">NIT</th>
+            <th class="col-concepto">Concepto</th>
+            <th class="col-valor">Neto a pagar</th>
+          </tr>
+        </thead>
+        <tbody id="recibosBody">
+          {% for r in recibos %}
+          <tr class="recibo-row" style="cursor:pointer"
+              onclick="location.href='{{ url_for('detalle_recibo', serial=r.serial) }}'"
+              data-proveedor="{{ r.proveedor | lower }}"
+              data-nit="{{ r.nit or '' }}"
+              data-concepto="{{ r.concepto | lower }}"
+              data-valor="{{ r.neto_a_pagar or 0 }}">
+            <td><span class="serial-badge">{{ r.serial }}</span></td>
+            <td class="txt-muted">{{ r.fecha.strftime('%d/%m/%Y') if r.fecha else '—' }}</td>
+            <td><strong>{{ r.proveedor }}</strong></td>
+            <td class="txt-muted small">{{ r.nit or '—' }}</td>
+            <td class="concepto-cell small">{{ r.concepto }}</td>
+            <td class="valor-cell">
+              {% if r.neto_a_pagar %}
+                <strong>$ {{ "{:,.0f}".format(r.neto_a_pagar).replace(",",".") }}</strong>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="table-foot" id="tableFoot">
+            <td colspan="5" style="text-align:right;font-weight:600;color:var(--txt-muted)">Total visible:</td>
+            <td class="valor-cell" id="footTotal">
+              $ {{ "{:,.0f}".format(recibos | sum(attribute='neto_a_pagar') if recibos else 0).replace(",",".") }}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <p id="noResultsMsg" style="display:none;text-align:center;padding:2rem;color:var(--txt-muted)">
+      <i class="fa-solid fa-magnifying-glass"></i> Sin resultados para esa búsqueda.
+    </p>
+
+    {% else %}
+    <div class="empty-state">
+      <i class="fa-solid fa-file-circle-plus empty-state__icon"></i>
+      <h3>No hay recibos aún</h3>
+      <p>Crea el primer recibo haciendo clic en "Nuevo recibo".</p>
+      <a href="{{ url_for('nuevo_recibo') }}" class="button button--primary">
+        <i class="fa-solid fa-plus"></i> Crear primer recibo
+      </a>
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  const input  = document.getElementById('searchInput');
+  const rows   = document.querySelectorAll('.recibo-row');
+  const noMsg  = document.getElementById('noResultsMsg');
+  const footTot= document.getElementById('footTotal');
+  const sumVis = document.getElementById('sumaVisible');
+  const totVis = document.getElementById('totalVisible');
+
+  if (!input) return;
+
+  input.addEventListener('input', function() {
+    const q = this.value.toLowerCase().trim();
+    let visible = 0;
+    let suma = 0;
+
+    rows.forEach(row => {
+      const haystack = [
+        row.dataset.proveedor,
+        row.dataset.nit,
+        row.dataset.concepto
+      ].join(' ');
+
+      const match = !q || haystack.includes(q);
+      row.style.display = match ? '' : 'none';
+      if (match) {
+        visible++;
+        suma += parseFloat(row.dataset.valor) || 0;
+      }
+    });
+
+    noMsg.style.display = visible === 0 ? 'block' : 'none';
+    totVis.textContent  = visible;
+    const fmt = suma.toLocaleString('es-CO', {minimumFractionDigits:0, maximumFractionDigits:0});
+    footTot.textContent = '$ ' + fmt;
+    sumVis.textContent  = '$ ' + fmt;
+  });
+})();
+</script>
+{% endblock %}

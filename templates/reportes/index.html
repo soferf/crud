@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Reportes | Contabilidad Arroceras{% endblock %}
+{% block head %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>{% endblock %}
+{% block content %}
+<div class="page-hero">
+  <div class="container page-hero__inner">
+    <div class="page-hero__icon"><i class="fa-solid fa-chart-line"></i></div>
+    <div>
+      <h1 class="page-hero__title">Reportes y Estadísticas</h1>
+      <p class="page-hero__sub">Control financiero &middot; {{total_ha}} hectáreas</p>
+    </div>
+    <div class="page-hero__actions">
+      <a href="{{url_for('generar_pdf', tipo='completo')}}" class="button button--ghost"><i class="fa-solid fa-file-pdf"></i> PDF Completo</a>
+    </div>
+  </div>
+</div>
+<section class="section"><div class="container">
+  <div class="stats-grid">
+    <div class="stat-card {% if pct_gasto > 90 %}stat-card--danger{% elif pct_gasto > 70 %}stat-card--warning{% else %}stat-card--success{% endif %}">
+      <span class="stat-card__label"><i class="fa-solid fa-peso-sign"></i> Total gastado</span>
+      <span class="stat-card__value">$ {{"{:,.0f}".format(total_gastado).replace(",",".")}}</span>
+      <span class="stat-card__sub">de $ {{"{:,.0f}".format(max_gasto).replace(",",".")}} máximo</span>
+    </div>
+    <div class="stat-card {% if pct_gasto > 90 %}stat-card--danger{% elif pct_gasto > 70 %}stat-card--warning{% else %}stat-card--success{% endif %}">
+      <span class="stat-card__label"><i class="fa-solid fa-percent"></i> Presupuesto usado</span>
+      <span class="stat-card__value">{{pct_gasto}}%</span>
+      <span class="stat-card__sub">Máx. $ {{"{:,.0f}".format(max_gasto_ha).replace(",",".")}}/ha</span>
+    </div>
+    <div class="stat-card {% if pct_produccion >= 100 %}stat-card--success{% elif pct_produccion >= 60 %}stat-card--warning{% else %}stat-card--danger{% endif %}">
+      <span class="stat-card__label"><i class="fa-solid fa-wheat-awn"></i> Cargas cosechadas</span>
+      <span class="stat-card__value">{{"{:,}".format(total_cargas).replace(",",".")}}</span>
+      <span class="stat-card__sub">mínimo {{"{:,}".format(min_cargas).replace(",",".")}} cargas</span>
+    </div>
+    <div class="stat-card {% if pct_produccion >= 100 and pct_gasto <= 90 %}stat-card--success{% else %}stat-card--warning{% endif %}">
+      <span class="stat-card__label"><i class="fa-solid fa-seedling"></i> Rentabilidad</span>
+      <span class="stat-card__value">{% if pct_produccion >= 100 and pct_gasto <= 90 %}&#x2705; Rentable{% elif pct_gasto > 90 %}&#x1F534; Riesgo{% else %}&#x26A0;&#xFE0F; En curso{% endif %}</span>
+      <span class="stat-card__sub">Producción: {{pct_produccion}}%</span>
+    </div>
+  </div>
+  <div class="gauge-section">
+    <div class="gauge-header">
+      <span class="gauge-title"><i class="fa-solid fa-peso-sign"></i> Gasto total vs presupuesto máximo</span>
+      <span class="gauge-amount"><strong>$ {{"{:,.0f}".format(total_gastado).replace(",",".")}}</strong> / $ {{"{:,.0f}".format(max_gasto).replace(",",".")}}</span>
+    </div>
+    <div class="gauge-bar-wrap">
+      <div class="gauge-bar {% if pct_gasto > 90 %}gauge-bar--red{% elif pct_gasto > 70 %}gauge-bar--yellow{% else %}gauge-bar--green{% endif %}" style="width:{{[pct_gasto,100]|min}}%">{{pct_gasto}}%</div>
+    </div>
+    <p class="gauge-footnote">Máximo: $ {{"{:,.0f}".format(max_gasto_ha).replace(",",".")}} &times; {{total_ha}} ha = $ {{"{:,.0f}".format(max_gasto).replace(",",".")}}</p>
+  </div>
+  <div class="gauge-section">
+    <div class="gauge-header">
+      <span class="gauge-title"><i class="fa-solid fa-wheat-awn"></i> Producción vs mínimo requerido</span>
+      <span class="gauge-amount"><strong>{{"{:,}".format(total_cargas).replace(",",".")}} cargas</strong> / {{"{:,}".format(min_cargas).replace(",",".")}} mínimo</span>
+    </div>
+    <div class="gauge-bar-wrap">
+      <div class="gauge-bar {% if pct_produccion >= 100 %}gauge-bar--green{% elif pct_produccion >= 60 %}gauge-bar--yellow{% else %}gauge-bar--red{% endif %}" style="width:{{[pct_produccion,100]|min}}%">{{pct_produccion}}%</div>
+    </div>
+    <p class="gauge-footnote">Mínimo: {{min_cargas}} cargas (100 bultos/ha &times; {{total_ha}} ha). Cada carga = 62.5 kg.</p>
+  </div>
+  <div class="charts-row">
+    <div class="chart-card"><h3 class="chart-card__title"><i class="fa-solid fa-chart-bar"></i> Gastos por semana</h3><div class="chart-canvas-wrap"><canvas id="chartSemana"></canvas></div></div>
+    <div class="chart-card"><h3 class="chart-card__title"><i class="fa-solid fa-users"></i> Top trabajadores</h3><div class="chart-canvas-wrap"><canvas id="chartTrab"></canvas></div></div>
+  </div>
+  <div class="grid-3" style="margin-top:var(--s6)">
+    <a href="{{url_for('reporte_semana')}}" class="card" style="text-decoration:none"><div class="card__icon"><i class="fa-solid fa-calendar-week"></i></div><h3>Reporte semanal</h3><p>Ver pagos de la semana actual.</p></a>
+    <a href="{{url_for('generar_pdf', tipo='completo')}}" class="card" style="text-decoration:none"><div class="card__icon"><i class="fa-solid fa-file-pdf"></i></div><h3>PDF Detallado</h3><p>Todos los recibos con conceptos completos.</p></a>
+    <a href="{{url_for('nueva_cosecha')}}" class="card" style="text-decoration:none"><div class="card__icon"><i class="fa-solid fa-wheat-awn"></i></div><h3>Registrar cosecha</h3><p>Añadir producción de cargas y kg.</p></a>
+  </div>
+
+    <!-- ═══ EXPORTAR PDF / EXCEL ═══════════════════════════════════════════════ -->
+  <div style="margin-top:var(--s8)">
+    <h2 style="font-size:1.15rem;font-weight:700;color:var(--clr-700);margin-bottom:var(--s4)">
+      <i class="fa-solid fa-file-arrow-down"></i> Exportar reportes
+    </h2>
+
+    <!-- Filtro de fechas + tipo de reporte -->
+    <div class="form-card" style="margin-bottom:var(--s5);padding:var(--s4) var(--s5)">
+      <p style="font-weight:700;margin-bottom:.8rem;font-size:1rem"><i class="fa-solid fa-filter"></i> Reporte personalizado por rango de fechas</p>
+      <div style="display:flex;gap:var(--s3);align-items:flex-end;flex-wrap:wrap">
+        <div class="form-group" style="margin-bottom:0;flex:1;min-width:130px">
+          <label style="font-size:.82rem">Desde</label>
+          <input type="date" id="filtroDesde" style="width:100%">
+        </div>
+        <div class="form-group" style="margin-bottom:0;flex:1;min-width:130px">
+          <label style="font-size:.82rem">Hasta</label>
+          <input type="date" id="filtroHasta" style="width:100%">
+        </div>
+        <div class="form-group" style="margin-bottom:0;flex:1;min-width:160px">
+          <label style="font-size:.82rem">Tipo de reporte</label>
+          <select id="filtroTipo" style="width:100%">
+            <option value="rango">Estadísticas completas</option>
+            <option value="gastos">Gastos (tabla simple)</option>
+            <option value="completo">Recibos detallados</option>
+            <option value="trabajadores">Por trabajador</option>
+          </select>
+        </div>
+        <div>
+          <button type="button" class="button button--primary" onclick="generarPdfFiltrado()">
+            <i class="fa-solid fa-file-pdf"></i> Generar PDF
+          </button>
+        </div>
+      </div>
+      <p style="font-size:.8rem;color:var(--txt-muted);margin-top:.6rem">
+        <i class="fa-solid fa-circle-info"></i>
+        El tipo <strong>Estadísticas completas</strong> incluye resumen, desglose por trabajador, evolución semanal y detalle de recibos.
+      </p>
+    </div>
+
+    <div class="export-grid">
+      <a id="linkPdfGastos" href="{{url_for('generar_pdf', tipo='gastos')}}"
+         class="export-card export-card--pdf" target="_blank">
+        <span class="export-card__icon"><i class="fa-solid fa-file-pdf"></i></span>
+        <span class="export-card__title">PDF — Gastos</span>
+        <span class="export-card__desc">Todos los recibos con totales. Usa filtro de fecha si aplica.</span>
+      </a>
+      <a id="linkPdfRango" href="{{url_for('generar_pdf', tipo='rango')}}"
+         class="export-card export-card--pdf" target="_blank">
+        <span class="export-card__icon"><i class="fa-solid fa-chart-pie"></i></span>
+        <span class="export-card__title">PDF — Estadísticas rango</span>
+        <span class="export-card__desc">Reporte completo con estadísticas por periodo.</span>
+      </a>
+      <a href="{{url_for('generar_pdf', tipo='trabajadores')}}"
+         class="export-card export-card--pdf" target="_blank">
+        <span class="export-card__icon"><i class="fa-solid fa-file-pdf"></i></span>
+        <span class="export-card__title">PDF — Por Trabajador</span>
+        <span class="export-card__desc">Total pagado por cada proveedor.</span>
+      </a>
+      <a href="{{url_for('generar_pdf', tipo='produccion')}}"
+         class="export-card export-card--pdf" target="_blank">
+        <span class="export-card__icon"><i class="fa-solid fa-file-pdf"></i></span>
+        <span class="export-card__title">PDF — Producción</span>
+        <span class="export-card__desc">Registro de cosechas, cargas y kg.</span>
+      </a>
+      <a href="{{url_for('generar_pdf', tipo='semana')}}"
+         class="export-card export-card--pdf" target="_blank">
+        <span class="export-card__icon"><i class="fa-solid fa-file-pdf"></i></span>
+        <span class="export-card__title">PDF — Semana actual</span>
+        <span class="export-card__desc">Recibos de la semana en curso.</span>
+      </a>
+      <a href="{{url_for('generar_pdf', tipo='completo')}}"
+         class="export-card export-card--pdf" target="_blank">
+        <span class="export-card__icon"><i class="fa-solid fa-file-lines"></i></span>
+        <span class="export-card__title">PDF — Recibos detallados</span>
+        <span class="export-card__desc">Todos los conceptos de cada recibo.</span>
+      </a>
+      <a id="linkXlsRecibos" href="{{url_for('generar_excel', tipo='recibos')}}"
+         class="export-card export-card--xlsx">
+        <span class="export-card__icon"><i class="fa-solid fa-file-excel"></i></span>
+        <span class="export-card__title">Excel — Recibos</span>
+        <span class="export-card__desc">Hoja de cálculo con todos los recibos.</span>
+      </a>
+      <a href="{{url_for('generar_excel', tipo='trabajadores')}}"
+         class="export-card export-card--xlsx">
+        <span class="export-card__icon"><i class="fa-solid fa-file-excel"></i></span>
+        <span class="export-card__title">Excel — Trabajadores</span>
+        <span class="export-card__desc">Gastos agrupados por proveedor.</span>
+      </a>
+      <a href="{{url_for('generar_excel', tipo='produccion')}}"
+         class="export-card export-card--xlsx">
+        <span class="export-card__icon"><i class="fa-solid fa-file-excel"></i></span>
+        <span class="export-card__title">Excel — Producción</span>
+        <span class="export-card__desc">Cosechas, cargas, kg y valores.</span>
+      </a>
+    </div>
+  </div>
+
+</div></section>
+{% endblock %}
+{% block scripts %}
+<script>
+const dS={{por_semana|tojson}},dT={{por_trabajador|tojson}};
+const G='#2D6A4F',D='#1B4332',Gs=['#1B4332','#2D6A4F','#40916C','#52B788','#74C69D','#95D5B2','#B7E4C7','#D8F3DC'];
+const cS=document.getElementById('chartSemana');
+if(cS&&dS.length>0){new Chart(cS,{type:'bar',data:{labels:dS.map(d=>d.semana),datasets:[{label:'Gasto',data:dS.map(d=>d.total),backgroundColor:G,borderColor:D,borderWidth:1,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'$ '+(v/1000000).toFixed(2)+'M'}}}}})}
+else if(cS)cS.parentElement.innerHTML='<p style="text-align:center;color:var(--txt-muted);padding:2rem">Sin datos de gastos aún.</p>';
+const cT=document.getElementById('chartTrab');
+if(cT&&dT.length>0){new Chart(cT,{type:'bar',data:{labels:dT.map(d=>d.proveedor.split(' ')[0]),datasets:[{label:'Total',data:dT.map(d=>d.total),backgroundColor:Gs,borderWidth:0,borderRadius:6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>'$ '+(v/1000000).toFixed(1)+'M'}}}}})}
+else if(cT)cT.parentElement.innerHTML='<p style="text-align:center;color:var(--txt-muted);padding:2rem">Sin datos aún.</p>';
+// Filtro de fechas dinámico en links de exportación
+(function(){
+  const desde=document.getElementById('filtroDesde');
+  const hasta=document.getElementById('filtroHasta');
+  const linkPdfG=document.getElementById('linkPdfGastos');
+  const linkPdfR=document.getElementById('linkPdfRango');
+  const linkXlsR=document.getElementById('linkXlsRecibos');
+  function upd(){
+    const d=desde.value,h=hasta.value;
+    const qs=d&&h?('?desde='+d+'&hasta='+h):'';
+    if(linkPdfG)linkPdfG.href='/reportes/pdf?tipo=gastos'+(d&&h?'&desde='+d+'&hasta='+h:'');
+    if(linkPdfR)linkPdfR.href='/reportes/pdf?tipo=rango'+(d&&h?'&desde='+d+'&hasta='+h:'');
+    if(linkXlsR)linkXlsR.href='/reportes/excel?tipo=recibos'+(d&&h?'&desde='+d+'&hasta='+h:'');
+  }
+  desde.addEventListener('change',upd);
+  hasta.addEventListener('change',upd);
+})();
+function generarPdfFiltrado(){
+  const d=document.getElementById('filtroDesde').value;
+  const h=document.getElementById('filtroHasta').value;
+  const t=document.getElementById('filtroTipo').value;
+  if(!d||!h){alert('Selecciona un rango de fechas (Desde y Hasta) para generar el reporte.');return;}
+  window.open('/reportes/pdf?tipo='+t+'&desde='+d+'&hasta='+h,'_blank');
+}
+</script>
+{% endblock %}

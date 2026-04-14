@@ -1,0 +1,35 @@
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment variables and secrets
+.env
+
+# Flask artifacts
+instance/
+*.db
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Runtime/temp folders
+tmp/
+uploads/
+
+# Logs
+*.log
+
+# Test/build caches
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/

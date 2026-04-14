@@ -1,0 +1,377 @@
+{% extends "base.html" %}
+{% block title %}Abonada / Fumigación | Contabilidad Arroceras{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="container page-hero__inner">
+    <div class="page-hero__icon"><i class="fa-solid fa-seedling"></i></div>
+    <div>
+      <h1 class="page-hero__title">Labor por Cantidad</h1>
+      <p class="page-hero__sub">Abonada, fumigación, corta, carga — pago por bulto, hectárea u otra unidad.</p>
+    </div>
+    <div class="page-hero__actions">
+      <a href="{{ url_for('lista_recibos') }}" class="button button--ghost"><i class="fa-solid fa-list"></i> Ver recibos</a>
+      <a href="{{ url_for('nuevo_recibo') }}" class="button button--ghost"><i class="fa-solid fa-file-invoice-dollar"></i> Individual</a>
+      <a href="{{ url_for('nuevo_recibo_lote') }}" class="button button--ghost"><i class="fa-solid fa-users-between-lines"></i> Por lote</a>
+      <a href="{{ url_for('labores_desague') }}" class="button button--ghost"><i class="fa-solid fa-droplet"></i> Desagüe</a>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="container">
+  {% if success %}<div class="alert alert--success"><i class="fa-solid fa-circle-check"></i> {{ success }}</div>{% endif %}
+  {% if error %}<div class="alert alert--danger"><i class="fa-solid fa-circle-xmark"></i> {{ error }}</div>{% endif %}
+
+  <form method="POST" id="abonadaForm">
+
+    <!-- PASO 1: Tipo de labor + datos comunes -->
+    <div class="form-card" style="margin-bottom:var(--s6)">
+      <div class="form-section">
+        <h3 class="form-section__title"><span class="step-badge">1</span> Tipo de labor</h3>
+        <div class="labor-type-grid" style="margin-bottom:var(--s5)">
+          {% for key, info in tipos_labor.items() %}
+          <label class="labor-type-card">
+            <input type="radio" name="tipo_labor" value="{{ key }}" {% if loop.first %}checked{% endif %}
+                   onchange="updateUnidad(this.value)">
+            <span class="labor-type-card__icon"><i class="fa-solid {{ info.icon }}"></i></span>
+            <span class="labor-type-card__label">{{ info.label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+
+        <div class="form-grid form-grid--3">
+          <div class="form-group">
+            <label for="serial_inicio">Serial de inicio <span class="req-star">*</span></label>
+            <input type="number" id="serial_inicio" name="serial_inicio" value="{{ next_serial }}" min="1" required>
+            <p class="field-hint">Un serial por trabajador, consecutivos.</p>
+          </div>
+          <div class="form-group">
+            <label for="fecha">Fecha</label>
+            <input type="date" id="fecha" name="fecha" value="{{ today }}">
+          </div>
+          <div class="form-group">
+            <label for="lote_nombre">Lote / Ubicación</label>
+            <input type="text" id="lote_nombre" name="lote_nombre" placeholder="Ej: Lote El Mangon">
+          </div>
+        </div>
+        <div class="form-grid form-grid--3">
+          <div class="form-group">
+            <label for="ciudad">Ciudad</label>
+            <input type="text" id="ciudad" name="ciudad" value="Natagaima">
+          </div>
+          <div class="form-group">
+            <label for="unidad_label">Unidad de medida</label>
+            <input type="text" id="unidad_label" name="unidad_label" value="bultos" placeholder="bultos, ha, cajas…">
+          </div>
+          <div class="form-group">
+            <label for="concepto_base">Concepto base <small>(opcional)</small></label>
+            <input type="text" id="concepto_base" name="concepto_base" placeholder="Se genera automáticamente">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASO 2: Seleccionar trabajadores -->
+    <div class="form-card" style="margin-bottom:var(--s6)">
+      <div class="form-section">
+        <div class="worker-selector-header">
+          <h3 class="worker-selector-title">
+            <span class="step-badge">2</span> Seleccionar trabajadores
+          </h3>
+          <span class="selection-counter" id="selCounter">0 seleccionados</span>
+        </div>
+
+        <div class="cargo-filters" id="cargoFilters">
+          <button type="button" class="cargo-filter-btn is-active" data-cargo="todos">Todos</button>
+          {% set cvs = namespace(lista=[]) %}
+          {% for w in db_workers %}
+            {% if w.cargo and w.cargo not in cvs.lista %}
+              {% set cvs.lista = cvs.lista + [w.cargo] %}
+              <button type="button" class="cargo-filter-btn" data-cargo="{{ w.cargo }}">{{ w.cargo|replace('_',' ')|title }}</button>
+            {% endif %}
+          {% endfor %}
+        </div>
+
+        <div style="margin:.6rem 0 1rem">
+          <input type="text" id="workerSearch" placeholder="Filtrar por nombre…"
+                 class="lista-search-input" style="max-width:320px" oninput="filterWorkers()">
+        </div>
+
+        {% if db_workers %}
+        <div class="workers-grid" id="workerGrid">
+          {% for w in db_workers %}
+          <div class="worker-card-sel"
+               data-id="{{ w.id_worker }}"
+               data-cargo="{{ w.cargo or '' }}"
+               data-nombre="{{ w.nombre_completo|lower }}"
+               data-nombre-display="{{ w.nombre_completo }}"
+               data-vhabitual="{{ w.valor_habitual or 13000 }}"
+               onclick="toggleWorker(this)">
+            <i class="fa-solid fa-check worker-card-sel__check"></i>
+            <div class="worker-card-sel__name">{{ w.nombre_completo }}</div>
+            <span class="worker-card-sel__cargo">{{ (w.cargo or 'sin cargo')|replace('_',' ')|title }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state" style="padding:var(--s12)">
+          <i class="fa-solid fa-user-plus empty-state__icon"></i>
+          <h3>No hay trabajadores activos</h3>
+          <a href="{{ url_for('create_worker') }}" class="button button--primary">Registrar trabajador</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- PASO 3: Detalle por trabajador -->
+    <div class="form-card" id="workerDetailCard" style="display:none;margin-bottom:var(--s6)">
+      <div class="form-section">
+        <h3 class="form-section__title"><span class="step-badge">3</span> Detalle por trabajador</h3>
+
+        <!-- Calculadora rápida -->
+        <div class="calc-quick" style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:var(--s4);padding:var(--s3);background:var(--bg-subtle);border-radius:var(--radius-md)">
+          <div class="form-group" style="margin:0;flex:1;min-width:120px">
+            <label>Cantidad global <span id="unidadHint" style="color:var(--txt-muted);font-size:.8rem">(bultos)</span></label>
+            <input type="number" id="lc_cant" min="0" step="1" value="70" oninput="calcLote()">
+          </div>
+          <div class="form-group" style="margin:0;flex:1;min-width:120px">
+            <label>$/unidad (global)</label>
+            <input type="text" id="lc_vpunt" value="13.000" oninput="fmtPW(this);calcLote()">
+          </div>
+          <div class="form-group" style="margin:0;flex:0 0 auto">
+            <label>Resultado</label>
+            <input type="text" id="lc_resultado" readonly style="background:var(--bg-subtle);min-width:130px">
+          </div>
+          <button type="button" class="button button--primary button--sm" onclick="aplicarLoteCalc()">
+            <i class="fa-solid fa-bolt"></i> Aplicar a todos
+          </button>
+        </div>
+
+        <div class="per-worker-table-wrap">
+          <table class="per-worker-table">
+            <thead>
+              <tr>
+                <th>Trabajador</th>
+                <th id="colCantHeader">Cantidad (bultos)</th>
+                <th>$/unidad</th>
+                <th class="text-right">Total individual</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="workerDetailRows"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" style="font-weight:700;text-align:right;padding:var(--s3)">Total general:</td>
+                <td class="text-right" id="grandTotal" style="font-weight:700;font-size:1.05rem;color:var(--clr-700);padding:var(--s3)">$ 0</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div id="selResumen" style="display:none;margin-top:var(--s4);padding:var(--s3);background:var(--bg-subtle);border-radius:var(--radius-md);font-size:.9rem">
+          Se generarán <strong id="numRecibos">0</strong> recibos — seriales <strong id="serialRange">–</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASO 4: RTE FTE + enviar -->
+    <div class="form-card">
+      <div class="form-section">
+        <h3 class="form-section__title"><span class="step-badge">4</span> Finalizar</h3>
+        <div class="form-grid form-grid--3">
+          <div class="form-group">
+            <label for="rte_fte">RTE FTE (%)</label>
+            <input type="number" id="rte_fte" name="rte_fte" value="0" min="0" max="100" step="0.1"
+                   oninput="updateSummary()">
+          </div>
+        </div>
+
+        <!-- Resumen financiero -->
+        <div class="summary-box" id="summaryBox" style="margin-top:var(--s4);padding:var(--s4);background:var(--bg-subtle);border-radius:var(--radius-md);border:1px solid var(--brd);display:none">
+          <div style="display:flex;justify-content:space-between;margin-bottom:.4rem">
+            <span style="color:var(--txt-muted)">Subtotal:</span>
+            <strong id="sumSubtotal">$ 0</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:.4rem;color:var(--clr-danger,#d32f2f)">
+            <span>Retención RTE FTE (<span id="sumPct">0</span>%):</span>
+            <span id="sumRetencion">- $ 0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:1.1rem;font-weight:700;border-top:2px solid var(--brd);padding-top:.6rem;margin-top:.4rem">
+            <span>Neto total a pagar:</span>
+            <strong id="sumNeto" style="color:var(--clr-700)">$ 0</strong>
+          </div>
+        </div>
+
+        <div id="hiddenWorkerInputs"></div>
+
+        <div style="display:flex;gap:var(--s3);justify-content:flex-end;margin-top:var(--s4)">
+          <a href="{{ url_for('lista_recibos') }}" class="button button--ghost">Cancelar</a>
+          <button type="submit" id="btnSubmitLote" class="button button--primary" disabled>
+            <i class="fa-solid fa-paper-plane"></i> Generar recibos
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </form>
+</div></section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let selectedIds = new Set();
+let activeCargo = 'todos';
+let searchTerm  = '';
+let currentUnidad = 'bultos';
+
+// Unit labels per labor type
+const tipoUnidades = {
+  abonada: 'bultos de abono',
+  fumigacion: 'ha fumigadas',
+  corta: 'cargas cortadas',
+  carga: 'cargas cargadas',
+  otro: 'unidades'
+};
+
+function updateUnidad(tipo) {
+  const u = tipoUnidades[tipo] || 'unidades';
+  currentUnidad = u;
+  document.getElementById('unidad_label').value = u;
+  document.getElementById('unidadHint').textContent = '(' + u + ')';
+  document.getElementById('colCantHeader').textContent = 'Cantidad (' + u + ')';
+  document.querySelectorAll('.col-cant-label').forEach(el => el.textContent = u);
+}
+
+function parseCOP(s) { return parseFloat((s||'0').replace(/\./g,'').replace(',','.').replace(/[^0-9.]/g,''))||0; }
+function formatCOP(n) { return Math.round(n).toLocaleString('es-CO'); }
+
+function toggleWorker(card) {
+  const id = card.dataset.id;
+  if (selectedIds.has(id)) {
+    selectedIds.delete(id); card.classList.remove('is-selected'); removeWorkerRow(id);
+  } else {
+    selectedIds.add(id); card.classList.add('is-selected'); addWorkerRow(card);
+  }
+  updateCounter(); updateHiddenInputs(); updateResumen(); updateDetailCard();
+}
+
+function addWorkerRow(card) {
+  const id     = card.dataset.id;
+  const nombre = card.dataset.nombreDisplay || card.querySelector('.worker-card-sel__name').textContent.trim();
+  const cargo  = (card.dataset.cargo||'sin cargo').replace(/_/g,' ');
+  const vhab   = parseFloat(card.dataset.vhabitual)||13000;
+  const row    = document.createElement('tr');
+  row.id = `prow_${id}`;
+  row.innerHTML = `
+    <td><div style="font-weight:600;font-size:.9rem">${nombre}</div><div style="font-size:.78rem;color:var(--txt-muted)">${cargo}</div></td>
+    <td><input type="number" class="pw-cant" id="cant_${id}" name="cant_w_${id}" min="0" step="1" value="70"
+         oninput="recalcWorkerRow('${id}')" style="width:90px;text-align:center">
+         <span class="col-cant-label" style="font-size:.78rem;color:var(--txt-muted);margin-left:4px">${currentUnidad}</span></td>
+    <td><input type="text" class="pw-vpunt" id="vpunt_${id}" name="vpunt_w_${id}" value="${formatCOP(vhab)}"
+         oninput="fmtPW(this);recalcWorkerRow('${id}')" style="width:115px"></td>
+    <td class="text-right pw-total" id="ptotal_${id}" style="font-weight:600;color:var(--clr-700)">$ 0</td>
+    <td><button type="button" class="cr-remove" onclick="deselect('${id}')" title="Quitar"><i class="fa-solid fa-xmark"></i></button></td>`;
+  document.getElementById('workerDetailRows').appendChild(row);
+  recalcWorkerRow(id);
+}
+
+function removeWorkerRow(id) {
+  const r=document.getElementById(`prow_${id}`); if(r) r.remove();
+  const h=document.getElementById(`hv_${id}`);   if(h) h.remove();
+  recalcGrandTotal();
+}
+
+function deselect(id) {
+  selectedIds.delete(id);
+  const c=document.querySelector(`.worker-card-sel[data-id="${id}"]`); if(c) c.classList.remove('is-selected');
+  removeWorkerRow(id); updateCounter(); updateHiddenInputs(); updateResumen(); updateDetailCard();
+}
+
+function fmtPW(inp) { const r=inp.value.replace(/[^\d]/g,''); inp.value=r?parseInt(r).toLocaleString('es-CO'):''; }
+
+function recalcWorkerRow(id) {
+  const cant  = parseFloat(document.getElementById(`cant_${id}`)?.value)||0;
+  const vpunt = parseCOP(document.getElementById(`vpunt_${id}`)?.value);
+  const total = cant*vpunt;
+  const el    = document.getElementById(`ptotal_${id}`); if(el) el.textContent='$ '+formatCOP(total);
+  let hv=document.getElementById(`hv_${id}`);
+  if(!hv){hv=document.createElement('input');hv.type='hidden';hv.id=`hv_${id}`;hv.name=`valor_w_${id}`;document.getElementById('hiddenWorkerInputs').appendChild(hv);}
+  hv.value=total; recalcGrandTotal();
+}
+
+function recalcGrandTotal(){
+  let t=0; document.querySelectorAll('.pw-total').forEach(el=>{t+=parseCOP(el.textContent.replace('$','').trim());});
+  document.getElementById('grandTotal').textContent='$ '+formatCOP(t);
+  updateSummary();
+}
+
+function updateSummary(){
+  let subtotal=0;
+  document.querySelectorAll('.pw-total').forEach(el=>{subtotal+=parseCOP(el.textContent.replace('$','').trim());});
+  const pct=parseFloat(document.getElementById('rte_fte')?.value)||0;
+  const ret=subtotal*pct/100;
+  const neto=subtotal-ret;
+  const box=document.getElementById('summaryBox');
+  if(box) box.style.display=subtotal>0?'block':'none';
+  document.getElementById('sumSubtotal').textContent='$ '+formatCOP(subtotal);
+  document.getElementById('sumPct').textContent=pct.toFixed(pct%1===0?0:1);
+  document.getElementById('sumRetencion').textContent='- $ '+formatCOP(ret);
+  document.getElementById('sumNeto').textContent='$ '+formatCOP(neto);
+}
+
+function updateCounter() {
+  const n = selectedIds.size;
+  document.getElementById('selCounter').textContent = n + ' seleccionado' + (n !== 1 ? 's' : '');
+  document.getElementById('btnSubmitLote').disabled = n === 0;
+}
+function updateHiddenInputs(){
+  document.querySelectorAll('#hiddenWorkerInputs input[name="worker_ids"]').forEach(i=>i.remove());
+  selectedIds.forEach(id=>{const i=document.createElement('input');i.type='hidden';i.name='worker_ids';i.value=id;document.getElementById('hiddenWorkerInputs').appendChild(i);});
+}
+function updateDetailCard(){document.getElementById('workerDetailCard').style.display=selectedIds.size>0?'':'none';}
+function updateResumen(){
+  const n=selectedIds.size,res=document.getElementById('selResumen'); if(!res) return;
+  if(n===0){res.style.display='none';return;}
+  const ini=parseInt(document.getElementById('serial_inicio').value)||1;
+  res.style.display='block';
+  document.getElementById('numRecibos').textContent=n;
+  document.getElementById('serialRange').textContent=n===1?ini:ini+' – '+(ini+n-1);
+}
+document.getElementById('serial_inicio').addEventListener('input', updateResumen);
+document.getElementById('cargoFilters').addEventListener('click', function(e) {
+  const btn = e.target.closest('.cargo-filter-btn');
+  if (!btn) return;
+  document.querySelectorAll('.cargo-filter-btn').forEach(b => b.classList.remove('is-active'));
+  btn.classList.add('is-active');
+  activeCargo = btn.dataset.cargo;
+  applyFilters();
+});
+function filterWorkers() { searchTerm = document.getElementById('workerSearch').value.toLowerCase(); applyFilters(); }
+function applyFilters() {
+  document.querySelectorAll('.worker-card-sel').forEach(card => {
+    const cargoOk  = activeCargo === 'todos' || card.dataset.cargo === activeCargo;
+    const searchOk = !searchTerm || card.dataset.nombre.includes(searchTerm);
+    card.style.display = (cargoOk && searchOk) ? '' : 'none';
+  });
+}
+
+function calcLote(){
+  const cant=parseFloat(document.getElementById('lc_cant').value)||0;
+  const vp=parseCOP(document.getElementById('lc_vpunt').value);
+  const res=cant*vp;
+  document.getElementById('lc_resultado').value=res>0?'$ '+formatCOP(res):'';
+}
+
+function aplicarLoteCalc(){
+  const cant=parseFloat(document.getElementById('lc_cant').value)||0;
+  const vp=parseCOP(document.getElementById('lc_vpunt').value);
+  if(vp<=0) return;
+  selectedIds.forEach(id=>{
+    const ci=document.getElementById(`cant_${id}`); if(ci) ci.value=cant;
+    const vi=document.getElementById(`vpunt_${id}`); if(vi) vi.value=formatCOP(vp);
+    recalcWorkerRow(id);
+  });
+}
+</script>
+{% endblock %}

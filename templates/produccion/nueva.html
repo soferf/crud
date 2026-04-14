@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block title %}Nueva Cosecha / Siembra | Contabilidad Arroceras{% endblock %}
+{% block content %}
+<div class="page-hero">
+  <div class="container page-hero__inner">
+    <div class="page-hero__icon"><i class="fa-solid fa-seedling"></i></div>
+    <div>
+      <h1 class="page-hero__title">Registrar Producción</h1>
+      <p class="page-hero__sub">Siembra o cosecha &mdash; Lote El Mangón</p>
+    </div>
+    <div class="page-hero__actions">
+      <a href="{{url_for('lista_produccion')}}" class="button button--ghost"><i class="fa-solid fa-wheat-awn"></i> Ver producción</a>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="container" style="max-width:720px">
+  {% if success %}<div class="alert alert--success"><i class="fa-solid fa-circle-check"></i> {{success}}</div>{% endif %}
+  {% if error %}<div class="alert alert--danger"><i class="fa-solid fa-circle-xmark"></i> {{error}}</div>{% endif %}
+
+  <form method="POST" class="form-card" id="formProduccion">
+
+    <!-- ── TIPO DE REGISTRO ─────────────────────────────────────── -->
+    <div class="form-section">
+      <h3 class="form-section__title"><i class="fa-solid fa-toggle-on"></i> Tipo de registro</h3>
+      <div class="form-group">
+        <label>¿Qué vas a registrar?</label>
+        <div style="display:flex;gap:var(--s3);flex-wrap:wrap;margin-top:.3rem;">
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;
+                        background:var(--clr-50);border:2px solid var(--border);
+                        border-radius:var(--r-md);padding:.5rem 1rem;transition:all .15s;"
+                 id="lbl-cosecha">
+            <input type="radio" name="fase" value="cosecha" checked
+                   onchange="toggleFase()" style="accent-color:var(--clr-700);">
+            <i class="fa-solid fa-wheat-awn" style="color:var(--clr-500);"></i> Cosecha
+          </label>
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;
+                        background:var(--clr-50);border:2px solid var(--border);
+                        border-radius:var(--r-md);padding:.5rem 1rem;transition:all .15s;"
+                 id="lbl-siembra">
+            <input type="radio" name="fase" value="siembra"
+                   onchange="toggleFase()" style="accent-color:var(--clr-700);">
+            <i class="fa-solid fa-seedling" style="color:var(--clr-500);"></i> Siembra
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DATOS GENERALES ──────────────────────────────────────── -->
+    <div class="form-section">
+      <h3 class="form-section__title"><i class="fa-solid fa-circle-info"></i> Datos generales</h3>
+      <div class="form-grid form-grid--2">
+        <div class="form-group">
+          <label for="fecha">Fecha <span class="req-star">*</span></label>
+          <input type="date" id="fecha" name="fecha" required value="{{today}}">
+        </div>
+        <div class="form-group">
+          <label for="lote">Lote / Parcela</label>
+          <input type="text" id="lote" name="lote" value="El Mangón" placeholder="Ej: El Mangón">
+        </div>
+        <div class="form-group">
+          <label for="hectareas">Hectáreas</label>
+          <input type="number" id="hectareas" name="hectareas" min="0.5" step="0.5"
+                 value="{{total_ha}}" oninput="recalcTotales()">
+          <p class="field-hint">Mínimo esperado: {{min_cargas_ha}} cargas/ha &rarr; {{min_cargas}} total</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DATOS DE SEMILLA (visible siempre, obligatorio en siembra) ── -->
+    <div class="form-section" id="sec-semilla">
+      <h3 class="form-section__title"><i class="fa-solid fa-leaf"></i> Datos de semilla</h3>
+      <div class="form-grid form-grid--2">
+        <div class="form-group">
+          <label for="variedad_semilla">Variedad / Línea</label>
+          <input type="text" id="variedad_semilla" name="variedad_semilla"
+                 placeholder="Ej: IR-28, Fedearroz 60, F2000…">
+        </div>
+        <div class="form-group">
+          <label for="origen_semilla">Origen / Proveedor de semilla</label>
+          <input type="text" id="origen_semilla" name="origen_semilla"
+                 placeholder="Ej: Fedearroz, propio, intercambio…">
+        </div>
+        <div class="form-group">
+          <label for="bultos_ha">Bultos / Ha a sembrar</label>
+          <input type="number" id="bultos_ha" name="bultos_ha" min="0" step="0.5"
+                 placeholder="Ej: 8" oninput="recalcTotales()">
+          <p class="field-hint">Total se calcula automáticamente</p>
+        </div>
+        <div class="form-group">
+          <label>Total bultos semilla</label>
+          <input type="text" id="total_bultos_display" readonly
+                 style="background:var(--clr-50)" placeholder="Se calcula solo">
+        </div>
+        <div class="form-group">
+          <label for="metodo_siembra">Método de siembra</label>
+          <select id="metodo_siembra" name="metodo_siembra">
+            <option value="al_voleo">Al voleo</option>
+            <option value="sembradora">Con sembradora</option>
+            <option value="labranza_minima">Labranza mínima</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="fecha_siembra">Fecha de siembra</label>
+          <input type="date" id="fecha_siembra" name="fecha_siembra">
+          <p class="field-hint">Opcional si ya conoces la fecha</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DATOS DE COSECHA (oculto en siembra) ─────────────────── -->
+    <div class="form-section" id="sec-cosecha">
+      <h3 class="form-section__title"><i class="fa-solid fa-wheat-awn"></i> Datos de cosecha</h3>
+      <div class="form-grid form-grid--2">
+        <div class="form-group">
+          <label for="cargas">Cargas recolectadas</label>
+          <input type="number" id="cargas" name="cargas" min="1" oninput="recalcTotales()">
+          <p class="field-hint">1 carga = 62.5 kg</p>
+        </div>
+        <div class="form-group">
+          <label>Kg totales (calculado)</label>
+          <input type="text" id="kg_totales" readonly style="background:var(--clr-50)"
+                 placeholder="Se calcula solo">
+        </div>
+        <div class="form-group">
+          <label for="precio_carga">Precio por carga ($)</label>
+          <input type="text" id="precio_carga" name="precio_carga"
+                 placeholder="Ej: 85.000" oninput="recalcTotales()">
+        </div>
+        <div class="form-group">
+          <label>Valor total estimado</label>
+          <input type="text" id="valor_total_display" readonly
+                 style="background:var(--clr-50)" placeholder="Se calcula solo">
+        </div>
+      </div>
+    </div>
+
+    <!-- ── OBSERVACIONES ─────────────────────────────────────────── -->
+    <div class="form-section">
+      <div class="form-group">
+        <label for="observaciones">Observaciones</label>
+        <textarea id="observaciones" name="observaciones" rows="2"
+                  placeholder="Condiciones del cultivo, incidencias, notas adicionales…"></textarea>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="button button--primary">
+        <i class="fa-solid fa-floppy-disk"></i> Guardar registro
+      </button>
+      <a href="{{url_for('lista_produccion')}}" class="button button--ghost-dark">Cancelar</a>
+    </div>
+  </form>
+</div></section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function fmtCOP(v){
+  if(!v||isNaN(v)) return '';
+  return '$ '+parseFloat(v).toLocaleString('es-CO',{maximumFractionDigits:0});
+}
+function recalcTotales(){
+  const cargas = parseFloat(document.getElementById('cargas').value)||0;
+  const ha     = parseFloat(document.getElementById('hectareas').value)||0;
+  const bha    = parseFloat(document.getElementById('bultos_ha').value)||0;
+  const precioRaw = (document.getElementById('precio_carga').value||'').replace(/\./g,'').replace(',','.');
+  const precio = parseFloat(precioRaw)||0;
+
+  document.getElementById('kg_totales').value = cargas>0 ? (cargas*62.5).toFixed(1)+' kg' : '';
+  document.getElementById('total_bultos_display').value = (ha>0&&bha>0) ? (ha*bha).toFixed(1)+' bultos' : '';
+  document.getElementById('valor_total_display').value = (cargas>0&&precio>0) ? fmtCOP(cargas*precio) : '';
+}
+
+function toggleFase(){
+  const esCosecha = document.querySelector('input[name="fase"]:checked').value === 'cosecha';
+  document.getElementById('sec-cosecha').style.display = esCosecha ? '' : 'none';
+  document.getElementById('cargas').required = esCosecha;
+  // highlight active label
+  document.getElementById('lbl-cosecha').style.borderColor = esCosecha ? 'var(--clr-700)' : 'var(--border)';
+  document.getElementById('lbl-siembra').style.borderColor = !esCosecha ? 'var(--clr-700)' : 'var(--border)';
+}
+// init on load
+toggleFase();
+</script>
+{% endblock %}

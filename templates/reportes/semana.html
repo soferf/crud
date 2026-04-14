@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Reporte Semanal | Contabilidad Arroceras{% endblock %}
+{% block content %}
+<div class="page-hero">
+  <div class="container page-hero__inner">
+    <div class="page-hero__icon"><i class="fa-solid fa-calendar-week"></i></div>
+    <div>
+      <h1 class="page-hero__title">Reporte Semanal</h1>
+      <p class="page-hero__sub">{% if inicio and fin %}{{inicio.strftime('%d/%m/%Y')}} al {{fin.strftime('%d/%m/%Y')}}{% else %}Selecciona una fecha{% endif %}</p>
+    </div>
+    <div class="page-hero__actions"><a href="{{url_for('reportes')}}" class="button button--ghost"><i class="fa-solid fa-chart-line"></i> Dashboard</a></div>
+  </div>
+</div>
+<section class="section"><div class="container">
+  <form method="GET" class="form-card" style="max-width:400px;margin-bottom:var(--s6)">
+    <div class="form-group"><label for="fecha">Semana que contiene esta fecha</label><input type="date" id="fecha" name="fecha" value="{{fecha_str or ''}}"></div>
+    <div class="form-actions" style="margin-top:0"><button type="submit" class="button button--primary"><i class="fa-solid fa-search"></i> Ver semana</button></div>
+  </form>
+  {% if recibos %}
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Serial</th><th>Fecha</th><th>Proveedor</th><th>Concepto</th><th>Neto a pagar</th></tr></thead>
+      <tbody>
+        {% for r in recibos %}
+        <tr style="cursor:pointer" onclick="location.href='{{url_for('detalle_recibo', serial=r.serial)}}'">
+          <td><span class="serial-badge">{{r.serial}}</span></td>
+          <td class="txt-muted">{{r.fecha.strftime('%d/%m/%Y') if r.fecha else '—'}}</td>
+          <td><strong>{{r.proveedor}}</strong></td>
+          <td class="concepto-cell small">{{r.concepto}}</td>
+          <td class="valor-cell">{% if r.neto_a_pagar %}<strong>$ {{"{:,.0f}".format(r.neto_a_pagar).replace(",",".")}}</strong>{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot><tr class="table-foot"><td colspan="4" style="text-align:right;font-weight:600">Total semana:</td><td class="valor-cell"><strong>$ {{"{:,.0f}".format(recibos|sum(attribute='neto_a_pagar')).replace(",",".")}}</strong></td></tr></tfoot>
+    </table>
+  </div>
+  {% elif fecha_str %}
+  <div class="empty-state"><i class="fa-solid fa-calendar-xmark empty-state__icon"></i><h3>Sin recibos esa semana</h3></div>
+  {% endif %}
+</div></section>
+{% endblock %}

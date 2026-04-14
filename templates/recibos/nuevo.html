@@ -1,0 +1,555 @@
+{% extends "base.html" %}
+{% block title %}Nuevo Recibo | Contabilidad Arroceras{% endblock %}
+
+{% block head %}{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="container page-hero__inner">
+    <div class="page-hero__icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+    <div>
+      <h1 class="page-hero__title">Nuevo Recibo</h1>
+      <p class="page-hero__sub">Registra un pago. El serial se asigna según la fecha.</p>
+    </div>
+    <div class="page-hero__actions">
+      <a href="{{ url_for('lista_recibos') }}" class="button button--ghost">
+        <i class="fa-solid fa-list"></i> Ver recibos
+      </a>
+      <a href="{{ url_for('nuevo_recibo_lote') }}" class="button button--ghost">
+        <i class="fa-solid fa-users-between-lines"></i> Por lote
+      </a>
+    </div>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container" style="max-width:860px;">
+
+    {% if success %}
+    <div class="alert alert--success"><i class="fa-solid fa-circle-check"></i> {{ success }}</div>
+    {% endif %}
+    {% if error %}
+    <div class="alert alert--danger"><i class="fa-solid fa-circle-xmark"></i> {{ error }}</div>
+    {% endif %}
+
+    {% if warning %}
+    <div class="alert alert--warning" id="warningAlert">
+      <i class="fa-solid fa-triangle-exclamation"></i> {{ warning }}
+      <div style="margin-top:.6rem;display:flex;gap:.6rem;flex-wrap:wrap;">
+        <button type="button" class="button button--sm button--primary" id="btnForceGuardar">
+          <i class="fa-solid fa-floppy-disk"></i> Guardar de todas formas
+        </button>
+        <button type="button" class="button button--sm button--ghost-dark"
+                onclick="document.getElementById('warningAlert').style.display='none'">
+          Cancelar
+        </button>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Buscador de trabajadores -->
+    <div class="trabajador-search-box">
+      <label class="search-label">
+        <i class="fa-solid fa-magnifying-glass"></i> Buscar trabajador por nombre o apodo
+      </label>
+      <div class="search-input-wrap">
+        <input type="text" id="buscarTrabajador"
+               placeholder="Ej: paisa, delio, Silvio…"
+               autocomplete="off" class="search-input">
+        <ul id="trabajadorSuggestions" class="suggestions-list"></ul>
+      </div>
+      <p class="field-hint">Al seleccionar se autocompletan NIT, dirección, ciudad, teléfono, concepto y valor.</p>
+    </div>
+
+    <form method="POST" id="reciboForm" class="form-card">
+      <input type="hidden" name="force" id="forceField" value="false">
+
+      <!-- SECCIÓN 1: Identificación -->
+      <div class="form-section">
+        <h3 class="form-section__title">
+          <i class="fa-solid fa-hashtag"></i> Identificación del recibo
+        </h3>
+        <div class="form-grid form-grid--3">
+          <div class="form-group">
+            <label for="serial">Serial <span class="req-star">*</span></label>
+            <input type="number" id="serial" name="serial"
+                   value="{{ form_data.get('serial', next_serial) }}" min="1" required>
+            <p class="field-hint">Próximo sugerido: <strong>{{ next_serial }}</strong></p>
+          </div>
+          <div class="form-group">
+            <label for="fecha">Fecha del recibo</label>
+            <input type="date" id="fecha" name="fecha"
+                   value="{{ form_data.get('fecha', today) }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN 2: Proveedor -->
+      <div class="form-section">
+        <h3 class="form-section__title">
+          <i class="fa-solid fa-user-tie"></i> Proveedor / Trabajador
+        </h3>
+        <div class="form-grid form-grid--2">
+          <div class="form-group">
+            <label for="proveedor">Nombre completo <span class="req-star">*</span></label>
+            <input type="text" id="proveedor" name="proveedor"
+                   value="{{ form_data.get('proveedor','') }}"
+                   placeholder="Nombre real (no apodo)" required>
+          </div>
+          <div class="form-group">
+            <label for="nit">NIT / Cédula</label>
+            <input type="text" id="nit" name="nit"
+                   value="{{ form_data.get('nit','') }}"
+                   placeholder="Ej: 93470637">
+          </div>
+          <div class="form-group">
+            <label for="direccion">Dirección</label>
+            <input type="text" id="direccion" name="direccion"
+                   value="{{ form_data.get('direccion','') }}"
+                   placeholder="Ej: El Tambo">
+          </div>
+          <div class="form-group">
+            <label for="telefono">Teléfono</label>
+            <input type="text" id="telefono" name="telefono"
+                   value="{{ form_data.get('telefono','') }}"
+                   placeholder="Ej: 3001234567">
+          </div>
+          <div class="form-group">
+            <label for="ciudad">Ciudad</label>
+            <input type="text" id="ciudad" name="ciudad"
+                   value="{{ form_data.get('ciudad','') }}"
+                   placeholder="Ej: Natagaima">
+          </div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN 3: Conceptos y Valores (hasta 7 líneas) -->
+      <div class="form-section">
+        <h3 class="form-section__title">
+          <i class="fa-solid fa-file-lines"></i> Conceptos y valores
+        </h3>
+        <p class="field-hint" style="margin-bottom:.8rem">
+          <i class="fa-solid fa-circle-info"></i>
+          Cada recibo puede tener hasta 7 líneas de concepto con su propio valor. El subtotal se calcula automáticamente.
+          <br><span style="color:#c0392b"><i class="fa-solid fa-circle-xmark"></i> No registrar compras de aceite ni ACPM directo.</span>
+        </p>
+
+        <!-- Panel de conceptos rápidos (aparece al seleccionar trabajador) -->
+        <div id="conceptosRapidosPanel" class="crp-panel" style="display:none">
+          <div class="crp-header">
+            <i class="fa-solid fa-bolt-lightning"></i>
+            Conceptos frecuentes de <strong id="crpNombre">—</strong>
+            <button type="button" class="crp-close" onclick="document.getElementById('conceptosRapidosPanel').style.display='none'" title="Cerrar">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <p class="crp-hint">Haz clic para agregar al recibo. Puedes editar el texto después.</p>
+          <div id="crpChips" class="crp-chips"></div>
+        </div>
+
+        <div class="conceptos-table" id="conceptosTable">
+          <div class="conceptos-header">
+            <span class="ch-num">#</span>
+            <span class="ch-concepto">Concepto / Descripción <span class="req-star">*</span></span>
+            <span class="ch-valor">Valor (COP)</span>
+            <span class="ch-action"></span>
+          </div>
+          {% set lineas_prev = form_data.get('lineas', [{}]) %}
+          {% for i in range(1, 8) %}
+          {% set ln = lineas_prev[i-1] if i <= lineas_prev|length else {} %}
+          <div class="concepto-row" id="row{{ i }}"
+               style="{{ 'display:flex' if (i == 1 or ln) else 'display:none' }}">
+            <span class="cr-num">{{ i }}</span>
+            <input type="text" name="concepto_{{ i }}" id="concepto_{{ i }}" class="cr-concepto"
+                   value="{{ ln.get('concepto','') if ln else '' }}"
+                   placeholder="{{ 'Descripción del trabajo o pago…' if i == 1 else 'Concepto adicional…' }}"
+                   {{ 'required' if i == 1 else '' }}
+                   oninput="checkProhibido(this); onConceptoInput({{ i }})">
+            <input type="text" name="valor_{{ i }}" id="valor_{{ i }}" class="cr-valor valor-input"
+                   value="{{ '{:,.0f}'.format(ln.get('valor',0)).replace(',','.') if ln and ln.get('valor') else '' }}"
+                   placeholder="0" inputmode="numeric"
+                   oninput="formatValorInput(this); recalcSubtotal()">
+            {% if i > 1 %}
+            <button type="button" class="cr-remove" onclick="removeRow({{ i }})" title="Quitar línea">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+            {% else %}
+            <span class="cr-remove cr-remove--ph"></span>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="conceptos-footer">
+          <button type="button" id="addLineaBtn" class="button button--sm button--outline-green" onclick="addLinea()">
+            <i class="fa-solid fa-circle-plus"></i> Agregar concepto
+          </button>
+          <div class="subtotal-box">
+            <span class="subtotal-label">Subtotal operación:</span>
+            <span class="subtotal-valor" id="subtotalDisplay">$ 0</span>
+          </div>
+        </div>
+
+        <!-- RTE FTE y Neto -->
+        <div class="rte-neto-box">
+          <div class="rte-row">
+            <label for="rte_fte" class="rte-label">
+              <i class="fa-solid fa-percent"></i> RTE FTE (Retención en la Fuente)
+              <span class="field-hint--inline">Opcional — se descuenta del subtotal</span>
+            </label>
+            <div class="rte-inputs">
+              <div class="rte-percent-wrap">
+                <input type="number" id="rte_pct" min="0" max="100" step="0.1"
+                       placeholder="%" class="rte-pct-input"
+                       oninput="calcRteFte()">
+                <span class="rte-pct-symbol">%</span>
+              </div>
+              <span class="rte-or">ó</span>
+              <input type="text" id="rte_fte" name="rte_fte"
+                     value="{{ form_data.get('rte_fte', '') if form_data else '' }}"
+                     placeholder="$ 0" inputmode="numeric" class="rte-cop-input"
+                     oninput="formatValorInput(this); syncRtePct(); recalcSubtotal()">
+            </div>
+          </div>
+          <div class="neto-row">
+            <label for="neto_a_pagar" class="neto-label">
+              <i class="fa-solid fa-hand-holding-dollar"></i> Neto a pagar (COP)
+            </label>
+            <input type="text" id="neto_a_pagar" name="neto_a_pagar"
+                   value="{{ form_data.get('neto_a_pagar','') if form_data else '' }}"
+                   placeholder="Igual al subtotal si no hay RTE FTE" inputmode="numeric"
+                   class="neto-input"
+                   oninput="formatValorInput(this); this.dataset.userEdited='1'">
+            <p class="field-hint" style="margin:0;margin-top:.3rem">Si se deja vacío, se calcula: Subtotal − RTE FTE.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN 4: Calculadora de jornales (colapsable) -->
+      <div class="form-section form-section--collapsible" id="calcSection">
+        <button type="button" class="form-section__toggle" onclick="toggleCalc()">
+          <i class="fa-solid fa-calculator"></i> Calculadora de jornales
+          <i class="fa-solid fa-chevron-down toggle-icon" id="calcIcon"></i>
+        </button>
+        <div class="calc-body" id="calcBody" style="display:none;">
+          <p class="field-hint" style="margin-bottom:1rem">
+            Calcula el valor basado en número de trabajadores, días y valor diario.
+          </p>
+          <div class="form-grid form-grid--3">
+            <div class="form-group">
+              <label for="calc_trabajadores">Número de trabajadores</label>
+              <input type="number" id="calc_trabajadores" min="1" value="1" oninput="calcJornales()">
+            </div>
+            <div class="form-group">
+              <label for="calc_dias">Días trabajados</label>
+              <input type="number" id="calc_dias" min="1" value="1" oninput="calcJornales()">
+            </div>
+            <div class="form-group">
+              <label for="calc_valor_dia">Valor por jornal/día (COP)</label>
+              <input type="text" id="calc_valor_dia" value="60.000" inputmode="numeric"
+                     oninput="calcJornales()">
+            </div>
+          </div>
+          <div class="calc-result" id="calcResult" style="display:none;">
+            <span class="calc-result__label">Resultado:</span>
+            <span class="calc-result__valor" id="calcValor">—</span>
+            <button type="button" class="button button--sm button--primary" onclick="aplicarCalculo()">
+              <i class="fa-solid fa-arrow-right"></i> Aplicar al valor
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="button button--primary">
+          <i class="fa-solid fa-floppy-disk"></i> Guardar recibo
+        </button>
+        <a href="{{ url_for('lista_recibos') }}" class="button button--ghost-dark">
+          <i class="fa-solid fa-list"></i> Ver todos los recibos
+        </a>
+      </div>
+    </form>
+
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='css/js/autocomplete.js') }}"></script>
+<script>
+const TRABAJADORES = {{ trabajadores | tojson }};
+
+// ── Force-override desde warning ────────────────────────────────────────────
+const btnForce = document.getElementById('btnForceGuardar');
+if (btnForce) {
+  btnForce.addEventListener('click', () => {
+    document.getElementById('forceField').value = 'true';
+    document.getElementById('reciboForm').submit();
+  });
+}
+
+// ── Utilidades de formateo ──────────────────────────────────────────────────
+function parseCOP(str) {
+  if (!str) return 0;
+  return parseFloat(String(str).replace(/\./g, '').replace(',', '.')) || 0;
+}
+function formatCOP(n) {
+  return Math.round(n).toLocaleString('es-CO');
+}
+function formatValorInput(el) {
+  const raw = parseCOP(el.value);
+  if (raw > 0) el.value = formatCOP(raw);
+  else if (el.value.trim() === '0') el.value = '';
+}
+
+// ── Multi-concepto ──────────────────────────────────────────────────────────
+const MAX_ROWS = 7;
+let activeRows = 1;
+
+// Count initially visible rows
+document.querySelectorAll('.concepto-row').forEach(r => {
+  if (r.style.display !== 'none') {
+    const n = parseInt(r.id.replace('row', ''));
+    if (n > activeRows) activeRows = n;
+  }
+});
+updateAddBtn();
+
+function recalcSubtotal() {
+  let total = 0;
+  for (let i = 1; i <= MAX_ROWS; i++) {
+    const row = document.getElementById('row' + i);
+    if (!row || row.style.display === 'none') continue;
+    const v = row.querySelector('.valor-input');
+    if (v) total += parseCOP(v.value);
+  }
+  document.getElementById('subtotalDisplay').textContent = '$ ' + formatCOP(total);
+  const rteCOP = parseCOP(document.getElementById('rte_fte')?.value || '0');
+  const neto = document.getElementById('neto_a_pagar');
+  if (neto && !neto.dataset.userEdited) {
+    const netoVal = Math.max(0, total - rteCOP);
+    neto.value = total > 0 ? formatCOP(netoVal) : '';
+  }
+}
+
+// Called when user types in a concepto input field
+function onConceptoInput(n) {
+  const row = document.getElementById('row' + n);
+  if (!row || row.style.display === 'none') return;
+  const cInput = row.querySelector('.cr-concepto');
+  // Auto-expand next row when this (the last visible) row has content
+  if (cInput && cInput.value.trim() !== '' && n === activeRows && n < MAX_ROWS) {
+    showRow(n + 1);
+  }
+}
+
+function showRow(n) {
+  const row = document.getElementById('row' + n);
+  if (!row) return;
+  row.style.display = 'flex';
+  if (n > activeRows) activeRows = n;
+  updateAddBtn();
+}
+
+function addLinea() {
+  if (activeRows >= MAX_ROWS) return;
+  activeRows++;
+  const row = document.getElementById('row' + activeRows);
+  if (row) {
+    row.style.display = 'flex';
+    const inp = row.querySelector('.cr-concepto');
+    if (inp) inp.focus();
+  }
+  updateAddBtn();
+}
+
+function removeRow(n) {
+  const row = document.getElementById('row' + n);
+  if (!row) return;
+  row.style.display = 'none';
+  row.querySelectorAll('input').forEach(i => { i.value = ''; });
+  // Recalculate activeRows
+  let last = 1;
+  for (let i = 1; i <= MAX_ROWS; i++) {
+    const r = document.getElementById('row' + i);
+    if (r && r.style.display !== 'none') last = i;
+  }
+  activeRows = last;
+  updateAddBtn();
+  recalcSubtotal();
+}
+
+function updateAddBtn() {
+  const btn = document.getElementById('addLineaBtn');
+  if (btn) {
+    btn.disabled = activeRows >= MAX_ROWS;
+    btn.innerHTML = activeRows >= MAX_ROWS
+      ? '<i class="fa-solid fa-circle-check"></i> 7/7 conceptos'
+      : `<i class="fa-solid fa-circle-plus"></i> Agregar concepto (${activeRows}/${MAX_ROWS})`;
+  }
+}
+
+// Concepto prohibido warning
+function checkProhibido(el) {
+  const val = el.value.toLowerCase();
+  const transporte = val.includes('transporte');
+  const isAcpm = val.includes('acpm') && !transporte;
+  const isAceite = val.includes('aceite');
+  el.style.borderColor = (isAcpm || isAceite) ? '#e74c3c' : '';
+}
+
+// ── RTE FTE ────────────────────────────────────────────────────────────────
+function calcRteFte() {
+  const pct = parseFloat(document.getElementById('rte_pct').value) || 0;
+  let subtotal = 0;
+  for (let i = 1; i <= MAX_ROWS; i++) {
+    const row = document.getElementById('row' + i);
+    if (!row || row.style.display === 'none') continue;
+    const v = row.querySelector('.valor-input');
+    if (v) subtotal += parseCOP(v.value);
+  }
+  const rteVal = Math.round(subtotal * pct / 100);
+  const rteInput = document.getElementById('rte_fte');
+  if (rteInput) rteInput.value = rteVal > 0 ? formatCOP(rteVal) : '';
+  recalcSubtotal();
+}
+function syncRtePct() {
+  const pctInput = document.getElementById('rte_pct');
+  if (pctInput) pctInput.value = '';
+}
+
+// ── Panel de conceptos rápidos ──────────────────────────────────────────────
+function showConceptosRapidos(t) {
+  const cpago = t.conceptos_pago || [];
+  if (cpago.length === 0) return;
+  const panel  = document.getElementById('conceptosRapidosPanel');
+  const nombre = document.getElementById('crpNombre');
+  const chips  = document.getElementById('crpChips');
+  nombre.textContent = t.nombre;
+  chips.innerHTML = '';
+  cpago.forEach(cp => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'crp-chip';
+    const valText = cp.valor_base
+      ? `<span class="crp-val">$${formatCOP(cp.valor_base)}</span>` : '';
+    // Show short ID + valor, full description in tooltip
+    const shortLabel = cp.id.replace(/_/g,' ');
+    btn.innerHTML = `<i class="fa-solid fa-file-lines"></i> ${shortLabel} ${valText}`;
+    btn.title = cp.descripcion;
+    btn.addEventListener('click', () => fillNextConcepto(cp));
+    chips.appendChild(btn);
+  });
+  panel.style.display = 'block';
+}
+
+function fillNextConcepto(cp) {
+  // Find first visible row with empty concepto
+  for (let i = 1; i <= MAX_ROWS; i++) {
+    const row = document.getElementById('row' + i);
+    if (!row) continue;
+    // Show the row if hidden
+    if (row.style.display === 'none') {
+      row.style.display = 'flex';
+      if (i > activeRows) activeRows = i;
+      updateAddBtn();
+    }
+    const cInput = document.getElementById('concepto_' + i);
+    const vInput = document.getElementById('valor_' + i);
+    if (cInput && !cInput.value.trim()) {
+      cInput.value = cp.descripcion;
+      if (vInput && cp.valor_base) {
+        vInput.value = formatCOP(cp.valor_base);
+      }
+      // Auto-expand next row if not last
+      if (i < MAX_ROWS) showRow(i + 1);
+      recalcSubtotal();
+      cInput.focus();
+      return;
+    }
+  }
+}
+
+// ── Autocomplete ────────────────────────────────────────────────────────────
+initTrabajadorAutocomplete(TRABAJADORES, {
+  searchInput:     document.getElementById('buscarTrabajador'),
+  suggestionsList: document.getElementById('trabajadorSuggestions'),
+  fields: {
+    proveedor:       document.getElementById('proveedor'),
+    nit:             document.getElementById('nit'),
+    direccion:       document.getElementById('direccion'),
+    telefono:        document.getElementById('telefono'),
+    ciudad:          document.getElementById('ciudad'),
+    concepto:        document.getElementById('concepto_1'),
+    valor_operacion: document.getElementById('valor_1'),
+    neto_a_pagar:    document.getElementById('neto_a_pagar'),
+  },
+  onSelect: function(t) {
+    // After autocomplete fills row 1, trigger expansion of row 2
+    if (document.getElementById('concepto_1').value.trim()) {
+      showRow(2);
+    }
+    recalcSubtotal();
+    // Show quick-concept panel if worker has multiple concepts
+    showConceptosRapidos(t);
+  }
+});
+
+// ── Init on page load ───────────────────────────────────────────────────────
+document.querySelectorAll('.valor-input').forEach(el => {
+  const raw = parseCOP(el.value);
+  if (raw > 0) el.value = formatCOP(raw);
+});
+recalcSubtotal();
+updateAddBtn();
+
+// ── Calculadora de jornales ──────────────────────────────────────────────────
+function toggleCalc() {
+  const body = document.getElementById('calcBody');
+  const icon = document.getElementById('calcIcon');
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  icon.style.transform = open ? 'rotate(180deg)' : '';
+}
+
+function calcJornales() {
+  const trab = parseInt(document.getElementById('calc_trabajadores').value) || 0;
+  const dias  = parseInt(document.getElementById('calc_dias').value) || 0;
+  const vdia  = parseCOP(document.getElementById('calc_valor_dia').value);
+  const total = trab * dias * vdia;
+  const res   = document.getElementById('calcResult');
+  const val   = document.getElementById('calcValor');
+  if (total > 0) {
+    val.textContent = '$ ' + formatCOP(total);
+    res.style.display = 'flex';
+  } else {
+    res.style.display = 'none';
+  }
+}
+
+function aplicarCalculo() {
+  const trab  = parseInt(document.getElementById('calc_trabajadores').value) || 0;
+  const dias  = parseInt(document.getElementById('calc_dias').value) || 0;
+  const vdia  = parseCOP(document.getElementById('calc_valor_dia').value);
+  const total = trab * dias * vdia;
+  if (total <= 0) return;
+  const fmt = formatCOP(total);
+  for (let i = 1; i <= MAX_ROWS; i++) {
+    const row = document.getElementById('row' + i);
+    if (!row || row.style.display === 'none') continue;
+    const vInput = document.getElementById('valor_' + i);
+    if (vInput && !parseCOP(vInput.value)) {
+      vInput.value = fmt;
+      const cInput = document.getElementById('concepto_' + i);
+      if (cInput && !cInput.value) {
+        cInput.value = `${trab} trabajador(es) × ${dias} día(s) × $${formatCOP(vdia)}/día`;
+      }
+      recalcSubtotal();
+      return;
+    }
+  }
+  document.getElementById('valor_1').value = fmt;
+  recalcSubtotal();
+}
+</script>
+{% endblock %}

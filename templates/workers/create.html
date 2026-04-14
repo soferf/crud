@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Registrar Trabajador | Contabilidad Arroceras{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="container page-hero__inner">
+    <div class="page-hero__icon"><i class="fa-solid fa-user-plus"></i></div>
+    <div>
+      <h1 class="page-hero__title">Registrar Trabajador</h1>
+      <p class="page-hero__sub">Completa los datos del trabajador. Los campos con <span style="color:var(--gold-300)">*</span> son obligatorios.</p>
+    </div>
+    <div class="page-hero__actions">
+      <a href="{{ url_for('lista_workers') }}" class="button button--ghost">
+        <i class="fa-solid fa-list"></i> Ver trabajadores
+      </a>
+    </div>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+
+    {% if message %}
+    <div class="alert alert--success"><i class="fa-solid fa-circle-check"></i> {{ message }}</div>
+    {% endif %}
+    {% if error %}
+    <div class="alert alert--danger"><i class="fa-solid fa-circle-xmark"></i> {{ error }}</div>
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data" class="form-card">
+
+      <!-- FOTO -->
+      <div class="form-section">
+        <h3 class="form-section__title"><i class="fa-solid fa-camera"></i> Foto del Trabajador <span class="badge-optional">Opcional</span></h3>
+        <div class="foto-upload-area" id="fotoArea">
+          <div class="foto-preview" id="fotoPreview">
+            <i class="fa-solid fa-user-circle foto-placeholder-icon"></i>
+          </div>
+          <div class="foto-upload-controls">
+            <label for="foto" class="button button--ghost button--sm">
+              <i class="fa-solid fa-upload"></i> Seleccionar foto
+            </label>
+            <input type="file" id="foto" name="foto" accept=".jpg,.jpeg,.png,.webp" class="foto-input-hidden">
+            <p class="foto-hint">JPG, PNG o WEBP · Máx. 5 MB</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- DATOS PERSONALES -->
+      <div class="form-section">
+        <h3 class="form-section__title"><i class="fa-solid fa-id-card"></i> Datos Personales</h3>
+        <div class="form-grid form-grid--2">
+          <div class="form-group">
+            <label for="name">Nombre <span class="req-star">*</span></label>
+            <input type="text" id="name" name="name" placeholder="Ej: Juan" required>
+          </div>
+          <div class="form-group">
+            <label for="lastname">Apellido <span class="req-star">*</span></label>
+            <input type="text" id="lastname" name="lastname" placeholder="Ej: Pérez" required>
+          </div>
+          <div class="form-group">
+            <label for="cc">CC / NIT <span class="req-star">*</span></label>
+            <input type="text" id="cc" name="cc" placeholder="Número de cédula o NIT" required>
+          </div>
+          <div class="form-group">
+            <label for="phone_number">Teléfono <span class="req-star">*</span></label>
+            <input type="tel" id="phone_number" name="phone_number" placeholder="Ej: 3001234567" required>
+          </div>
+          <div class="form-group">
+            <label for="email">Correo electrónico</label>
+            <input type="email" id="email" name="email" placeholder="correo@ejemplo.com">
+          </div>
+          <div class="form-group">
+            <label for="alias">Apodo / Alias</label>
+            <input type="text" id="alias" name="alias" placeholder="Ej: paisa, delio">
+            <p class="field-hint">Apodo por el que se le conoce (uso interno)</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- UBICACIÓN -->
+      <div class="form-section">
+        <h3 class="form-section__title"><i class="fa-solid fa-map-marker-alt"></i> Ubicación</h3>
+        <div class="form-grid form-grid--2">
+          <div class="form-group">
+            <label for="direccion">Dirección</label>
+            <input type="text" id="direccion" name="direccion" placeholder="Ej: El Tambo, Vereda...">
+          </div>
+          <div class="form-group">
+            <label for="ciudad">Ciudad / Municipio</label>
+            <input type="text" id="ciudad" name="ciudad" placeholder="Ej: Natagaima">
+          </div>
+        </div>
+      </div>
+
+      <!-- TRABAJO -->
+      <div class="form-section">
+        <h3 class="form-section__title"><i class="fa-solid fa-briefcase"></i> Información Laboral</h3>
+        <div class="form-grid form-grid--2">
+          <div class="form-group">
+            <label for="trabajo_desarrolla">Tipo de trabajo <span class="req-star">*</span></label>
+            <select id="trabajo_desarrolla" name="trabajo_desarrolla" required>
+              <option value="">— Seleccionar —</option>
+              {% for op in options %}
+              <option value="{{ op }}">{{ op|capitalize }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="fecha_ingreso">Fecha de ingreso</label>
+            <input type="date" id="fecha_ingreso" name="fecha_ingreso" value="{{ today }}">
+          </div>
+          <div class="form-group form-grid--full">
+            <label for="concepto_habitual">Concepto habitual (para recibos)</label>
+            <textarea id="concepto_habitual" name="concepto_habitual" rows="2" placeholder="Descripción del trabajo que habitualmente realiza..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="valor_habitual">Valor habitual (COP)</label>
+            <input type="number" id="valor_habitual" name="valor_habitual" placeholder="Ej: 350000" min="0" step="1000">
+          </div>
+          <div class="form-group">
+            <label for="observaciones">Observaciones</label>
+            <textarea id="observaciones" name="observaciones" rows="2" placeholder="Notas adicionales..."></textarea>
+          </div>
+        </div>
+        <div class="form-check-row">
+          <label class="check-inline">
+            <input type="checkbox" name="activo" checked>
+            <span>Trabajador activo</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="button button--primary">
+          <i class="fa-solid fa-floppy-disk"></i> Registrar trabajador
+        </button>
+        <a href="{{ url_for('lista_recibos') }}" class="button button--ghost-dark">
+          <i class="fa-solid fa-file-invoice-dollar"></i> Ir a recibos
+        </a>
+      </div>
+
+    </form>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById('foto').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const prev = document.getElementById('fotoPreview');
+      prev.innerHTML = `<img src="${ev.target.result}" alt="Preview" class="foto-preview-img">`;
+    };
+    reader.readAsDataURL(file);
+  });
+</script>
+{% endblock %}

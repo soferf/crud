@@ -1,0 +1,254 @@
+[
+  {
+    "id": "elias_castano",
+    "nombre_completo": "Elias Castaño",
+    "alias": ["paisa"],
+    "nit": "5962798",
+    "cedula": "5962798",
+    "direccion": "El Tambo",
+    "ciudad": "Natagaima",
+    "departamento": "Tolima",
+    "telefono": "3173041545",
+    "rol": "Operario motobomba / Jornalero",
+    "frecuencia_pago": "semanal",
+    "activo": true,
+    "conceptos_pago": [
+      {"id": "PAISA_CUIDO_SEMANAL", "descripcion": "Prestación de servicios de custodia, operación y mantenimiento básico de motobomba Lister 38 HP a diesel por una (1) semana en Lote El Mangon, vereda El Tambo, Natagaima, Tolima.", "valor_base": 350000, "unidad": "semana", "formula": "350000 * num_semanas"},
+      {"id": "PAISA_DESAGUE", "descripcion": "Prestación de servicios de coordinación y ejecución de jornales de desagüe en cultivo de arroz, Lote El Mangon, vereda El Tambo, Natagaima. [N] jornales a $60.000 por día.", "valor_base": 60000, "unidad": "jornal/día", "formula": "60000 * num_jornales"},
+      {"id": "PAISA_CUIDO_MAS_JORNALES", "descripcion": "Prestación de servicios de custodia de motobomba Lister 38 HP + [N] jornales de [actividad] en Lote El Mangon. Detalle: cuido motor $350.000 + jornales $[X] = Total $[suma].", "valor_base": null, "unidad": "variable", "formula": "350000 + (60000 * num_jornales)"},
+      {"id": "PAISA_RIEGO", "descripcion": "Prestación de servicios de operación de motobomba para riego en cultivo de arroz, [N] hectáreas, Lote El Mangon, vereda El Tambo, Natagaima.", "valor_base": null, "unidad": "hectárea", "formula": "valor_acordado * num_hectareas"}
+    ]
+  },
+  {
+    "id": "eliodoro_aroca",
+    "nombre_completo": "Eliodoro Aroca Alape",
+    "alias": ["delio"],
+    "nit": "93345400",
+    "cedula": "93345400",
+    "direccion": "El Tambo",
+    "ciudad": "Natagaima",
+    "departamento": "Tolima",
+    "telefono": "",
+    "rol": "Jornalero / Regador de arroz",
+    "frecuencia_pago": "semanal / por actividad",
+    "activo": true,
+    "conceptos_pago": [
+      {"id": "DELIO_MOJE_SEMANAL", "descripcion": "Prestación de servicios de moje corrido (riego por inundación) durante una (1) semana en cultivo de arroz de 20 hectáreas a motor, Lote El Mangon, vereda El Tambo, Natagaima.", "valor_base": 370000, "unidad": "semana", "formula": "370000 * num_semanas"},
+      {"id": "DELIO_DESAGUE_JORNALES", "descripcion": "Prestación de servicios de jornales de desagüe en cultivo de arroz, Lote El Mangon, vereda El Tambo, Natagaima. [N] jornales de trabajo.", "valor_base": 720000, "unidad": "6 días", "formula": "120000 * num_jornales"},
+      {"id": "DELIO_PORCENTAJE_BULTOS", "descripcion": "Reconocimiento de porcentaje pactado por labores de campo a razón de $350 por bulto sobre [N] bultos de arroz paddy cosechados en Lote El Mangon, vereda El Tambo, Natagaima.", "valor_base": 350, "unidad": "por bulto", "formula": "350 * num_bultos"},
+      {"id": "DELIO_BOMBO", "descripcion": "Prestación de servicios de jornal en labores de campo (bombo/desmonte) en Lote El Mangon, vereda El Tambo, Natagaima.", "valor_base": 550000, "unidad": "jornal", "formula": "550000 * num_jornales"}
+    ]
+  },
+  {
+    "id": "alexander_botache",
+    "nombre_completo": "Alexander Botache Yara",
+    "alias": ["alex"],
+    "nit": "93470959",
+    "cedula": "93470959",
+    "direccion": "El Tambo",
+    "ciudad": "Natagaima",
+    "departamento": "Tolima",
+    "telefono": "3157051538",
+    "rol": "Transportador",
+    "frecuencia_pago": "por servicio",
+    "activo": true,
+    "conceptos_pago": [
+      {"id": "ALEX_TRANSPORTE_ACPM", "descripcion": "Prestación de servicio de transporte de [N] bidones de ACPM desde Angostura hasta Lote El Mangon, vereda El Tambo, Natagaima.", "valor_base": 100000, "unidad": "viaje", "formula": "valor_por_viaje"},
+      {"id": "ALEX_TRANSPORTE_STOPAS", "descripcion": "Prestación de servicio de transporte de [N] stopas/bultos de arroz paddy desde Lote El Mangon hasta [destino], municipio de Natagaima.", "valor_base": null, "unidad": "por carga", "formula": "valor_acordado"},
+      {"id": "ALEX_JORNALES", "descripcion": "Prestación de servicios de jornales de campo — [N] trabajadores x [N] días en labores de [actividad], Lote El Mangon, vereda El Tambo, Natagaima.", "valor_base": 1490000, "unidad": "8 jornales x 3 días", "formula": "valor_jornal * num_trabajadores * num_dias"}
+    ]
+  },
+  {
+    "id": "jose_medina_santos",
+    "nombre_completo": "Jose Maria Medina Santos",
+    "alias": ["chepe"],
+    "nit": "93151067",
+    "cedula": "93151067",
+    "direccion": "Carrera 10 #11",
+    "ciudad": "Natagaima",
+    "departamento": "Tolima",
+    "telefono": "3132429292",
+    "rol": "Mecánico / Técnico motobomba",
+    "frecuencia_pago": "por servicio",
+    "activo": true,
+    "conceptos_pago": [
+      {"id": "CHEPE_REPARACION", "descripcion": "Prestación de servicios de reparación y mantenimiento correctivo de motobomba Lister 38 HP a diesel, Lote El Mangon, vereda El Tambo, Natagaima.", "valor_base": null, "unidad": "por servicio", "formula": "valor_acordado"},
+      {"id": "CHEPE_REPUESTOS", "descripcion": "Suministro de repuestos y materiales para mantenimiento de motobomba Lister 38 HP — [descripción de repuesto/s], Lote El Mangon, El Tambo.", "valor_base": null, "unidad": "por suministro", "formula": "valor_repuestos"},
+      {"id": "CHEPE_MANTENIMIENTO_PREVENTIVO", "descripcion": "Prestación de servicios de mantenimiento preventivo de motobomba Lister 38 HP a diesel, incluyendo cambio de filtros, revisión de sistema de combustible y ajuste general.", "valor_base": null, "unidad": "por servicio", "formula": "valor_acordado"},
+      {"id": "CHEPE_REPARACION_FUGA", "descripcion": "Prestación de servicios de reparación de fuga en motobomba Lister 38 HP a diesel + cambio de aceite, Lote El Mangon, El Tambo, Natagaima.", "valor_base": 500000, "unidad": "por servicio", "formula": "valor_acordado"}
+    ]
+  },
+  {
+    "id": "silvio_zorrillo",
+    "nombre_completo": "Silvio Zorrillo Carrillo",
+    "alias": [],
+    "nit": "93470637",
+    "cedula": "93470637",
+    "direccion": "El Tambo",
+    "ciudad": "Natagaima",
+    "departamento": "Tolima",
+    "telefono": "",
+    "rol": "Jornalero / Despalillador",
+    "frecuencia_pago": "semanal / por jornal",
+    "activo": true,
+    "conceptos_pago": [
+      {"id": "SILVIO_DESPALILLADA", "descripcion": "Prestación de servicios de despalillada en cultivo de arroz — [N] jornales por semana, Lote El Mangon, vereda El Tambo, Natagaima.", "valor_base": 360000, "unidad": "por jornal", "formula": "360000 * num_jornales"},
+      {"id": "SILVIO_DESPALILLADA_GRUPO", "descripcion": "Prestación de servicios de despalillada grupal en cultivo de arroz — [N] trabajadores, [N] jornales por semana, Lote El Mangon, vereda El Tambo, Natagaima.", "valor_base": 1080000, "unidad": "3 jornales grupales", "formula": "360000 * num_trabajadores * num_jornales"}
+    ]
+  },
+  {
+    "id": "gilberto_guarnizo",
+    "nombre_completo": "Gilberto Guarnizo Rojas",
+    "alias": [],
+    "nit": "93152907",
+    "cedula": "93152907",
+    "direccion": "Cra 9A #11B Abonanza",
+    "ciudad": "Saldaña",
+    "departamento": "Tolima",
+    "telefono": "3123978471",
+    "rol": "Jornalero / Cargue arroz",
+    "frecuencia_pago": "por servicio",
+    "activo": true,
+    "conceptos_pago": [
+      {"id": "GILBERTO_CARGUE", "descripcion": "Prestación de servicios de cargue de [N] camiones de arroz paddy en bodega de Saldaña, proveniente de cosecha del predio Lote El Mangon, El Tambo, Natagaima.", "valor_base": null, "unidad": "por camión", "formula": "valor_acordado * num_camiones"}
+    ]
+  },
+  {
+    "id": "jorge_delvasto",
+    "nombre_completo": "Jorge Enrique Delvasto",
+    "alias": [],
+    "nit": "93471018",
+    "cedula": "93471018",
+    "direccion": "El Tambo",
+    "ciudad": "Natagaima",
+    "departamento": "Tolima",
+    "telefono": "3164936224",
+    "rol": "Contratista obras / Transporte",
+    "frecuencia_pago": "por obra",
+    "activo": true,
+    "conceptos_pago": [
+      {"id": "JORGE_ARREGLO_VIA", "descripcion": "Prestación de servicios de arreglo, nivelación y conformación de vía de acceso al predio Lote El Mangon mediante volquetadas de material, vereda El Tambo, Natagaima.", "valor_base": null, "unidad": "por obra", "formula": "valor_acordado"},
+      {"id": "JORGE_TRANSPORTE_CANAL", "descripcion": "Prestación de servicio de transporte en zona canal de la Cevedo, Lote El Mangon, vereda El Tambo, Natagaima.", "valor_base": null, "unidad": "por servicio", "formula": "valor_acordado"},
+      {"id": "JORGE_OBRA_COMPLETA", "descripcion": "Prestación de servicios de arreglo de vía con volquetadas y transporte en canal de la Cevedo, Lote El Mangon, vereda El Tambo, Natagaima — obra completa.", "valor_base": 33500000, "unidad": "obra completa", "formula": "valor_acordado"}
+    ]
+  },
+  {
+    "id": "joany_cuevas",
+    "nombre_completo": "Joany Andres Cuevas Vanegas",
+    "alias": [],
+    "nit": "1081182208",
+    "cedula": "1081182208",
+    "direccion": "Guasimal",
+    "ciudad": "Natagaima",
+    "departamento": "Tolima",
+    "telefono": "3001392542",
+    "rol": "Jornalero / Cosechero",
+    "frecuencia_pago": "por cosecha",
+    "activo": true,
+    "conceptos_pago": [
+      {"id": "JOANY_CORTA", "descripcion": "Prestación de servicios de corte y recolección de arroz paddy en Lote El Mangon, [N] hectáreas, vereda El Tambo, Natagaima.", "valor_base": null, "unidad": "por hectárea", "formula": "valor_hectarea * num_hectareas"}
+    ]
+  },
+  {
+    "id": "humberto_yara",
+    "nombre_completo": "Humberto Yara Tique",
+    "alias": [],
+    "nit": "11293591",
+    "cedula": "11293591",
+    "direccion": "El Tambo",
+    "ciudad": "Natagaima",
+    "departamento": "Tolima",
+    "telefono": "3166422455",
+    "rol": "Propietario parcela / Asofructo",
+    "frecuencia_pago": "por período",
+    "activo": true,
+    "conceptos_pago": [
+      {"id": "HUMBERTO_ASOFRUCTO", "descripcion": "Cancelación de cuota de usufructo correspondiente a parcela N° 9, Lote El Mangon, vereda El Tambo, Natagaima, período [mes/año].", "valor_base": 1080000, "unidad": "por período", "formula": "valor_acordado"}
+    ]
+  },
+  {
+    "id": "vicente_andrade",
+    "nombre_completo": "Vicente Andrade Lozano",
+    "alias": ["agronomo"],
+    "nit": "12345001",
+    "cedula": "12345001",
+    "direccion": "El Tambo",
+    "ciudad": "Natagaima",
+    "departamento": "Tolima",
+    "telefono": "",
+    "rol": "Ingeniero agrónomo",
+    "frecuencia_pago": "por cosecha",
+    "activo": true,
+    "conceptos_pago": [
+      {"id": "VICENTE_PORCENTAJE_COSECHA", "descripcion": "Honorarios profesionales por asistencia técnica agronómica — porcentaje pactado sobre producción total de arroz paddy, Lote El Mangon, cosecha período [fecha], vereda El Tambo, Natagaima.", "valor_base": 660000, "unidad": "porcentaje por cosecha", "formula": "porcentaje_pactado * valor_total_cosecha"}
+    ]
+  },
+  {
+    "id": "fernando_lozano",
+    "nombre_completo": "Fernando Lozano",
+    "alias": [],
+    "nit": "12345002",
+    "cedula": "12345002",
+    "direccion": "El Tambo",
+    "ciudad": "Natagaima",
+    "departamento": "Tolima",
+    "telefono": "",
+    "rol": "Jornalero / Operario motosierra",
+    "frecuencia_pago": "por jornal",
+    "activo": true,
+    "conceptos_pago": [
+      {"id": "FERNANDO_MOTOSIERRA", "descripcion": "Prestación de servicios de bordeada con motosierra en Lote El Mangon — [N] jornales equipo conformado por [N] operario motosierra y [N] ayudantes machete, vereda El Tambo, Natagaima.", "valor_base": 880000, "unidad": "jornal equipo", "formula": "880000 * num_jornales"}
+    ]
+  },
+  {
+    "id": "raquel_cumaco",
+    "nombre_completo": "Raquel Cumaco Tacuma",
+    "alias": [],
+    "nit": "65789347",
+    "cedula": "65789347",
+    "direccion": "El Tambo",
+    "ciudad": "Natagaima",
+    "departamento": "Tolima",
+    "telefono": "3154910540",
+    "rol": "Propietaria parcela / Asofructo",
+    "frecuencia_pago": "por período",
+    "activo": true,
+    "conceptos_pago": [
+      {"id": "RAQUEL_ASOFRUCTO", "descripcion": "Cancelación de cuota de usufructo correspondiente a parcela asignada, Lote El Mangon, vereda El Tambo, Natagaima, período [mes/año].", "valor_base": null, "unidad": "por período", "formula": "valor_acordado"}
+    ]
+  },
+  {
+    "id": "cabildo_tambo",
+    "nombre_completo": "Cabildo de Tambo",
+    "alias": ["cabildo"],
+    "nit": "809005671",
+    "cedula": "809005671",
+    "direccion": "El Tambo",
+    "ciudad": "Natagaima",
+    "departamento": "Tolima",
+    "telefono": "3123525731",
+    "rol": "Arrendador / Resguardo indígena",
+    "frecuencia_pago": "por período pactado",
+    "activo": true,
+    "conceptos_pago": [
+      {"id": "CABILDO_USUFRUCTO", "descripcion": "Cancelación de canon de usufructo de terrenos del resguardo indígena Pijao — 20 hectáreas, predio Lote El Mangon, vereda El Tambo, municipio Natagaima, Tolima. Período [mes inicio] a [mes fin] de [año].", "valor_base": 2110000, "unidad": "por período", "formula": "valor_acordado"}
+    ]
+  },
+  {
+    "id": "jose_rene_ducuara",
+    "nombre_completo": "Jose Rene Ducuara Ducuara",
+    "alias": [],
+    "nit": "5969656",
+    "cedula": "5969656",
+    "direccion": "CR 8A 17 22",
+    "ciudad": "Ortega",
+    "departamento": "Tolima",
+    "telefono": "",
+    "rol": "Arrendatario / Propietario del arroz",
+    "frecuencia_pago": "por contrato",
+    "activo": true,
+    "conceptos_pago": [
+      {"id": "DUCUARA_ARRIENDO", "descripcion": "Pago de arrendamiento de 20 hectáreas de tierra para cultivo de arroz, predio Lote El Mangon, vereda El Tambo, municipio Natagaima, Tolima. Período [fecha inicio] a [fecha fin].", "valor_base": null, "unidad": "por contrato", "formula": "valor_acordado"}
+    ]
+  }
+]
