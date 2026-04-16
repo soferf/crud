@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% block title %}Configurar Lote — Arroceras{% endblock %}
+
+{% block head %}
+<style>
+.chat-container { display:flex; flex-direction:column; height:calc(100vh - 200px); min-height:400px; max-height:650px; }
+.chat-messages { flex:1; overflow-y:auto; padding:1rem; display:flex; flex-direction:column; gap:.75rem; background:var(--clr-50); border-radius:var(--r-md) var(--r-md) 0 0; border:1px solid var(--border); border-bottom:none; }
+.chat-bubble { max-width:80%; padding:.75rem 1rem; border-radius:1.2rem; font-size:.9rem; line-height:1.5; }
+.chat-bubble--ai { align-self:flex-start; background:var(--surface); border:1px solid var(--border); border-radius:.25rem 1.2rem 1.2rem 1.2rem; color:var(--txt); }
+.chat-bubble--user { align-self:flex-end; background:var(--clr-700); color:#fff; border-radius:1.2rem 1.2rem .25rem 1.2rem; }
+.chat-input-row { display:flex; gap:.5rem; padding:.75rem; background:var(--surface); border:1px solid var(--border); border-radius:0 0 var(--r-md) var(--r-md); }
+.chat-input-row input { flex:1; border:1px solid var(--border); border-radius:var(--r-full); padding:.6rem 1rem; font-family:var(--ff-body); font-size:.9rem; outline:none; transition:border-color .2s; }
+.chat-input-row input:focus { border-color:var(--clr-500); }
+.chat-input-row button { background:var(--clr-700); color:#fff; border:none; border-radius:var(--r-full); padding:.6rem 1.2rem; cursor:pointer; font-weight:700; transition:background .2s; }
+.chat-input-row button:hover { background:var(--clr-900); }
+.field-tag { display:inline-flex; align-items:center; gap:.3rem; padding:.2rem .6rem; border-radius:var(--r-full); font-size:.75rem; font-weight:600; }
+.field-tag--done { background:#d1fae5; color:#065f46; }
+.field-tag--pending { background:#fef3c7; color:#92400e; }
+.typing-dots span { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--txt-muted); animation:dot-bounce .8s infinite; margin:0 2px; }
+.typing-dots span:nth-child(2) { animation-delay:.15s; }
+.typing-dots span:nth-child(3) { animation-delay:.3s; }
+@keyframes dot-bounce { 0%,80%,100%{transform:scale(.8);opacity:.6} 40%{transform:scale(1.2);opacity:1} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top:2rem; padding-bottom:3rem;">
+  <div style="max-width:900px; margin:0 auto;">
+    <div style="margin-bottom:1.5rem;">
+      <h1 style="font-family:var(--ff-heading); color:var(--txt); font-size:1.75rem; margin-bottom:.35rem;">
+        <i class="fa-solid fa-seedling" style="color:var(--clr-500); margin-right:.5rem;"></i>
+        Configura tu lote
+      </h1>
+      <p style="color:var(--txt-muted); font-size:.95rem;">
+        {% if ai_available %}
+          Nuestro asistente IA (<strong>{{ ai_model }}</strong>) te guiará para configurar los datos de tu lote.
+        {% else %}
+          Completa el formulario para configurar tu nuevo lote. ({{ ai_message }})
+        {% endif %}
+      </p>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 260px; gap:1.5rem; align-items:start;">
+      <!-- Chat / Form -->
+      <div>
+        {% if ai_available %}
+        <!-- AI Chat Interface -->
+        <div class="card" style="padding:0; overflow:hidden;">
+          <div class="chat-container" id="chatContainer">
+            <div class="chat-messages" id="chatMessages">
+              <div class="chat-bubble chat-bubble--ai">
+                <strong>Asistente IA</strong><br>
+                ¡Hola, {{ user_name }}! 👋 Estoy aquí para ayudarte a configurar tu nuevo lote de arroz.
+                Cuéntame: <strong>¿Cómo se llama tu lote y cuántas hectáreas tiene?</strong>
+              </div>
+            </div>
+            <div class="chat-input-row">
+              <input type="text" id="chatInput" placeholder="Escribe tu respuesta..." autofocus>
+              <button onclick="sendMessage()" id="sendBtn"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Confirm buttons (hidden until ready) -->
+        <div id="confirmBar" style="display:none; margin-top:1rem; gap:.75rem; flex-wrap:wrap;">
+          <button class="btn btn--primary" onclick="confirmLote()">
+            <i class="fa-solid fa-check"></i> Confirmar y guardar
+          </button>
+          <button class="btn btn--outline" onclick="cancelSetup()">
+            <i class="fa-solid fa-times"></i> Cancelar
+          </button>
+        </div>
+        {% else %}
+        <!-- Fallback manual form -->
+        <div class="card">
+          <h3 style="font-family:var(--ff-heading); margin-bottom:1rem;">Datos del lote</h3>
+          <form method="POST" action="{{ url_for('setup_lote_confirmar') }}">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+              <div>
+                <label style="font-size:.85rem; font-weight:700; color:var(--txt); display:block; margin-bottom:.4rem;">Nombre del lote *</label>
+                <input type="text" name="nombre_lote" required placeholder="Ej: El Mangon" class="form-input">
+              </div>
+              <div>
+                <label style="font-size:.85rem; font-weight:700; color:var(--txt); display:block; margin-bottom:.4rem;">Propietario *</label>
+                <input type="text" name="propietario" required placeholder="Nombre del dueño" class="form-input">
+              </div>
+              <div>
+                <label style="font-size:.85rem; font-weight:700; color:var(--txt); display:block; margin-bottom:.4rem;">Hectáreas *</label>
+                <input type="number" name="hectareas" required min="0.1" step="0.1" placeholder="20" class="form-input">
+              </div>
+              <div>
+                <label style="font-size:.85rem; font-weight:700; color:var(--txt); display:block; margin-bottom:.4rem;">Municipio *</label>
+                <input type="text" name="municipio" required placeholder="Ej: Espinal" class="form-input">
+              </div>
+              <div>
+                <label style="font-size:.85rem; font-weight:700; color:var(--txt); display:block; margin-bottom:.4rem;">Departamento *</label>
+                <input type="text" name="departamento" required placeholder="Ej: Tolima" class="form-input">
+              </div>
+            </div>
+            <button type="submit" class="btn btn--primary">
+              <i class="fa-solid fa-check"></i> Crear lote
+            </button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Fields panel -->
+      <div class="card" style="padding:1rem;" id="fieldsPanel">
+        <p style="font-size:.8rem; font-weight:700; color:var(--txt-muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:.75rem;">
+          <i class="fa-solid fa-clipboard-list"></i> Campos detectados
+        </p>
+        <div id="fieldsList" style="display:flex; flex-direction:column; gap:.4rem;">
+          <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Nombre del lote</span>
+          <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Propietario</span>
+          <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Hectáreas</span>
+          <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Ubicación</span>
+          <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Meta de cargas</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const sendBtn = document.getElementById('sendBtn');
+
+let currentPayload = {};
+let currentAiSessionId = null;
+
+function scrollBottom() { chatMessages.scrollTop = chatMessages.scrollHeight; }
+
+function appendBubble(role, text) {
+  const div = document.createElement('div');
+  div.className = 'chat-bubble chat-bubble--' + (role === 'user' ? 'user' : 'ai');
+  div.innerHTML = text;
+  chatMessages.appendChild(div);
+  scrollBottom();
+}
+
+function showTyping() {
+  const div = document.createElement('div');
+  div.className = 'chat-bubble chat-bubble--ai typing-dots';
+  div.id = 'typingIndicator';
+  div.innerHTML = '<span></span><span></span><span></span>';
+  chatMessages.appendChild(div);
+  scrollBottom();
+  return div;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typingIndicator');
+  if (t) t.remove();
+}
+
+function updateFieldsPanel(fields) {
+  const container = document.getElementById('fieldsList');
+  if (!fields) return;
+  container.innerHTML = '';
+  const labels = {
+    nombre_lote:'Nombre del lote', propietario:'Propietario', hectareas:'Hectáreas',
+    municipio:'Municipio', departamento:'Departamento', meta_cargas_ha:'Meta de cargas',
+    cultivo_principal:'Cultivo', fecha_inicio_operacion:'Fecha inicio', moneda:'Moneda'
+  };
+  Object.keys(labels).forEach(function(k) {
+    const tag = document.createElement('span');
+    const done = fields[k] !== undefined && fields[k] !== null && fields[k] !== '';
+    tag.className = 'field-tag ' + (done ? 'field-tag--done' : 'field-tag--pending');
+    tag.innerHTML = '<i class="fa-solid ' + (done ? 'fa-check-circle' : 'fa-circle-dot') + '"></i> ' + labels[k];
+    if (done) tag.title = String(fields[k]);
+    container.appendChild(tag);
+  });
+}
+
+async function sendMessage() {
+  const msg = chatInput.value.trim();
+  if (!msg) return;
+  chatInput.value = '';
+  sendBtn.disabled = true;
+  appendBubble('user', msg);
+  const typing = showTyping();
+
+  try {
+    const res = await fetch('/setup/lote/chat', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({message: msg})
+    });
+    const data = await res.json();
+    removeTyping();
+    if (data.error && !data.mensaje) {
+      appendBubble('ai', '<span style="color:#fc8181">Error: ' + data.error + '</span>');
+    } else {
+      appendBubble('ai', data.mensaje || data.error || '...');
+      if (data.payload_actual) {
+        currentPayload = data.payload_actual;
+        updateFieldsPanel(data.payload_actual);
+      }
+      if (data.ai_session_id) currentAiSessionId = data.ai_session_id;
+      if (data.listo_para_guardar) {
+        const bar = document.getElementById('confirmBar');
+        bar.style.display = 'flex';
+        bar.style.flexWrap = 'wrap';
+      }
+    }
+  } catch(e) {
+    removeTyping();
+    appendBubble('ai', '<span style="color:#fc8181">Error de conexión. Intenta de nuevo.</span>');
+  }
+  sendBtn.disabled = false;
+  chatInput.focus();
+}
+
+chatInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+async function confirmLote() {
+  const res = await fetch('/setup/lote/confirmar', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({payload: currentPayload, ai_session_id: currentAiSessionId})
+  });
+  const data = await res.json();
+  if (data.success) { window.location.href = data.redirect || '/dashboard'; }
+  else { appendBubble('ai', '<span style="color:#fc8181">' + (data.errores ? data.errores.join(', ') : data.error || 'Error al guardar') + '</span>'); }
+}
+
+async function cancelSetup() {
+  if (!confirm('¿Cancelar la configuración?')) return;
+  await fetch('/setup/lote/cancelar', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ai_session_id: currentAiSessionId})
+  });
+  window.location.href = '/select-lote';
+}
+</script>
+{% endblock %}

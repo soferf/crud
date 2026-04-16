@@ -14,6 +14,7 @@ DIRS = [
     os.path.join(BASE, 'templates', 'reportes'),
     os.path.join(BASE, 'templates', 'produccion'),
     os.path.join(BASE, 'templates', 'workers'),
+    os.path.join(BASE, 'templates', 'presupuesto'),
 ]
 for d in DIRS:
     os.makedirs(d, exist_ok=True)

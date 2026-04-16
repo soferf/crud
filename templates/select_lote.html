@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Seleccionar Lote — Arroceras{% endblock %}
+
+{% block content %}
+<div class="page-hero page-hero--sm" style="background: linear-gradient(135deg, var(--clr-900) 0%, var(--clr-700) 100%); padding: 2.5rem 0;">
+  <div class="container">
+    <p class="page-hero__label" style="color: var(--gold-300); font-size:.8rem; letter-spacing:.08em; text-transform:uppercase; margin-bottom:.5rem;">
+      <i class="fa-solid fa-map-location-dot"></i> Bienvenido, {{ user_name }}
+    </p>
+    <h1 style="font-family: var(--ff-heading); color:#fff; font-size:2rem; margin-bottom:.5rem;">Selecciona tu lote</h1>
+    <p style="color:rgba(255,255,255,.65); font-size:.95rem;">Elige el lote con el que quieres trabajar en esta sesión.</p>
+  </div>
+</div>
+
+<div class="container" style="padding-top:2rem; padding-bottom:3rem;">
+  <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:1.5rem; max-width:900px;">
+    {% for lote in lotes %}
+    <a href="{{ url_for('cambiar_lote', lote_id=lote.id) }}" class="card" style="text-decoration:none; display:flex; flex-direction:column; gap:.75rem; padding:1.5rem; transition:transform .18s, box-shadow .18s;"
+       onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 32px rgba(27,67,50,.2)'"
+       onmouseout="this.style.transform=''; this.style.boxShadow=''">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <div style="background:var(--clr-100); border-radius:50%; width:3rem; height:3rem; display:flex; align-items:center; justify-content:center;">
+          <i class="fa-solid fa-wheat-awn" style="color:var(--clr-700); font-size:1.25rem;"></i>
+        </div>
+        <span style="font-size:.7rem; font-weight:700; padding:.3rem .75rem; border-radius:999px; background:var(--clr-50); color:var(--clr-700); text-transform:uppercase; letter-spacing:.04em;">
+          {{ lote.rol_nombre | replace('_', ' ') | title if lote.rol_nombre else 'Miembro' }}
+        </span>
+      </div>
+      <div>
+        <h3 style="font-family:var(--ff-heading); color:var(--txt); font-size:1.25rem; margin-bottom:.25rem;">{{ lote.nombre }}</h3>
+        {% if lote.ubicacion %}
+        <p style="color:var(--txt-muted); font-size:.82rem;"><i class="fa-solid fa-location-dot" style="color:var(--clr-500); margin-right:.3rem;"></i>{{ lote.ubicacion }}</p>
+        {% endif %}
+      </div>
+      <div style="display:flex; gap:1rem; padding-top:.5rem; border-top:1px solid var(--border);">
+        <div style="font-size:.8rem; color:var(--txt-muted);">
+          <i class="fa-solid fa-expand" style="color:var(--clr-500); margin-right:.3rem;"></i>
+          <strong>{{ lote.hectareas | int }}</strong> ha
+        </div>
+        {% if lote.propietario_nombre %}
+        <div style="font-size:.8rem; color:var(--txt-muted);">
+          <i class="fa-solid fa-user" style="color:var(--clr-500); margin-right:.3rem;"></i>
+          {{ lote.propietario_nombre }}
+        </div>
+        {% endif %}
+      </div>
+    </a>
+    {% endfor %}
+
+    <!-- Create new lote card -->
+    <a href="{{ url_for('setup_lote_nuevo') }}" class="card" style="text-decoration:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.75rem; padding:1.5rem; border:2px dashed var(--border); background:var(--clr-50); text-align:center; min-height:180px; transition:border-color .2s;"
+       onmouseover="this.style.borderColor='var(--clr-500)'"
+       onmouseout="this.style.borderColor='var(--border)'">
+      <div style="background:var(--clr-100); border-radius:50%; width:3rem; height:3rem; display:flex; align-items:center; justify-content:center;">
+        <i class="fa-solid fa-plus" style="color:var(--clr-700); font-size:1.25rem;"></i>
+      </div>
+      <div>
+        <p style="font-weight:700; color:var(--clr-700); margin-bottom:.25rem;">Crear nuevo lote</p>
+        <p style="font-size:.8rem; color:var(--txt-muted);">Configura un lote diferente con tus datos</p>
+      </div>
+    </a>
+  </div>
+</div>
+{% endblock %}

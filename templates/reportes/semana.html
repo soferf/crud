@@ -16,10 +16,30 @@
     <div class="form-group"><label for="fecha">Semana que contiene esta fecha</label><input type="date" id="fecha" name="fecha" value="{{fecha_str or ''}}"></div>
     <div class="form-actions" style="margin-top:0"><button type="submit" class="button button--primary"><i class="fa-solid fa-search"></i> Ver semana</button></div>
   </form>
+  {% if fecha_str %}
+  <div class="stats-grid" style="margin-bottom:var(--s6);grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
+    <div class="stat-card">
+      <span class="stat-card__label"><i class="fa-solid fa-wallet"></i> Saldo al iniciar semana</span>
+      <span class="stat-card__value">$ {{ '{:,.0f}'.format(saldo_inicial_semana).replace(',','.') }}</span>
+    </div>
+    <div class="stat-card stat-card--success">
+      <span class="stat-card__label"><i class="fa-solid fa-circle-plus"></i> Ingresos de la semana</span>
+      <span class="stat-card__value">$ {{ '{:,.0f}'.format(ingresos_semana).replace(',','.') }}</span>
+    </div>
+    <div class="stat-card stat-card--warning">
+      <span class="stat-card__label"><i class="fa-solid fa-circle-minus"></i> Gastos de la semana</span>
+      <span class="stat-card__value">$ {{ '{:,.0f}'.format(total).replace(',','.') }}</span>
+    </div>
+    <div class="stat-card {% if saldo_final_semana < 0 %}stat-card--danger{% else %}stat-card--success{% endif %}">
+      <span class="stat-card__label"><i class="fa-solid fa-scale-balanced"></i> Saldo al cerrar semana</span>
+      <span class="stat-card__value">$ {{ '{:,.0f}'.format(saldo_final_semana).replace(',','.') }}</span>
+    </div>
+  </div>
+  {% endif %}
   {% if recibos %}
   <div class="table-wrap">
     <table class="data-table">
-      <thead><tr><th>Serial</th><th>Fecha</th><th>Proveedor</th><th>Concepto</th><th>Neto a pagar</th></tr></thead>
+      <thead><tr><th>Serial</th><th>Fecha</th><th>Proveedor</th><th>Concepto</th><th>Neto a pagar</th><th style="text-align:right;">Gasto acumulado</th><th style="text-align:right;">Saldo después</th></tr></thead>
       <tbody>
         {% for r in recibos %}
         <tr style="cursor:pointer" onclick="location.href='{{url_for('detalle_recibo', serial=r.serial)}}'">
@@ -28,14 +48,42 @@
           <td><strong>{{r.proveedor}}</strong></td>
           <td class="concepto-cell small">{{r.concepto}}</td>
           <td class="valor-cell">{% if r.neto_a_pagar %}<strong>$ {{"{:,.0f}".format(r.neto_a_pagar).replace(",",".")}}</strong>{% else %}—{% endif %}</td>
+          {% set movimiento = movimientos_por_serial.get(r.serial) %}
+          <td class="valor-cell">{% if movimiento %}<strong>{{ movimiento.gasto_acumulado_fmt }}</strong>{% else %}—{% endif %}</td>
+          <td class="valor-cell">{% if movimiento %}<strong style="color:{% if movimiento.saldo_despues < 0 %}#c0392b{% else %}inherit{% endif %}">{{ movimiento.saldo_despues_fmt }}</strong>{% else %}—{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
-      <tfoot><tr class="table-foot"><td colspan="4" style="text-align:right;font-weight:600">Total semana:</td><td class="valor-cell"><strong>$ {{"{:,.0f}".format(recibos|sum(attribute='neto_a_pagar')).replace(",",".")}}</strong></td></tr></tfoot>
+      <tfoot><tr class="table-foot"><td colspan="4" style="text-align:right;font-weight:600">Total semana:</td><td class="valor-cell"><strong>$ {{"{:,.0f}".format(recibos|sum(attribute='neto_a_pagar')).replace(",", ".")}}</strong></td><td class="valor-cell"><strong>$ {{ '{:,.0f}'.format(total).replace(',','.') }}</strong></td><td class="valor-cell"><strong>$ {{ '{:,.0f}'.format(saldo_final_semana).replace(',','.') }}</strong></td></tr></tfoot>
     </table>
   </div>
   {% elif fecha_str %}
   <div class="empty-state"><i class="fa-solid fa-calendar-xmark empty-state__icon"></i><h3>Sin recibos esa semana</h3></div>
+  {% endif %}
+
+  {% if movimientos_semana %}
+  <div style="margin-top:var(--s6)">
+    <h2 style="font-size:1.05rem;font-weight:700;color:var(--clr-700);margin-bottom:var(--s4)"><i class="fa-solid fa-arrow-right-arrow-left"></i> Movimientos completos de la semana</h2>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Fecha</th><th>Tipo</th><th>Referencia</th><th>Detalle</th><th style="text-align:right;">Ingreso</th><th style="text-align:right;">Gasto</th><th style="text-align:right;">Gasto acumulado</th><th style="text-align:right;">Saldo después</th></tr></thead>
+        <tbody>
+          {% for m in movimientos_semana %}
+          <tr {% if m.origen == 'recibo' and m.serial %}style="cursor:pointer" onclick="location.href='{{ url_for('detalle_recibo', serial=m.serial) }}'"{% endif %}>
+            <td class="txt-muted">{{ m.fecha.strftime('%d/%m/%Y') if m.fecha else '—' }}</td>
+            <td><span class="serial-badge" style="background:{% if m.tipo == 'ingreso' %}#edf8f1{% else %}#fff6ea{% endif %};color:{% if m.tipo == 'ingreso' %}#1f6f43{% else %}#9a6200{% endif %};">{{ m.tipo_label }}</span></td>
+            <td><strong>{{ m.referencia }}</strong></td>
+            <td><strong>{{ m.detalle }}</strong>{% if m.detalle_secundario %}<div class="txt-muted small">{{ m.detalle_secundario[:90] }}</div>{% endif %}</td>
+            <td class="valor-cell" style="color:#1f6f43;font-weight:700;">{{ m.ingreso_fmt }}</td>
+            <td class="valor-cell" style="color:#9a6200;font-weight:700;">{{ m.gasto_fmt }}</td>
+            <td class="valor-cell"><strong>{{ m.gasto_acumulado_fmt }}</strong></td>
+            <td class="valor-cell"><strong style="color:{% if m.saldo_despues < 0 %}#c0392b{% else %}inherit{% endif %}">{{ m.saldo_despues_fmt }}</strong></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
   {% endif %}
 </div></section>
 {% endblock %}

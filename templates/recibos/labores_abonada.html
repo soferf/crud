@@ -219,13 +219,18 @@
 {% endblock %}
 
 {% block scripts %}
+<style>
+.labor-type-card { cursor:pointer; border:2px solid var(--brd); border-radius:var(--radius-md); padding:var(--s3) var(--s4); display:flex; flex-direction:column; align-items:center; gap:.4rem; transition:border-color .15s,background .15s; }
+.labor-type-card:hover { border-color:var(--clr-500,#4caf50); background:var(--bg-subtle); }
+.labor-type-card.is-checked { border-color:var(--clr-700,#2e7d32); background:var(--clr-50,#e8f5e9); box-shadow:0 0 0 3px color-mix(in srgb,var(--clr-700,#2e7d32) 15%,transparent); }
+.labor-type-card input[type="radio"] { position:absolute; opacity:0; width:0; height:0; }
+</style>
 <script>
 let selectedIds = new Set();
 let activeCargo = 'todos';
 let searchTerm  = '';
 let currentUnidad = 'bultos';
 
-// Unit labels per labor type
 const tipoUnidades = {
   abonada: 'bultos de abono',
   fumigacion: 'ha fumigadas',
@@ -234,6 +239,13 @@ const tipoUnidades = {
   otro: 'unidades'
 };
 
+function updateLaborTypeVisual(tipo) {
+  document.querySelectorAll('.labor-type-card').forEach(lbl => {
+    const r = lbl.querySelector('input[type="radio"]');
+    lbl.classList.toggle('is-checked', r && r.value === tipo);
+  });
+}
+
 function updateUnidad(tipo) {
   const u = tipoUnidades[tipo] || 'unidades';
   currentUnidad = u;
@@ -241,6 +253,7 @@ function updateUnidad(tipo) {
   document.getElementById('unidadHint').textContent = '(' + u + ')';
   document.getElementById('colCantHeader').textContent = 'Cantidad (' + u + ')';
   document.querySelectorAll('.col-cant-label').forEach(el => el.textContent = u);
+  updateLaborTypeVisual(tipo);
 }
 
 function parseCOP(s) { return parseFloat((s||'0').replace(/\./g,'').replace(',','.').replace(/[^0-9.]/g,''))||0; }
@@ -373,5 +386,14 @@ function aplicarLoteCalc(){
     recalcWorkerRow(id);
   });
 }
+
+// Init labor type visual state on load
+(function() {
+  const checked = document.querySelector('.labor-type-card input[type="radio"]:checked');
+  if (checked) updateLaborTypeVisual(checked.value);
+  document.querySelectorAll('.labor-type-card input[type="radio"]').forEach(r => {
+    r.addEventListener('change', function() { updateLaborTypeVisual(this.value); });
+  });
+})();
 </script>
 {% endblock %}

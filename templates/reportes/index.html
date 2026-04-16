@@ -119,11 +119,12 @@
         <span class="export-card__title">PDF — Estadísticas rango</span>
         <span class="export-card__desc">Reporte completo con estadísticas por periodo.</span>
       </a>
-      <a href="{{url_for('generar_pdf', tipo='trabajadores')}}"
-         class="export-card export-card--pdf" target="_blank">
+      <a id="linkPdfTrab" href="{{url_for('generar_pdf', tipo='trabajadores')}}"
+         class="export-card export-card--pdf" target="_blank"
+         onclick="return abrirSelectorTrab(this, 'pdf')">
         <span class="export-card__icon"><i class="fa-solid fa-file-pdf"></i></span>
         <span class="export-card__title">PDF — Por Trabajador</span>
-        <span class="export-card__desc">Total pagado por cada proveedor.</span>
+        <span class="export-card__desc">Total pagado + detalle de recibos por persona.</span>
       </a>
       <a href="{{url_for('generar_pdf', tipo='produccion')}}"
          class="export-card export-card--pdf" target="_blank">
@@ -149,11 +150,12 @@
         <span class="export-card__title">Excel — Recibos</span>
         <span class="export-card__desc">Hoja de cálculo con todos los recibos.</span>
       </a>
-      <a href="{{url_for('generar_excel', tipo='trabajadores')}}"
-         class="export-card export-card--xlsx">
+      <a id="linkXlsTrab" href="{{url_for('generar_excel', tipo='trabajadores')}}"
+         class="export-card export-card--xlsx"
+         onclick="return abrirSelectorTrab(this, 'xl')">
         <span class="export-card__icon"><i class="fa-solid fa-file-excel"></i></span>
         <span class="export-card__title">Excel — Trabajadores</span>
-        <span class="export-card__desc">Gastos agrupados por proveedor.</span>
+        <span class="export-card__desc">Gastos agrupados + hoja detallada por trabajador.</span>
       </a>
       <a href="{{url_for('generar_excel', tipo='produccion')}}"
          class="export-card export-card--xlsx">
@@ -161,6 +163,152 @@
         <span class="export-card__title">Excel — Producción</span>
         <span class="export-card__desc">Cosechas, cargas, kg y valores.</span>
       </a>
+    </div>
+  </div>
+
+  {# ── Widget presupuesto ─────────────────────────────────────────────────── #}
+  {% if total_ingresado and total_ingresado > 0 %}
+  <div style="margin-top:var(--s8)">
+    <h2 style="font-size:1.15rem;font-weight:700;color:var(--clr-700);margin-bottom:var(--s4)">
+      <i class="fa-solid fa-wallet"></i> Presupuesto del lote
+    </h2>
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat-card stat-card--success">
+        <span class="stat-card__label"><i class="fa-solid fa-circle-plus"></i> Total ingresado</span>
+        <span class="stat-card__value">$ {{"{:,.0f}".format(total_ingresado).replace(",",".")}}</span>
+      </div>
+      <div class="stat-card stat-card--warning">
+        <span class="stat-card__label"><i class="fa-solid fa-circle-minus"></i> Total gastado</span>
+        <span class="stat-card__value">$ {{"{:,.0f}".format(total_gastado).replace(",",".")}}</span>
+      </div>
+      <div class="stat-card {% if pres_saldo < 0 or pres_pct > 85 %}stat-card--danger{% else %}stat-card--success{% endif %}">
+        <span class="stat-card__label"><i class="fa-solid fa-wallet"></i> Saldo disponible</span>
+        <span class="stat-card__value">$ {{"{:,.0f}".format(pres_saldo).replace(",",".")}}</span>
+        <span class="stat-card__sub">{{pres_pct}}% usado</span>
+      </div>
+    </div>
+    <div class="gauge-section" style="margin-top:var(--s4)">
+      <div class="gauge-header">
+        <span class="gauge-title"><i class="fa-solid fa-wallet"></i> Uso del presupuesto</span>
+        <span class="gauge-amount">{{pres_pct}}%</span>
+      </div>
+      <div class="gauge-bar-wrap">
+        <div class="gauge-bar {% if pres_pct > 85 %}gauge-bar--red{% elif pres_pct > 60 %}gauge-bar--yellow{% else %}gauge-bar--green{% endif %}"
+          style="width:{{[pres_pct,100]|min}}%">{{pres_pct}}%</div>
+      </div>
+    </div>
+    <div style="text-align:right;margin-top:var(--s3)">
+      <a href="{{ url_for('presupuesto_view') }}" class="button button--ghost">
+        <i class="fa-solid fa-plus"></i> Gestionar presupuesto
+      </a>
+    </div>
+  </div>
+  {% else %}
+  <div style="margin-top:var(--s8);text-align:center;padding:var(--s6);background:var(--clr-50);border-radius:12px;border:2px dashed var(--clr-300)">
+    <i class="fa-solid fa-wallet" style="font-size:2.5rem;color:var(--clr-400);display:block;margin-bottom:.75rem"></i>
+    <strong>Sin presupuesto configurado</strong><br>
+    <span style="color:var(--txt-muted);font-size:.9rem">Define tu presupuesto base para hacer seguimiento del saldo disponible.</span><br>
+    <a href="{{ url_for('presupuesto_view') }}" class="button button--primary" style="margin-top:var(--s4)">
+      <i class="fa-solid fa-plus"></i> Configurar presupuesto
+    </a>
+  </div>
+  {% endif %}
+
+  <div style="margin-top:var(--s8)">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--s3);margin-bottom:var(--s4);flex-wrap:wrap;">
+      <h2 style="font-size:1.15rem;font-weight:700;color:var(--clr-700);margin:0">
+        <i class="fa-solid fa-arrow-right-arrow-left"></i> Movimientos y saldo acumulado
+      </h2>
+      <div style="font-size:.88rem;color:var(--txt-muted);display:flex;gap:var(--s4);flex-wrap:wrap;">
+        <span><strong>Saldo inicial:</strong> {{ '$ ' ~ '{:,.0f}'.format(saldo_inicial_reporte).replace(',', '.') }}</span>
+        <span><strong>Saldo actual:</strong> {{ '$ ' ~ '{:,.0f}'.format(saldo_final_reporte).replace(',', '.') }}</span>
+      </div>
+    </div>
+
+    {% if movimientos_reporte %}
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Referencia</th>
+            <th>Detalle</th>
+            <th style="text-align:right;">Ingreso</th>
+            <th style="text-align:right;">Gasto</th>
+            <th style="text-align:right;">Gasto acumulado</th>
+            <th style="text-align:right;">Saldo después</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in movimientos_reporte %}
+          <tr {% if m.origen == 'recibo' and m.serial %}style="cursor:pointer" onclick="location.href='{{ url_for('detalle_recibo', serial=m.serial) }}'"{% endif %}>
+            <td class="txt-muted">{{ m.fecha.strftime('%d/%m/%Y') if m.fecha else '—' }}</td>
+            <td>
+              <span class="serial-badge" style="background:{% if m.tipo == 'ingreso' %}#edf8f1{% else %}#fff6ea{% endif %};color:{% if m.tipo == 'ingreso' %}#1f6f43{% else %}#9a6200{% endif %};">
+                {{ m.tipo_label }}
+              </span>
+            </td>
+            <td><strong>{{ m.referencia }}</strong></td>
+            <td>
+              <strong>{{ m.detalle }}</strong>
+              {% if m.detalle_secundario %}<div class="txt-muted small">{{ m.detalle_secundario[:90] }}</div>{% endif %}
+            </td>
+            <td style="text-align:right;color:#1f6f43;font-weight:700;">{{ m.ingreso_fmt }}</td>
+            <td style="text-align:right;color:#9a6200;font-weight:700;">{{ m.gasto_fmt }}</td>
+            <td style="text-align:right;font-weight:700;">{{ m.gasto_acumulado_fmt }}</td>
+            <td style="text-align:right;font-weight:700;color:{% if m.saldo_despues < 0 %}#c0392b{% else %}var(--clr-700){% endif %};">{{ m.saldo_despues_fmt }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="table-foot">
+            <td colspan="6" style="text-align:right;font-weight:600;">Saldo final del reporte:</td>
+            <td style="text-align:right;font-weight:600;">{{ '$ ' ~ '{:,.0f}'.format(total_gastado).replace(',', '.') }}</td>
+            <td style="text-align:right;font-weight:700;color:{% if saldo_final_reporte < 0 %}#c0392b{% else %}var(--clr-700){% endif %};">{{ '$ ' ~ '{:,.0f}'.format(saldo_final_reporte).replace(',', '.') }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="fa-solid fa-scale-balanced empty-state__icon"></i>
+      <h3>Sin movimientos financieros aún</h3>
+      <p>Cuando registres presupuesto o recibos, aquí verás el acumulado gastado y el saldo después de cada movimiento.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  {# ── Modal selector de trabajadores ───────────────────────────────────────── #}
+  <div id="modalTrab" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:16px;padding:2rem;max-width:520px;width:92%;max-height:80vh;display:flex;flex-direction:column;gap:1rem;box-shadow:0 8px 40px rgba(0,0,0,.25)">
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <i class="fa-solid fa-users" style="color:#2D6A4F;font-size:1.4rem"></i>
+        <h3 style="margin:0;color:#1B4332">Seleccionar trabajadores</h3>
+        <button onclick="cerrarModal()" style="margin-left:auto;background:none;border:none;font-size:1.3rem;cursor:pointer;color:#666">&times;</button>
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <button type="button" class="button button--ghost" style="font-size:.82rem;padding:.3rem .8rem" onclick="selTodos(true)">Seleccionar todos</button>
+        <button type="button" class="button button--ghost" style="font-size:.82rem;padding:.3rem .8rem" onclick="selTodos(false)">Deseleccionar</button>
+      </div>
+      <div id="listaTrab" style="overflow-y:auto;flex:1;border:1px solid #e0e0e0;border-radius:10px;padding:.75rem;display:flex;flex-direction:column;gap:.4rem">
+        {% for w in workers_list %}
+        <label style="display:flex;align-items:center;gap:.6rem;padding:.4rem .5rem;border-radius:6px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#f0f8f4'" onmouseout="this.style.background=''">
+          <input type="checkbox" class="trab-check" value="{{ w.nit or '' }}" data-nombre="{{ w.nombre_completo }}" style="accent-color:#2D6A4F;width:16px;height:16px">
+          <span style="font-weight:600;color:#1B4332">{{ w.nombre_completo }}</span>
+          {% if w.nit %}<span style="color:#999;font-size:.8rem">NIT: {{ w.nit }}</span>{% endif %}
+          {% if w.cargo %}<span style="color:#52B788;font-size:.78rem;margin-left:auto">{{ w.cargo }}</span>{% endif %}
+        </label>
+        {% else %}
+        <p style="text-align:center;color:#999;padding:1rem">No hay trabajadores activos registrados.</p>
+        {% endfor %}
+      </div>
+      <div style="display:flex;gap:.75rem;justify-content:flex-end">
+        <button type="button" class="button button--ghost" onclick="cerrarModal()">Cancelar</button>
+        <button type="button" class="button button--primary" onclick="exportarConFiltro()">
+          <i class="fa-solid fa-file-arrow-down"></i> Exportar
+        </button>
+      </div>
     </div>
   </div>
 
@@ -198,7 +346,30 @@ function generarPdfFiltrado(){
   const h=document.getElementById('filtroHasta').value;
   const t=document.getElementById('filtroTipo').value;
   if(!d||!h){alert('Selecciona un rango de fechas (Desde y Hasta) para generar el reporte.');return;}
+  if(t==='trabajadores'){_pendingUrl='/reportes/pdf?tipo=trabajadores&desde='+d+'&hasta='+h;abrirModal();return;}
   window.open('/reportes/pdf?tipo='+t+'&desde='+d+'&hasta='+h,'_blank');
+}
+
+// ── Modal de trabajadores ──────────────────────────────────────────────────
+let _pendingUrl='';
+let _pendingType='';
+function abrirSelectorTrab(el,tipo){
+  _pendingUrl=el.href;_pendingType=tipo;
+  abrirModal();return false;
+}
+function abrirModal(){
+  const m=document.getElementById('modalTrab');
+  m.style.display='flex';
+  document.querySelectorAll('.trab-check').forEach(c=>c.checked=false);
+}
+function cerrarModal(){document.getElementById('modalTrab').style.display='none';}
+function selTodos(v){document.querySelectorAll('.trab-check').forEach(c=>c.checked=v);}
+function exportarConFiltro(){
+  const checks=[...document.querySelectorAll('.trab-check:checked')];
+  const nits=checks.map(c=>c.value).filter(Boolean);
+  const qs=nits.length?'&workers='+encodeURIComponent(nits.join(',')):'';
+  window.open(_pendingUrl+qs,'_blank');
+  cerrarModal();
 }
 </script>
 {% endblock %}

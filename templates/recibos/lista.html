@@ -7,7 +7,7 @@
     <div class="page-hero__icon"><i class="fa-solid fa-list-check"></i></div>
     <div>
       <h1 class="page-hero__title">Recibos</h1>
-      <p class="page-hero__sub" id="counterSub">{{ recibos|length }} recibo(s) registrado(s) en total.</p>
+      <p class="page-hero__sub" id="counterSub">{{ recibos|length }} recibo(s) registrados en {{ lote_nombre }}.</p>
     </div>
     <div class="page-hero__actions">
       <a href="{{ url_for('nuevo_recibo') }}" class="button button--primary">
@@ -19,12 +19,19 @@
       <a href="{{ url_for('exportar_txt') }}" class="button button--ghost">
         <i class="fa-solid fa-file-export"></i> Exportar TXT
       </a>
+      <a href="{{ url_for('conciliacion_recibos') }}" class="button button--ghost">
+        <i class="fa-solid fa-table-list"></i> Conciliar
+      </a>
     </div>
   </div>
 </div>
 
 <section class="section">
   <div class="container">
+
+    {% if error %}
+    <div class="alert alert--danger"><i class="fa-solid fa-circle-xmark"></i> {{ error }}</div>
+    {% endif %}
 
     {% if recibos %}
 

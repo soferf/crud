@@ -9,59 +9,142 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block head %}{% endblock %}
 </head>
-<body>
+<body class="layout-body">
 
-<header class="topbar">
-    <div class="container topbar__inner">
-        <a class="brand" href="{{ url_for('home') }}">
-            <i class="fa-solid fa-seedling brand__icon"></i>
-            <div>
-                <span class="brand__name">Contabilidad Arroceras</span>
-                <span class="brand__tagline">Sistema de gestión agrícola</span>
-            </div>
-        </a>
-        <nav class="nav">
-            <a href="{{ url_for('dashboard') }}" class="{{ 'nav__active' if request.endpoint == 'dashboard' else '' }}">
-                <i class="fa-solid fa-gauge"></i> Dashboard
-            </a>
-            <div class="nav__dropdown">
-                <span class="nav__dropdown-toggle"><i class="fa-solid fa-users"></i> Trabajadores</span>
-                <div class="nav__dropdown-menu">
-                    <a href="{{ url_for('lista_workers') }}"><i class="fa-solid fa-list"></i> Ver todos</a>
-                    <a href="{{ url_for('create_worker') }}"><i class="fa-solid fa-user-plus"></i> Registrar</a>
-                </div>
-            </div>
-            <div class="nav__dropdown">
-                <span class="nav__dropdown-toggle"><i class="fa-solid fa-file-invoice-dollar"></i> Recibos</span>
-                <div class="nav__dropdown-menu">
-                    <a href="{{ url_for('lista_recibos') }}"><i class="fa-solid fa-list"></i> Ver todos</a>
-                    <a href="{{ url_for('nuevo_recibo') }}"><i class="fa-solid fa-plus"></i> Nuevo recibo</a>
-                    <a href="{{ url_for('nuevo_recibo_lote') }}"><i class="fa-solid fa-users-between-lines"></i> Por lote</a>
-                    <div class="nav__dropdown-divider"></div>
-                    <a href="{{ url_for('labores_desague') }}"><i class="fa-solid fa-droplet"></i> Desagüe / Despalillada</a>
-                    <a href="{{ url_for('labores_abonada') }}"><i class="fa-solid fa-seedling"></i> Abonada / Fumigación</a>
-                </div>
-            </div>
-            <a href="{{ url_for('reportes') }}" class="{{ 'nav__active' if request.endpoint == 'reportes' else '' }}">
-                <i class="fa-solid fa-chart-bar"></i> Reportes
-            </a>
-            <a href="{{ url_for('lista_produccion') }}" class="{{ 'nav__active' if request.endpoint in ['lista_produccion','nueva_cosecha'] else '' }}">
-                <i class="fa-solid fa-wheat-awn"></i> Producción
-            </a>
-            <a href="{{ url_for('config_app') }}" class="{{ 'nav__active' if request.endpoint == 'config_app' else '' }}">
-                <i class="fa-solid fa-gear"></i> Config
-            </a>
-            <a class="nav__cta nav__cta--alt" href="{{ url_for('logout') }}">
-                <i class="fa-solid fa-right-from-bracket"></i> Salir
-            </a>
-        </nav>
+{% if session.get('user_id') %}
+<aside class="sidebar" id="sidebar">
+    <!-- Brand -->
+    <div class="sidebar__brand">
+        <i class="fa-solid fa-seedling sidebar__brand-icon"></i>
+        <div class="sidebar__brand-text">
+            <span class="sidebar__brand-name">Arroceras</span>
+            <span class="sidebar__brand-tagline">Gestión agrícola</span>
+        </div>
     </div>
-</header>
 
+    <!-- Lote chip -->
+    {% if session.get('lote_nombre') %}
+    <div class="sidebar__lote-chip">
+        <div class="sidebar__lote-info">
+            <i class="fa-solid fa-map-location-dot"></i>
+            <div>
+                <span class="sidebar__lote-label">Lote activo</span>
+                <span class="sidebar__lote-name">{{ session.lote_nombre }}</span>
+            </div>
+        </div>
+        <a href="{{ url_for('select_lote') }}" class="sidebar__lote-change" title="Cambiar lote">
+            <i class="fa-solid fa-arrows-rotate"></i>
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Navigation -->
+    <nav class="sidebar__nav">
+        <a href="{{ url_for('dashboard') }}" class="sidebar__nav-item {% if request.endpoint == 'dashboard' %}is-active{% endif %}">
+            <i class="fa-solid fa-gauge"></i>
+            <span>Dashboard</span>
+        </a>
+
+        <!-- Trabajadores -->
+        <div class="sidebar__nav-group">
+            <button class="sidebar__nav-group-toggle {% if request.endpoint in ['lista_workers','create_worker','edit_worker'] %}is-active{% endif %}" onclick="toggleGroup(this)">
+                <i class="fa-solid fa-users"></i>
+                <span>Trabajadores</span>
+                <i class="fa-solid fa-chevron-down sidebar__chevron"></i>
+            </button>
+            <div class="sidebar__nav-group-items {% if request.endpoint in ['lista_workers','create_worker','edit_worker'] %}is-open{% endif %}">
+                <a href="{{ url_for('lista_workers') }}" class="sidebar__nav-item sidebar__nav-item--sub {% if request.endpoint == 'lista_workers' %}is-active{% endif %}">
+                    <i class="fa-solid fa-list"></i><span>Ver todos</span>
+                </a>
+                <a href="{{ url_for('create_worker') }}" class="sidebar__nav-item sidebar__nav-item--sub {% if request.endpoint == 'create_worker' %}is-active{% endif %}">
+                    <i class="fa-solid fa-user-plus"></i><span>Registrar</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Recibos -->
+        <div class="sidebar__nav-group">
+            <button class="sidebar__nav-group-toggle {% if request.endpoint in ['lista_recibos','nuevo_recibo','nuevo_recibo_lote','labores_desague','labores_abonada','detalle_recibo'] %}is-active{% endif %}" onclick="toggleGroup(this)">
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+                <span>Recibos</span>
+                <i class="fa-solid fa-chevron-down sidebar__chevron"></i>
+            </button>
+            <div class="sidebar__nav-group-items {% if request.endpoint in ['lista_recibos','nuevo_recibo','nuevo_recibo_lote','labores_desague','labores_abonada','detalle_recibo'] %}is-open{% endif %}">
+                <a href="{{ url_for('lista_recibos') }}" class="sidebar__nav-item sidebar__nav-item--sub {% if request.endpoint == 'lista_recibos' %}is-active{% endif %}">
+                    <i class="fa-solid fa-list"></i><span>Ver todos</span>
+                </a>
+                <a href="{{ url_for('nuevo_recibo') }}" class="sidebar__nav-item sidebar__nav-item--sub {% if request.endpoint == 'nuevo_recibo' %}is-active{% endif %}">
+                    <i class="fa-solid fa-plus"></i><span>Nuevo recibo</span>
+                </a>
+                <a href="{{ url_for('nuevo_recibo_lote') }}" class="sidebar__nav-item sidebar__nav-item--sub {% if request.endpoint == 'nuevo_recibo_lote' %}is-active{% endif %}">
+                    <i class="fa-solid fa-users-between-lines"></i><span>Por lote</span>
+                </a>
+                <div class="sidebar__divider"></div>
+                <a href="{{ url_for('labores_desague') }}" class="sidebar__nav-item sidebar__nav-item--sub {% if request.endpoint == 'labores_desague' %}is-active{% endif %}">
+                    <i class="fa-solid fa-droplet"></i><span>Desagüe / Despalillada</span>
+                </a>
+                <a href="{{ url_for('labores_abonada') }}" class="sidebar__nav-item sidebar__nav-item--sub {% if request.endpoint == 'labores_abonada' %}is-active{% endif %}">
+                    <i class="fa-solid fa-seedling"></i><span>Abonada / Fumigación</span>
+                </a>
+            </div>
+        </div>
+
+        <a href="{{ url_for('reportes') }}" class="sidebar__nav-item {% if request.endpoint == 'reportes' %}is-active{% endif %}">
+            <i class="fa-solid fa-chart-bar"></i>
+            <span>Reportes</span>
+        </a>
+
+        <a href="{{ url_for('presupuesto_view') }}" class="sidebar__nav-item {% if request.endpoint == 'presupuesto_view' %}is-active{% endif %}">
+            <i class="fa-solid fa-wallet"></i>
+            <span>Presupuesto</span>
+        </a>
+
+        <a href="{{ url_for('lista_produccion') }}" class="sidebar__nav-item {% if request.endpoint in ['lista_produccion','nueva_cosecha'] %}is-active{% endif %}">
+            <i class="fa-solid fa-wheat-awn"></i>
+            <span>Producción</span>
+        </a>
+
+        <a href="{{ url_for('config_app') }}" class="sidebar__nav-item {% if request.endpoint == 'config_app' %}is-active{% endif %}">
+            <i class="fa-solid fa-gear"></i>
+            <span>Configuración</span>
+        </a>
+    </nav>
+
+    <!-- User footer -->
+    <div class="sidebar__footer">
+        <div class="sidebar__user">
+            <div class="sidebar__user-avatar">
+                <i class="fa-solid fa-circle-user"></i>
+            </div>
+            <div class="sidebar__user-info">
+                <span class="sidebar__user-name">{{ session.get('user_name', 'Usuario') }}</span>
+                <span class="sidebar__user-role">{{ session.get('rol_lote', 'operador') | replace('_', ' ') | title }}</span>
+            </div>
+        </div>
+        <a href="{{ url_for('logout') }}" class="sidebar__logout" title="Cerrar sesión">
+            <i class="fa-solid fa-right-from-bracket"></i>
+        </a>
+    </div>
+</aside>
+
+<!-- Mobile overlay -->
+<div class="sidebar__overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- Mobile toggle button -->
+<button class="sidebar__mobile-toggle" id="sidebarToggle" onclick="openSidebar()">
+    <i class="fa-solid fa-bars"></i>
+</button>
+
+<main class="layout-main">
+{% else %}
 <main>
+{% endif %}
+
 {% block content %}{% endblock %}
+
 </main>
 
+{% if not session.get('user_id') %}
 <footer class="footer">
     <div class="container footer__inner">
         <div class="footer__brand">
@@ -71,34 +154,36 @@
         <p class="footer__copy">Sistema de gestión agrícola · 2026</p>
     </div>
 </footer>
+{% endif %}
 
 {% block scripts %}{% endblock %}
 <script>
-// ── Dropdown navigation: click + hover con delay ──────────────────────────
-(function() {
-  document.querySelectorAll('.nav__dropdown').forEach(function(dd) {
-    var closeTimer = null;
-    function openDD() {
-      clearTimeout(closeTimer);
-      document.querySelectorAll('.nav__dropdown').forEach(function(o){ if(o!==dd) o.classList.remove('is-open'); });
-      dd.classList.add('is-open');
+function toggleGroup(btn) {
+    var items = btn.nextElementSibling;
+    var isOpen = items.classList.contains('is-open');
+    // Close all groups
+    document.querySelectorAll('.sidebar__nav-group-items').forEach(function(g) { g.classList.remove('is-open'); });
+    document.querySelectorAll('.sidebar__nav-group-toggle').forEach(function(b) { b.classList.remove('is-expanded'); });
+    if (!isOpen) {
+        items.classList.add('is-open');
+        btn.classList.add('is-expanded');
     }
-    function closeDD() {
-      closeTimer = setTimeout(function(){ dd.classList.remove('is-open'); }, 180);
-    }
-    dd.addEventListener('mouseenter', openDD);
-    dd.addEventListener('mouseleave', closeDD);
-    dd.querySelector('.nav__dropdown-toggle').addEventListener('click', function(e) {
-      e.stopPropagation();
-      dd.classList.toggle('is-open');
-    });
-    dd.querySelector('.nav__dropdown-menu').addEventListener('mouseenter', function(){ clearTimeout(closeTimer); });
-    dd.querySelector('.nav__dropdown-menu').addEventListener('mouseleave', closeDD);
-  });
-  document.addEventListener('click', function(){
-    document.querySelectorAll('.nav__dropdown').forEach(function(d){ d.classList.remove('is-open'); });
-  });
-})();
+}
+
+function openSidebar() {
+    document.getElementById('sidebar').classList.add('is-mobile-open');
+    document.getElementById('sidebarOverlay').classList.add('is-visible');
+}
+function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('is-mobile-open');
+    document.getElementById('sidebarOverlay').classList.remove('is-visible');
+}
+
+// Auto-expand active groups on load
+document.querySelectorAll('.sidebar__nav-group-toggle.is-active').forEach(function(btn) {
+    btn.classList.add('is-expanded');
+    btn.nextElementSibling.classList.add('is-open');
+});
 </script>
 </body>
 </html>

@@ -74,8 +74,8 @@ if (authCard) {
         };
     };
 
-    const updatePasswordRulesUI = (form, rulesResult) => {
-        const list = form.querySelector('[data-rules-for="signup-password"]');
+    const updatePasswordRulesUI = (form, sourceInputId, rulesResult) => {
+        const list = form.querySelector(`[data-rules-for="${sourceInputId}"]`);
         if (!list) return;
         Object.entries(rulesResult).forEach(([key, isOk]) => {
             const item = list.querySelector(`[data-check="${key}"]`);
@@ -116,13 +116,19 @@ if (authCard) {
             const rulesResult = evaluatePasswordRules(value);
             const ok = Object.values(rulesResult).every(Boolean);
             if (form) {
-                updatePasswordRulesUI(form, rulesResult);
+                updatePasswordRulesUI(form, input.id, rulesResult);
             }
             setFieldState(
                 input,
                 ok,
                 ok ? 'Contraseña segura.' : 'No cumple todos los requisitos de seguridad.'
             );
+            return ok;
+        }
+
+        if (rule === 'code6') {
+            const ok = /^\d{6}$/.test(value);
+            setFieldState(input, ok, ok ? 'Código válido.' : 'Ingresa un código numérico de 6 dígitos.');
             return ok;
         }
 
@@ -143,11 +149,13 @@ if (authCard) {
         inputs.forEach((input) => {
             input.addEventListener('input', () => {
                 validateInput(input);
-                if (input.id === 'signup-password') {
-                    const confirm = form.querySelector('#signup-confirm');
-                    if (confirm && confirm.value) {
-                        validateInput(confirm);
-                    }
+                if (input.dataset.rule === 'password') {
+                    const confirmTargets = form.querySelectorAll(`input[data-rule="confirm-password"][data-password-source="${input.id}"]`);
+                    confirmTargets.forEach((confirmInput) => {
+                        if (confirmInput.value) {
+                            validateInput(confirmInput);
+                        }
+                    });
                 }
             });
 

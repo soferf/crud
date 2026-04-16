@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Conciliacion de Recibos | Contabilidad Arroceras{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="container page-hero__inner">
+    <div class="page-hero__icon"><i class="fa-solid fa-table-list"></i></div>
+    <div>
+      <h1 class="page-hero__title">Conciliacion de Recibos</h1>
+      <p class="page-hero__sub">Localiza recibos por lote, serial o proveedor sin salir de la app.</p>
+    </div>
+    <div class="page-hero__actions">
+      <a href="{{ url_for('lista_recibos') }}" class="button button--ghost">
+        <i class="fa-solid fa-list"></i> Volver a recibos
+      </a>
+    </div>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <form method="GET" class="form-card" style="margin-bottom:var(--s6);">
+      <div class="form-grid form-grid--3">
+        <div class="form-group">
+          <label for="lote_id">Lote</label>
+          <select id="lote_id" name="lote_id">
+            <option value="">Todos los lotes accesibles</option>
+            {% for lote in lotes %}
+            <option value="{{ lote.id }}" {% if selected_lote == (lote.id|string) %}selected{% endif %}>{{ lote.nombre }} (#{{ lote.id }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="q">Buscar</label>
+          <input type="text" id="q" name="q" value="{{ search or '' }}" placeholder="Serial, proveedor, NIT o concepto">
+        </div>
+        <div class="form-actions" style="align-self:end;margin-top:0;">
+          <button type="submit" class="button button--primary"><i class="fa-solid fa-magnifying-glass"></i> Filtrar</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="stats-grid" style="margin-bottom:var(--s6);grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
+      <div class="stat-card">
+        <span class="stat-card__label"><i class="fa-solid fa-file-invoice"></i> Recibos visibles</span>
+        <span class="stat-card__value">{{ total_recibos }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__label"><i class="fa-solid fa-peso-sign"></i> Neto visible</span>
+        <span class="stat-card__value">$ {{ '{:,.0f}'.format(total_neto).replace(',', '.') }}</span>
+      </div>
+    </div>
+
+    {% if resumen_lotes %}
+    <div class="table-wrap" style="margin-bottom:var(--s6);">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Lote</th>
+            <th>Total recibos</th>
+            <th>Serial minimo</th>
+            <th>Serial maximo</th>
+            <th style="text-align:right;">Neto total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in resumen_lotes %}
+          <tr>
+            <td><strong>{{ item.lote_nombre }}</strong> <span class="txt-muted small">#{{ item.lote_id }}</span></td>
+            <td>{{ item.total_recibos }}</td>
+            <td>{{ item.min_serial }}</td>
+            <td>{{ item.max_serial }}</td>
+            <td class="valor-cell"><strong>$ {{ '{:,.0f}'.format(item.total_neto).replace(',', '.') }}</strong></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if recibos %}
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Serial</th>
+            <th>Lote</th>
+            <th>Fecha</th>
+            <th>Proveedor</th>
+            <th>NIT</th>
+            <th>Concepto</th>
+            <th style="text-align:right;">Neto</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in recibos %}
+          <tr>
+            <td><span class="serial-badge">{{ r.serial }}</span></td>
+            <td><strong>{{ r.lote_nombre or ('Lote ' ~ r.lote_id) }}</strong> <span class="txt-muted small">#{{ r.lote_id }}</span></td>
+            <td class="txt-muted">{{ r.fecha.strftime('%d/%m/%Y') if r.fecha else '—' }}</td>
+            <td><strong>{{ r.proveedor }}</strong></td>
+            <td class="txt-muted small">{{ r.nit or '—' }}</td>
+            <td class="concepto-cell small">{{ r.concepto or '—' }}</td>
+            <td class="valor-cell"><strong>$ {{ '{:,.0f}'.format(r.neto_a_pagar).replace(',', '.') }}</strong></td>
+            <td>
+              <div style="display:flex;gap:.45rem;flex-wrap:wrap;">
+                {% if r.lote_id == session.get('lote_id') %}
+                <a href="{{ url_for('detalle_recibo', serial=r.serial) }}" class="button button--sm button--ghost-dark">
+                  <i class="fa-solid fa-eye"></i> Ver
+                </a>
+                <a href="{{ url_for('editar_recibo', serial=r.serial) }}" class="button button--sm button--primary">
+                  <i class="fa-solid fa-pen-to-square"></i> Editar
+                </a>
+                {% else %}
+                <a href="{{ url_for('cambiar_lote', lote_id=r.lote_id) }}" class="button button--sm button--ghost">
+                  <i class="fa-solid fa-arrow-right-arrow-left"></i> Abrir lote
+                </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="fa-solid fa-folder-open empty-state__icon"></i>
+      <h3>Sin recibos para este filtro</h3>
+      <p>Prueba con otro lote o busca por serial, proveedor o NIT.</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

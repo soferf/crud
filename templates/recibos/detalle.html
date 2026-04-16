@@ -16,6 +16,11 @@
       <a href="{{ url_for('lista_recibos') }}" class="button button--ghost">
         <i class="fa-solid fa-arrow-left"></i> Volver
       </a>
+      {% if can_edit %}
+      <a href="{{ url_for('editar_recibo', serial=recibo.serial) }}" class="button button--primary">
+        <i class="fa-solid fa-pen-to-square"></i> Editar
+      </a>
+      {% endif %}
       <button type="button" class="button button--ghost" onclick="window.print()">
         <i class="fa-solid fa-print"></i> Imprimir
       </button>
@@ -153,6 +158,15 @@
       <a href="{{ url_for('lista_recibos') }}" class="button button--ghost-dark">
         <i class="fa-solid fa-arrow-left"></i> Volver a la lista
       </a>
+      <a href="{{ url_for('conciliacion_recibos') }}" class="button button--ghost-dark">
+        <i class="fa-solid fa-table-list"></i> Conciliar recibos
+      </a>
+      {% if can_edit %}
+      <a href="{{ url_for('editar_recibo', serial=recibo.serial) }}" class="button button--primary">
+        <i class="fa-solid fa-pen-to-square"></i> Editar recibo
+      </a>
+      {% endif %}
+      {% if can_delete %}
       <form method="POST"
             action="{{ url_for('eliminar_recibo', serial=recibo.serial) }}"
             onsubmit="return confirm('\u00bfEliminar el recibo #{{ recibo.serial }}? Esta acci\u00f3n no se puede deshacer.')"
@@ -161,6 +175,7 @@
           <i class="fa-solid fa-trash"></i> Eliminar recibo
         </button>
       </form>
+      {% endif %}
     </div>
 
   </div>

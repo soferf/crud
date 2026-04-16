@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Nuevo Recibo | Contabilidad Arroceras{% endblock %}
+{% block title %}{{ page_title or 'Nuevo Recibo' }} | Contabilidad Arroceras{% endblock %}
 
 {% block head %}{% endblock %}
 
@@ -8,16 +8,18 @@
   <div class="container page-hero__inner">
     <div class="page-hero__icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
     <div>
-      <h1 class="page-hero__title">Nuevo Recibo</h1>
-      <p class="page-hero__sub">Registra un pago. El serial se asigna según la fecha.</p>
+      <h1 class="page-hero__title">{{ page_title or 'Nuevo Recibo' }}</h1>
+      <p class="page-hero__sub">{{ page_subtitle or 'Registra un pago. El serial se asigna según la fecha.' }}</p>
     </div>
     <div class="page-hero__actions">
-      <a href="{{ url_for('lista_recibos') }}" class="button button--ghost">
+      <a href="{{ back_url or url_for('lista_recibos') }}" class="button button--ghost">
         <i class="fa-solid fa-list"></i> Ver recibos
       </a>
+      {% if page_mode != 'edit' %}
       <a href="{{ url_for('nuevo_recibo_lote') }}" class="button button--ghost">
         <i class="fa-solid fa-users-between-lines"></i> Por lote
       </a>
+      {% endif %}
     </div>
   </div>
 </div>
@@ -61,7 +63,7 @@
       <p class="field-hint">Al seleccionar se autocompletan NIT, dirección, ciudad, teléfono, concepto y valor.</p>
     </div>
 
-    <form method="POST" id="reciboForm" class="form-card">
+    <form method="POST" id="reciboForm" class="form-card" {% if form_action %}action="{{ form_action }}"{% endif %}>
       <input type="hidden" name="force" id="forceField" value="false">
 
       <!-- SECCIÓN 1: Identificación -->
@@ -72,9 +74,9 @@
         <div class="form-grid form-grid--3">
           <div class="form-group">
             <label for="serial">Serial <span class="req-star">*</span></label>
-            <input type="number" id="serial" name="serial"
-                   value="{{ form_data.get('serial', next_serial) }}" min="1" required>
-            <p class="field-hint">Próximo sugerido: <strong>{{ next_serial }}</strong></p>
+                 <input type="number" id="serial" name="serial"
+                   value="{{ form_data.get('serial', next_serial) }}" min="1" required {% if serial_readonly %}readonly{% endif %}>
+                 <p class="field-hint">{% if serial_readonly %}El serial queda bloqueado en edición para evitar inconsistencias entre lotes y consecutivos.{% else %}Próximo sugerido: <strong>{{ next_serial }}</strong>{% endif %}</p>
           </div>
           <div class="form-group">
             <label for="fecha">Fecha del recibo</label>
@@ -262,10 +264,10 @@
 
       <div class="form-actions">
         <button type="submit" class="button button--primary">
-          <i class="fa-solid fa-floppy-disk"></i> Guardar recibo
+          <i class="fa-solid fa-floppy-disk"></i> {{ submit_label or 'Guardar recibo' }}
         </button>
-        <a href="{{ url_for('lista_recibos') }}" class="button button--ghost-dark">
-          <i class="fa-solid fa-list"></i> Ver todos los recibos
+        <a href="{{ back_url or url_for('lista_recibos') }}" class="button button--ghost-dark">
+          <i class="fa-solid fa-list"></i> {{ back_label or 'Ver todos los recibos' }}
         </a>
       </div>
     </form>

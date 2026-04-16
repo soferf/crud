@@ -159,6 +159,26 @@
                     </button>
                 </form>
 
+                <form class="auth-form {% if active_form == 'signup_code' %}is-active{% endif %}" data-form="signup_code" method="post" action="{{ url_for('verify_signup_code') }}">
+                    <h3>Verifica tu cuenta con código</h3>
+                    <div class="auth-inline-alert" aria-live="polite"></div>
+                    <p class="auth-help">Te enviamos un código de 6 dígitos al correo registrado.</p>
+
+                    <label for="signup-code-email">Correo electrónico</label>
+                    <input id="signup-code-email" type="email" name="email" placeholder="correo@ejemplo.com" value="{{ form_data.signup_code.email if form_data else '' }}" required data-rule="email">
+                    <p class="field-message" data-for="signup-code-email"></p>
+
+                    <label for="signup-code">Código de seguridad</label>
+                    <input id="signup-code" type="text" name="code" maxlength="6" inputmode="numeric" pattern="\d{6}" placeholder="000000" value="{{ form_data.signup_code.code if form_data else '' }}" required data-rule="code6">
+                    <p class="field-message" data-for="signup-code"></p>
+
+                    <button class="button button--primary auth-submit" type="submit">
+                        <i class="fa-solid fa-shield-check"></i> Validar código
+                    </button>
+
+                    <button class="auth-link auth-link--center" type="button" data-open="signup">Volver a crear cuenta</button>
+                </form>
+
                 <form class="auth-form {% if active_form == 'forgot' %}is-active{% endif %}" data-form="forgot" method="post" action="{{ url_for('forgot_password') }}">
                     <h3>Recupera tu contraseña</h3>
                     <div class="auth-inline-alert" aria-live="polite"></div>
@@ -173,6 +193,41 @@
                     </button>
 
                     <button class="auth-link auth-link--center" type="button" data-open="login">Volver a iniciar sesión</button>
+                </form>
+
+                <form class="auth-form {% if active_form == 'reset_code' %}is-active{% endif %}" data-form="reset_code" method="post" action="{{ url_for('reset_with_code') }}">
+                    <h3>Restablecer con código de seguridad</h3>
+                    <div class="auth-inline-alert" aria-live="polite"></div>
+                    <p class="auth-help">Ingresa el código de 6 dígitos recibido por correo y define una nueva contraseña.</p>
+
+                    <label for="reset-code-email">Correo electrónico</label>
+                    <input id="reset-code-email" type="email" name="email" placeholder="correo@ejemplo.com" value="{{ form_data.reset_code.email if form_data else '' }}" required data-rule="email">
+                    <p class="field-message" data-for="reset-code-email"></p>
+
+                    <label for="reset-code">Código de seguridad</label>
+                    <input id="reset-code" type="text" name="code" maxlength="6" inputmode="numeric" pattern="\d{6}" placeholder="000000" value="{{ form_data.reset_code.code if form_data else '' }}" required data-rule="code6">
+                    <p class="field-message" data-for="reset-code"></p>
+
+                    <label for="reset-code-password">Nueva contraseña</label>
+                    <input id="reset-code-password" type="password" name="password" placeholder="Mínimo 8 caracteres" required data-rule="password">
+                    <p class="field-message" data-for="reset-code-password"></p>
+
+                    <ul class="field-rules" data-rules-for="reset-code-password">
+                        <li data-check="length">Mínimo 8 caracteres</li>
+                        <li data-check="upper">Al menos una mayúscula</li>
+                        <li data-check="lower">Al menos una minúscula</li>
+                        <li data-check="digit">Al menos un número</li>
+                    </ul>
+
+                    <label for="reset-code-confirm">Confirmar nueva contraseña</label>
+                    <input id="reset-code-confirm" type="password" name="confirm_password" placeholder="Repite la contraseña" required data-rule="confirm-password" data-password-source="reset-code-password">
+                    <p class="field-message" data-for="reset-code-confirm"></p>
+
+                    <button class="button button--primary auth-submit" type="submit">
+                        <i class="fa-solid fa-key"></i> Cambiar contraseña
+                    </button>
+
+                    <button class="auth-link auth-link--center" type="button" data-open="forgot">Solicitar otro código</button>
                 </form>
             </article>
             {% endif %}
@@ -266,5 +321,56 @@
 </footer>
 
 <script src="{{ url_for('static', filename='css/js/script.js') }}"></script>
+<script>
+/* ── Email domain autocomplete ─────────────────────────────────────────── */
+(function(){
+  const DOMAINS = ['gmail.com','outlook.com','hotmail.com','yahoo.com','icloud.com','live.com','protonmail.com','aol.com'];
+  function initEmailSuggest(input) {
+    const wrap = input.parentElement;
+    wrap.style.position = 'relative';
+    const box = document.createElement('ul');
+    box.className = 'email-suggest-list';
+    box.style.cssText = 'position:absolute;top:calc(100% + 2px);left:0;right:0;margin:0;padding:0;list-style:none;background:var(--bg,#fff);border:1px solid var(--brd,#ddd);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:500;display:none;max-height:220px;overflow-y:auto;';
+    wrap.appendChild(box);
+    function show(suggestions) {
+      box.innerHTML = suggestions.map(d =>
+        `<li data-domain="${d}" style="padding:.5rem .85rem;cursor:pointer;font-size:.9rem;border-bottom:1px solid var(--brd,#eee)">${d}</li>`
+      ).join('');
+      box.style.display = suggestions.length ? 'block' : 'none';
+      box.querySelectorAll('li').forEach(li => {
+        li.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          const at = input.value.indexOf('@');
+          input.value = (at !== -1 ? input.value.slice(0, at+1) : input.value + '@') + this.dataset.domain;
+          box.style.display = 'none';
+          input.dispatchEvent(new Event('input'));
+        });
+        li.addEventListener('mouseover', function(){ this.style.background='var(--clr-50,#e8f5e9)'; });
+        li.addEventListener('mouseout', function(){ this.style.background=''; });
+      });
+    }
+    input.addEventListener('input', function() {
+      const val = this.value;
+      const at = val.indexOf('@');
+      if (at === -1) { box.style.display='none'; return; }
+      const partial = val.slice(at+1).toLowerCase();
+      const matches = partial ? DOMAINS.filter(d => d.startsWith(partial)) : DOMAINS;
+      show(matches);
+    });
+    input.addEventListener('blur', function() { setTimeout(()=>box.style.display='none', 200); });
+    input.addEventListener('keydown', function(e) {
+      if (box.style.display === 'none') return;
+      const items = box.querySelectorAll('li');
+      const active = box.querySelector('li.is-active');
+      let idx = active ? Array.from(items).indexOf(active) : -1;
+      if (e.key === 'ArrowDown') { e.preventDefault(); if(active) active.classList.remove('is-active'); idx=(idx+1)%items.length; items[idx].classList.add('is-active'); items[idx].style.background='var(--clr-50,#e8f5e9)'; }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); if(active) active.classList.remove('is-active'); idx=(idx-1+items.length)%items.length; items[idx].classList.add('is-active'); items[idx].style.background='var(--clr-50,#e8f5e9)'; }
+      else if (e.key === 'Enter' || e.key === 'Tab') { if(active){ e.preventDefault(); active.dispatchEvent(new MouseEvent('mousedown')); } }
+      else if (e.key === 'Escape') { box.style.display='none'; }
+    });
+  }
+  document.querySelectorAll('input[type="email"]').forEach(initEmailSuggest);
+})();
+</script>
 </body>
 </html>
