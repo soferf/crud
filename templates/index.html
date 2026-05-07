@@ -1,372 +1,861 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contabilidad Arroceras | Acceso Seguro</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contabilidad Arroceras | Sistema Agr&#237;cola Inteligente</title>
 
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Swiper -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css">
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+  <style>
+    /* === LANDING ENHANCEMENTS === */
+
+    /* Hero full-height */
+    .hero { min-height: 100vh; display: flex; align-items: center; padding: 0; position: relative; overflow: hidden; }
+    .auth-hero { padding-top: 0; padding-bottom: 0; }
+    .hero__grid { padding: var(--s16) 0; position: relative; z-index: 2; }
+
+    /* Particle canvas */
+    #particles-canvas { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+
+    /* Floating blobs */
+    .hero-floats { position: absolute; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
+    .hero-float {
+      position: absolute;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 50%;
+      animation: floatUp linear infinite;
+    }
+    @keyframes floatUp {
+      0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
+      10%  { opacity: .5; }
+      90%  { opacity: .2; }
+      100% { transform: translateY(-105vh) rotate(360deg); opacity: 0; }
+    }
+
+    /* Scroll cue */
+    .hero-scroll-cue {
+      position: absolute; bottom: var(--s6); left: 50%; transform: translateX(-50%);
+      color: rgba(255,255,255,.55); font-size: .78rem;
+      display: flex; flex-direction: column; align-items: center; gap: var(--s2);
+      z-index: 3; animation: bobDown 2s ease-in-out infinite;
+    }
+    @keyframes bobDown { 0%,100%{ transform:translateX(-50%) translateY(0); } 50%{ transform:translateX(-50%) translateY(6px); } }
+
+    /* --- STATS BAND --- */
+    .stats-band { background: var(--clr-900); color: #fff; padding: var(--s12) 0; }
+    .stats-band__grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s4); text-align: center; }
+    .stat-item { padding: var(--s4); }
+    .stat-item__num { font-family: var(--ff-heading); font-size: 2.8rem; font-weight: 700; color: var(--gold-300); line-height: 1; display: block; }
+    .stat-item__label { font-size: .78rem; color: rgba(255,255,255,.65); letter-spacing: .08em; text-transform: uppercase; margin-top: var(--s2); display: block; }
+
+    /* --- MARQUEE --- */
+    .marquee-section { background: var(--clr-50); padding: var(--s6) 0; overflow: hidden; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .marquee-track { display: flex; gap: var(--s12); width: max-content; animation: marqueeScroll 30s linear infinite; }
+    .marquee-section:hover .marquee-track { animation-play-state: paused; }
+    @keyframes marqueeScroll { 0%{ transform:translateX(0); } 100%{ transform:translateX(-50%); } }
+    .marquee-item { display: flex; align-items: center; gap: var(--s3); white-space: nowrap; font-weight: 700; color: var(--clr-700); font-size: .9rem; opacity: .75; }
+    .marquee-item i { font-size: 1.1rem; }
+    .marquee-sep { color: var(--clr-300); font-size: 1.2rem; }
+
+    /* --- CAROUSEL --- */
+    .carousel-section { padding: var(--s24) 0; background: var(--bg); }
+    .swiper-main { width: 100%; border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--sh-lg); }
+    .swiper-main .swiper-slide { height: 520px; position: relative; overflow: hidden; }
+    .swiper-main .swiper-slide img { width: 100%; height: 100%; object-fit: cover; transition: transform 7s ease; }
+    .swiper-main .swiper-slide-active img { transform: scale(1.06); }
+    .slide-caption { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(27,67,50,.94)); color: #fff; padding: var(--s12) var(--s8) var(--s8); }
+    .slide-caption h3 { font-family: var(--ff-heading); font-size: 1.65rem; margin-bottom: var(--s2); }
+    .slide-caption p { font-size: .95rem; opacity: .85; }
+    .swiper-main .swiper-pagination-bullet { background: rgba(255,255,255,.6); }
+    .swiper-main .swiper-pagination-bullet-active { background: var(--gold-300); width: 28px; border-radius: 4px; }
+    .swiper-main .swiper-button-next,
+    .swiper-main .swiper-button-prev { background: rgba(255,255,255,.18); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,.3); width: 48px; height: 48px; border-radius: 50%; color: #fff; transition: background .2s; }
+    .swiper-main .swiper-button-next:hover, .swiper-main .swiper-button-prev:hover { background: rgba(255,255,255,.35); }
+    .swiper-main .swiper-button-next::after, .swiper-main .swiper-button-prev::after { font-size: .85rem; font-weight: 900; }
+    .swiper-thumbs { margin-top: var(--s4) !important; }
+    .swiper-thumbs .swiper-slide { height: 80px; border-radius: var(--r-sm); overflow: hidden; opacity: .5; cursor: pointer; transition: opacity .3s; border: 2px solid transparent; }
+    .swiper-thumbs .swiper-slide img { width: 100%; height: 100%; object-fit: cover; }
+    .swiper-thumbs .swiper-slide-thumb-active { opacity: 1; border-color: var(--gold-300); }
+
+    /* --- FEATURES --- */
+    .features-section { padding: var(--s24) 0; background: var(--clr-50); }
+    .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s6); margin-top: var(--s12); }
+    .feature-card { background: var(--surface); border-radius: var(--r-lg); padding: var(--s8); border: 1px solid var(--border); transition: transform .3s, box-shadow .3s; position: relative; overflow: hidden; }
+    .feature-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--clr-700), var(--gold-300)); transform: scaleX(0); transform-origin: left; transition: transform .4s ease; }
+    .feature-card:hover::before { transform: scaleX(1); }
+    .feature-card:hover { transform: translateY(-7px); box-shadow: var(--sh-lg); }
+    .feature-card__icon { width: 56px; height: 56px; background: var(--clr-100); border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--clr-700); margin-bottom: var(--s6); transition: background .3s, color .3s, transform .3s; }
+    .feature-card:hover .feature-card__icon { background: var(--clr-700); color: #fff; transform: scale(1.1) rotate(-5deg); }
+    .feature-card h3 { font-family: var(--ff-heading); font-size: 1.15rem; margin-bottom: var(--s3); color: var(--clr-900); }
+    .feature-card p { font-size: .875rem; color: var(--txt-muted); line-height: 1.65; }
+    .feature-card__tag { display: inline-block; margin-top: var(--s4); font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--clr-700); background: var(--clr-100); padding: var(--s1) var(--s3); border-radius: var(--r-full); }
+
+    /* --- TIMELINE --- */
+    .timeline-section { padding: var(--s24) 0; background: var(--surface); }
+    .timeline { position: relative; max-width: 820px; margin: var(--s12) auto 0; }
+    .timeline::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: linear-gradient(180deg, var(--clr-700), var(--gold-500)); transform: translateX(-50%); }
+    .timeline-item { display: grid; grid-template-columns: 1fr 60px 1fr; gap: var(--s6); align-items: center; margin-bottom: var(--s8); }
+    .timeline-content { background: var(--bg); border-radius: var(--r-md); padding: var(--s6); border: 1px solid var(--border); transition: box-shadow .3s, transform .3s; }
+    .timeline-content:hover { box-shadow: var(--sh-md); transform: translateY(-3px); }
+    .timeline-content h4 { font-family: var(--ff-heading); color: var(--clr-900); margin-bottom: var(--s2); display: flex; align-items: center; gap: var(--s2); }
+    .timeline-content h4 i { color: var(--clr-500); }
+    .timeline-content p { font-size: .875rem; color: var(--txt-muted); }
+    .timeline-dot { width: 56px; height: 56px; background: var(--clr-700); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.15rem; box-shadow: 0 0 0 6px var(--clr-100); z-index: 1; position: relative; justify-self: center; transition: transform .3s; }
+    .timeline-dot:hover { transform: scale(1.12); }
+    .timeline-item:nth-child(odd)  .timeline-content { grid-column: 1; text-align: right; }
+    .timeline-item:nth-child(odd)  .timeline-dot    { grid-column: 2; }
+    .timeline-item:nth-child(odd)  .timeline-blank  { grid-column: 3; }
+    .timeline-item:nth-child(even) .timeline-blank  { grid-column: 1; }
+    .timeline-item:nth-child(even) .timeline-dot    { grid-column: 2; }
+    .timeline-item:nth-child(even) .timeline-content { grid-column: 3; }
+    .timeline-item:nth-child(odd) .timeline-content h4 { justify-content: flex-end; }
+
+    /* --- CTA BAND --- */
+    .cta-band { background: linear-gradient(135deg, var(--clr-900), var(--clr-700)); color: #fff; padding: var(--s16) 0; text-align: center; position: relative; overflow: hidden; }
+    .cta-band::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(255,255,255,.04) 1px, transparent 1px); background-size: 28px 28px; }
+    .cta-band__inner { position: relative; z-index: 1; }
+    .cta-band h2 { font-family: var(--ff-heading); font-size: clamp(1.9rem, 4vw, 2.8rem); margin-bottom: var(--s4); }
+    .cta-band p { font-size: 1.1rem; opacity: .82; margin-bottom: var(--s8); }
+
+    /* Gold button */
+    .button--gold { background: var(--gold-500); color: var(--clr-900); font-size: 1.1rem; padding: var(--s4) var(--s8); }
+    .button--gold:hover { background: var(--gold-300); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(233,168,0,.4); }
+
+    /* --- ENHANCED FOOTER --- */
+    .footer-enhanced { background: #0c1e14; color: rgba(255,255,255,.65); padding: var(--s16) 0 var(--s6); }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: var(--s12); margin-bottom: var(--s12); padding-bottom: var(--s12); border-bottom: 1px solid rgba(255,255,255,.08); }
+    .footer-brand-row { display: flex; align-items: center; gap: var(--s3); margin-bottom: var(--s4); }
+    .footer-brand-row i { font-size: 1.8rem; color: var(--gold-300); }
+    .footer-brand-row span { font-family: var(--ff-heading); font-size: 1.25rem; color: #fff; font-weight: 700; }
+    .footer-brand-desc { font-size: .875rem; line-height: 1.7; max-width: 320px; }
+    .footer-col h5 { color: #fff; font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; margin-bottom: var(--s4); }
+    .footer-col ul { list-style: none; }
+    .footer-col li { margin-bottom: var(--s3); }
+    .footer-col a { font-size: .875rem; color: rgba(255,255,255,.5); transition: color .2s; display: flex; align-items: center; gap: var(--s2); }
+    .footer-col a:hover { color: var(--gold-300); }
+    .footer-bottom { display: flex; justify-content: space-between; align-items: center; font-size: .78rem; }
+    .footer-heart i { color: var(--gold-300); }
+
+    /* --- RESPONSIVE --- */
+    @media (max-width: 960px) {
+      .stats-band__grid { grid-template-columns: repeat(2, 1fr); }
+      .feature-grid { grid-template-columns: 1fr 1fr; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+      .timeline::before { left: 28px; transform: none; }
+      .timeline-item { grid-template-columns: 56px 1fr !important; }
+      .timeline-item .timeline-blank  { display: none; }
+      .timeline-item .timeline-dot    { grid-column: 1 !important; grid-row: 1; }
+      .timeline-item .timeline-content { grid-column: 2 !important; text-align: left !important; }
+      .timeline-item .timeline-content h4 { justify-content: flex-start !important; }
+    }
+    @media (max-width: 640px) {
+      .feature-grid { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr; gap: var(--s8); }
+      .swiper-main .swiper-slide { height: 300px; }
+      .footer-bottom { flex-direction: column; gap: var(--s3); text-align: center; }
+    }
+  </style>
 </head>
-
 <body>
 
+<!-- TOPBAR -->
 <header class="topbar">
-    <div class="container topbar__inner">
-
-        <a class="brand" href="{{ url_for('home') }}">
-            <i class="fa-solid fa-seedling brand__icon"></i>
-            <div>
-                <span class="brand__name">Contabilidad Arroceras</span>
-                <span class="brand__tagline">Acceso y seguridad de usuarios</span>
-            </div>
-        </a>
-
-        <nav class="nav">
-            <a href="#acceso"><i class="fa-solid fa-lock"></i> Acceso</a>
-            <a href="#seguridad"><i class="fa-solid fa-shield-halved"></i> Seguridad</a>
-            <a href="#experiencia"><i class="fa-solid fa-sparkles"></i> Experiencia</a>
-            {% if logged_in %}
-            <a class="nav__cta" href="{{ url_for('dashboard') }}"><i class="fa-solid fa-gauge"></i> Dashboard</a>
-            <a class="nav__cta nav__cta--alt" href="{{ url_for('logout') }}"><i class="fa-solid fa-right-from-bracket"></i> Salir</a>
-            {% endif %}
-        </nav>
-
-    </div>
+  <div class="container topbar__inner">
+    <a class="brand" href="{{ url_for('home') }}">
+      <i class="fa-solid fa-seedling brand__icon"></i>
+      <div>
+        <span class="brand__name">Contabilidad Arroceras</span>
+        <span class="brand__tagline">Sistema Agr&#237;cola Inteligente</span>
+      </div>
+    </a>
+    <nav class="nav">
+      <a href="#modulos"><i class="fa-solid fa-cubes"></i> Módulos</a>
+      <a href="#como-funciona"><i class="fa-solid fa-diagram-project"></i> Como funciona</a>
+      <a href="#acceso"><i class="fa-solid fa-lock"></i> Acceso</a>
+      {% if logged_in %}
+      <a class="nav__cta" href="{{ url_for('dashboard') }}"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+      <a class="nav__cta nav__cta--alt" href="{{ url_for('logout') }}"><i class="fa-solid fa-right-from-bracket"></i> Salir</a>
+      {% endif %}
+    </nav>
+  </div>
 </header>
 
-<main>
+
+<!-- HERO -->
 <section class="hero auth-hero" id="acceso">
-    <div class="container hero__grid">
+  <canvas id="particles-canvas"></canvas>
+  <div class="hero-floats" id="hero-floats"></div>
 
-        <div class="hero__content">
-            <div class="hero__badge">
-                <i class="fa-solid fa-user-shield"></i> Sistema de autenticación
-            </div>
+  <div class="container hero__grid">
+    <div class="hero__content">
+      <div class="hero__badge">
+        <i class="fa-solid fa-leaf"></i> Gesti&#243;n agr&#237;cola digital
+      </div>
+      <h1>
+        Control total de tu<br>
+        <em class="accent">arrocera</em>, desde la<br>
+        siembra hasta la liquidacion.
+      </h1>
+      <p class="hero__lead">
+        Recibos, trabajadores, produccion, presupuesto y reportes en una
+        plataforma unificada, segura y disenada para el campo colombiano.
+      </p>
+      <div class="hero__stats">
+        <div class="stat">
+          <span class="stat__num">6</span>
+          <span class="stat__label">Módulos</span>
+        </div>
+        <div class="stat">
+          <span class="stat__num">100%</span>
+          <span class="stat__label">Seguro</span>
+        </div>
+        <div class="stat">
+          <span class="stat__num">24/7</span>
+          <span class="stat__label">Disponible</span>
+        </div>
+      </div>
+      {% if logged_in %}
+      <div class="hero__actions" style="margin-top:var(--s8)">
+        <a class="button button--primary" href="{{ url_for('dashboard') }}">
+          <i class="fa-solid fa-gauge"></i> Ir al Dashboard
+        </a>
+        <a class="button button--ghost" href="{{ url_for('logout') }}">
+          <i class="fa-solid fa-right-from-bracket"></i> Cerrar sesion
+        </a>
+      </div>
+      {% else %}
+      <div class="hero__actions" style="margin-top:var(--s8)">
+        <a class="button button--primary" href="#modulos">
+          <i class="fa-solid fa-circle-info"></i> Conocer mas
+        </a>
+      </div>
+      {% endif %}
+    </div>
 
-            <h1>
-                Inicio de sesión y registro para
-                <em class="accent">Contabilidad Arroceras</em>.
-            </h1>
+    <aside class="auth-card-wrap">
+      {% if auth_message %}
+      <div class="auth-alert auth-alert--{{ auth_message_type }}">{{ auth_message }}</div>
+      {% endif %}
 
-            <p class="hero__lead">
-                Esta nueva versión del inicio centraliza acceso seguro, creación de cuenta
-                y recuperación de contraseña, con un diseño coherente con la identidad del sistema.
-            </p>
-
-            <div class="hero__stats">
-                <div class="stat">
-                    <span class="stat__num">3</span>
-                    <span class="stat__label">Formularios</span>
-                </div>
-                <div class="stat">
-                    <span class="stat__num">Hash</span>
-                    <span class="stat__label">Contraseñas</span>
-                </div>
-                <div class="stat">
-                    <span class="stat__num">UX</span>
-                    <span class="stat__label">Flujo guiado</span>
-                </div>
-            </div>
+      {% if logged_in %}
+      <article class="auth-card auth-card--logged">
+        <h3><i class="fa-solid fa-circle-check"></i> Bienvenido, {{ user_name }}</h3>
+        <p>Tu sesion esta activa. Gestiona recibos, trabajadores, produccion y reportes desde el panel.</p>
+        <div class="hero__actions auth-actions">
+          <a class="button button--primary" href="{{ url_for('dashboard') }}">
+            <i class="fa-solid fa-gauge"></i> Ir al Dashboard
+          </a>
+          <a class="button button--ghost" href="{{ url_for('logout') }}">
+            <i class="fa-solid fa-right-from-bracket"></i> Cerrar sesion
+          </a>
+        </div>
+      </article>
+      {% else %}
+      <article class="auth-card" data-active-form="{{ active_form }}">
+        <div class="auth-tabs" role="tablist" aria-label="Formularios de autenticacion">
+          <button class="auth-tab {% if active_form == 'login' %}is-active{% endif %}" data-target="login" type="button">Iniciar sesion</button>
+          <button class="auth-tab {% if active_form == 'signup' %}is-active{% endif %}" data-target="signup" type="button">Crear cuenta</button>
+          <button class="auth-tab {% if active_form == 'forgot' %}is-active{% endif %}" data-target="forgot" type="button">Olvide contrasena</button>
         </div>
 
-        <aside class="auth-card-wrap">
-            {% if auth_message %}
-            <div class="auth-alert auth-alert--{{ auth_message_type }}">
-                {{ auth_message }}
-            </div>
-            {% endif %}
+        <!-- LOGIN -->
+        <form class="auth-form {% if active_form == 'login' %}is-active{% endif %}" data-form="login" method="post" action="{{ url_for('login') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <h3>Accede a tu cuenta</h3>
+          <div class="auth-inline-alert" aria-live="polite"></div>
+          <label for="login-email">Correo electronico</label>
+          <input id="login-email" type="email" name="email" placeholder="correo@ejemplo.com"
+                 value="{{ form_data.login.email if form_data else '' }}" required data-rule="email">
+          <p class="field-message" data-for="login-email"></p>
+          <label for="login-password">Contrasena</label>
+          <input id="login-password" type="password" name="password" placeholder="Tu contrasena" required data-rule="required">
+          <p class="field-message" data-for="login-password"></p>
+          <div class="auth-form__row">
+            <label class="check-inline">
+              <input type="checkbox" name="remember_me" {% if form_data and form_data.login.remember_me %}checked{% endif %}>
+              Recordarme
+            </label>
+            <button class="auth-link" type="button" data-open="forgot">Olvide mi contrasena</button>
+          </div>
+          <button class="button button--primary auth-submit" type="submit">
+            <i class="fa-solid fa-right-to-bracket"></i> Entrar
+          </button>
+        </form>
 
-            {% if logged_in %}
-            <article class="auth-card auth-card--logged">
-                <h3><i class="fa-solid fa-circle-check"></i> Bienvenido, {{ user_name }}</h3>
-                <p>Tu sesión está activa. Ve al panel de control para gestionar recibos, trabajadores, producción y reportes.</p>
-                <div class="hero__actions auth-actions">
-                    <a class="button button--primary" href="{{ url_for('dashboard') }}">
-                        <i class="fa-solid fa-gauge"></i> Ir al Dashboard
-                    </a>
-                    <a class="button button--ghost" href="{{ url_for('logout') }}">
-                        <i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión
-                    </a>
-                </div>
-            </article>
-            {% else %}
-            <article class="auth-card" data-active-form="{{ active_form }}">
-                <div class="auth-tabs" role="tablist" aria-label="Formularios de autenticación">
-                    <button class="auth-tab {% if active_form == 'login' %}is-active{% endif %}" data-target="login" type="button">Iniciar sesión</button>
-                    <button class="auth-tab {% if active_form == 'signup' %}is-active{% endif %}" data-target="signup" type="button">Crear cuenta</button>
-                    <button class="auth-tab {% if active_form == 'forgot' %}is-active{% endif %}" data-target="forgot" type="button">Olvidé contraseña</button>
-                </div>
+        <!-- SIGNUP -->
+        <form class="auth-form {% if active_form == 'signup' %}is-active{% endif %}" data-form="signup" method="post" action="{{ url_for('signup') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <h3>Crea una cuenta nueva</h3>
+          <div class="auth-inline-alert" aria-live="polite"></div>
+          <label for="signup-name">Nombre completo</label>
+          <input id="signup-name" type="text" name="full_name" placeholder="Nombre y apellido"
+                 value="{{ form_data.signup.full_name if form_data else '' }}" required data-rule="name">
+          <p class="field-message" data-for="signup-name"></p>
+          <label for="signup-email">Correo electronico</label>
+          <input id="signup-email" type="email" name="email" placeholder="correo@ejemplo.com"
+                 value="{{ form_data.signup.email if form_data else '' }}" required data-rule="email">
+          <p class="field-message" data-for="signup-email"></p>
+          <label for="signup-password">Contrasena</label>
+          <input id="signup-password" type="password" name="password" placeholder="Minimo 8 caracteres" required data-rule="password">
+          <p class="field-message" data-for="signup-password"></p>
+          <ul class="field-rules" data-rules-for="signup-password">
+            <li data-check="length">Minimo 8 caracteres</li>
+            <li data-check="upper">Al menos una mayuscula</li>
+            <li data-check="lower">Al menos una minuscula</li>
+            <li data-check="digit">Al menos un numero</li>
+          </ul>
+          <label for="signup-confirm">Confirmar contrasena</label>
+          <input id="signup-confirm" type="password" name="confirm_password" placeholder="Repite la contrasena"
+                 required data-rule="confirm-password" data-password-source="signup-password">
+          <p class="field-message" data-for="signup-confirm"></p>
+          <button class="button button--primary auth-submit" type="submit">
+            <i class="fa-solid fa-user-plus"></i> Crear cuenta
+          </button>
+        </form>
 
-                <form class="auth-form {% if active_form == 'login' %}is-active{% endif %}" data-form="login" method="post" action="{{ url_for('login') }}">
-                    <h3>Accede a tu cuenta</h3>
-                    <div class="auth-inline-alert" aria-live="polite"></div>
+        <!-- SIGNUP CODE -->
+        <form class="auth-form {% if active_form == 'signup_code' %}is-active{% endif %}" data-form="signup_code" method="post" action="{{ url_for('verify_signup_code') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <h3>Verifica tu cuenta</h3>
+          <div class="auth-inline-alert" aria-live="polite"></div>
+          <p class="auth-help">Te enviamos un codigo de 6 digitos al correo registrado.</p>
+          <label for="signup-code-email">Correo electronico</label>
+          <input id="signup-code-email" type="email" name="email" placeholder="correo@ejemplo.com"
+                 value="{{ form_data.signup_code.email if form_data else '' }}" required data-rule="email">
+          <p class="field-message" data-for="signup-code-email"></p>
+          <label for="signup-code">Codigo de seguridad</label>
+          <input id="signup-code" type="text" name="code" maxlength="6" inputmode="numeric" pattern="\d{6}"
+                 placeholder="000000" value="{{ form_data.signup_code.code if form_data else '' }}" required data-rule="code6">
+          <p class="field-message" data-for="signup-code"></p>
+          <button class="button button--primary auth-submit" type="submit">
+            <i class="fa-solid fa-shield-check"></i> Validar codigo
+          </button>
+          <button class="auth-link auth-link--center" type="button" data-open="signup">Volver a crear cuenta</button>
+        </form>
 
-                    <label for="login-email">Correo electrónico</label>
-                    <input id="login-email" type="email" name="email" placeholder="correo@ejemplo.com" value="{{ form_data.login.email if form_data else '' }}" required data-rule="email">
-                    <p class="field-message" data-for="login-email"></p>
+        <!-- FORGOT -->
+        <form class="auth-form {% if active_form == 'forgot' %}is-active{% endif %}" data-form="forgot" method="post" action="{{ url_for('forgot_password') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <h3>Recupera tu contrasena</h3>
+          <div class="auth-inline-alert" aria-live="polite"></div>
+          <p class="auth-help">Te enviaremos instrucciones al correo registrado.</p>
+          <label for="forgot-email">Correo electronico</label>
+          <input id="forgot-email" type="email" name="email" placeholder="correo@ejemplo.com"
+                 value="{{ form_data.forgot.email if form_data else '' }}" required data-rule="email">
+          <p class="field-message" data-for="forgot-email"></p>
+          <button class="button button--primary auth-submit" type="submit">
+            <i class="fa-solid fa-paper-plane"></i> Enviar solicitud
+          </button>
+          <button class="auth-link auth-link--center" type="button" data-open="login">Volver a iniciar sesion</button>
+        </form>
 
-                    <label for="login-password">Contraseña</label>
-                    <input id="login-password" type="password" name="password" placeholder="Tu contraseña" required data-rule="required">
-                    <p class="field-message" data-for="login-password"></p>
+        <!-- RESET CODE -->
+        <form class="auth-form {% if active_form == 'reset_code' %}is-active{% endif %}" data-form="reset_code" method="post" action="{{ url_for('reset_with_code') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <h3>Restablecer contrasena</h3>
+          <div class="auth-inline-alert" aria-live="polite"></div>
+          <p class="auth-help">Ingresa el codigo de 6 digitos y define tu nueva contrasena.</p>
+          <label for="reset-code-email">Correo electronico</label>
+          <input id="reset-code-email" type="email" name="email" placeholder="correo@ejemplo.com"
+                 value="{{ form_data.reset_code.email if form_data else '' }}" required data-rule="email">
+          <p class="field-message" data-for="reset-code-email"></p>
+          <label for="reset-code">Codigo de seguridad</label>
+          <input id="reset-code" type="text" name="code" maxlength="6" inputmode="numeric" pattern="\d{6}"
+                 placeholder="000000" value="{{ form_data.reset_code.code if form_data else '' }}" required data-rule="code6">
+          <p class="field-message" data-for="reset-code"></p>
+          <label for="reset-code-password">Nueva contrasena</label>
+          <input id="reset-code-password" type="password" name="password" placeholder="Minimo 8 caracteres" required data-rule="password">
+          <p class="field-message" data-for="reset-code-password"></p>
+          <ul class="field-rules" data-rules-for="reset-code-password">
+            <li data-check="length">Minimo 8 caracteres</li>
+            <li data-check="upper">Al menos una mayuscula</li>
+            <li data-check="lower">Al menos una minuscula</li>
+            <li data-check="digit">Al menos un numero</li>
+          </ul>
+          <label for="reset-code-confirm">Confirmar nueva contrasena</label>
+          <input id="reset-code-confirm" type="password" name="confirm_password" placeholder="Repite la contrasena"
+                 required data-rule="confirm-password" data-password-source="reset-code-password">
+          <p class="field-message" data-for="reset-code-confirm"></p>
+          <button class="button button--primary auth-submit" type="submit">
+            <i class="fa-solid fa-key"></i> Cambiar contrasena
+          </button>
+          <button class="auth-link auth-link--center" type="button" data-open="forgot">Solicitar otro codigo</button>
+        </form>
+      </article>
+      {% endif %}
+    </aside>
+  </div>
 
-                    <div class="auth-form__row">
-                        <label class="check-inline">
-                            <input type="checkbox" name="remember_me" {% if form_data and form_data.login.remember_me %}checked{% endif %}>
-                            Recordarme en este equipo
-                        </label>
-                        <button class="auth-link" type="button" data-open="forgot">Olvidé mi contraseña</button>
-                    </div>
-
-                    <button class="button button--primary auth-submit" type="submit">
-                        <i class="fa-solid fa-right-to-bracket"></i> Entrar
-                    </button>
-                </form>
-
-                <form class="auth-form {% if active_form == 'signup' %}is-active{% endif %}" data-form="signup" method="post" action="{{ url_for('signup') }}">
-                    <h3>Crea una cuenta nueva</h3>
-                    <div class="auth-inline-alert" aria-live="polite"></div>
-
-                    <label for="signup-name">Nombre completo</label>
-                    <input id="signup-name" type="text" name="full_name" placeholder="Nombre y apellido" value="{{ form_data.signup.full_name if form_data else '' }}" required data-rule="name">
-                    <p class="field-message" data-for="signup-name"></p>
-
-                    <label for="signup-email">Correo electrónico</label>
-                    <input id="signup-email" type="email" name="email" placeholder="correo@ejemplo.com" value="{{ form_data.signup.email if form_data else '' }}" required data-rule="email">
-                    <p class="field-message" data-for="signup-email"></p>
-
-                    <label for="signup-password">Contraseña</label>
-                    <input id="signup-password" type="password" name="password" placeholder="Mínimo 8 caracteres" required data-rule="password">
-                    <p class="field-message" data-for="signup-password"></p>
-
-                    <ul class="field-rules" data-rules-for="signup-password">
-                        <li data-check="length">Mínimo 8 caracteres</li>
-                        <li data-check="upper">Al menos una mayúscula</li>
-                        <li data-check="lower">Al menos una minúscula</li>
-                        <li data-check="digit">Al menos un número</li>
-                    </ul>
-
-                    <label for="signup-confirm">Confirmar contraseña</label>
-                    <input id="signup-confirm" type="password" name="confirm_password" placeholder="Repite la contraseña" required data-rule="confirm-password" data-password-source="signup-password">
-                    <p class="field-message" data-for="signup-confirm"></p>
-
-                    <p class="auth-help">Debe incluir mayúscula, minúscula y número.</p>
-
-                    <button class="button button--primary auth-submit" type="submit">
-                        <i class="fa-solid fa-user-plus"></i> Crear cuenta
-                    </button>
-                </form>
-
-                <form class="auth-form {% if active_form == 'signup_code' %}is-active{% endif %}" data-form="signup_code" method="post" action="{{ url_for('verify_signup_code') }}">
-                    <h3>Verifica tu cuenta con código</h3>
-                    <div class="auth-inline-alert" aria-live="polite"></div>
-                    <p class="auth-help">Te enviamos un código de 6 dígitos al correo registrado.</p>
-
-                    <label for="signup-code-email">Correo electrónico</label>
-                    <input id="signup-code-email" type="email" name="email" placeholder="correo@ejemplo.com" value="{{ form_data.signup_code.email if form_data else '' }}" required data-rule="email">
-                    <p class="field-message" data-for="signup-code-email"></p>
-
-                    <label for="signup-code">Código de seguridad</label>
-                    <input id="signup-code" type="text" name="code" maxlength="6" inputmode="numeric" pattern="\d{6}" placeholder="000000" value="{{ form_data.signup_code.code if form_data else '' }}" required data-rule="code6">
-                    <p class="field-message" data-for="signup-code"></p>
-
-                    <button class="button button--primary auth-submit" type="submit">
-                        <i class="fa-solid fa-shield-check"></i> Validar código
-                    </button>
-
-                    <button class="auth-link auth-link--center" type="button" data-open="signup">Volver a crear cuenta</button>
-                </form>
-
-                <form class="auth-form {% if active_form == 'forgot' %}is-active{% endif %}" data-form="forgot" method="post" action="{{ url_for('forgot_password') }}">
-                    <h3>Recupera tu contraseña</h3>
-                    <div class="auth-inline-alert" aria-live="polite"></div>
-                    <p class="auth-help">Te enviaremos instrucciones al correo registrado.</p>
-
-                    <label for="forgot-email">Correo electrónico</label>
-                    <input id="forgot-email" type="email" name="email" placeholder="correo@ejemplo.com" value="{{ form_data.forgot.email if form_data else '' }}" required data-rule="email">
-                    <p class="field-message" data-for="forgot-email"></p>
-
-                    <button class="button button--primary auth-submit" type="submit">
-                        <i class="fa-solid fa-paper-plane"></i> Enviar solicitud
-                    </button>
-
-                    <button class="auth-link auth-link--center" type="button" data-open="login">Volver a iniciar sesión</button>
-                </form>
-
-                <form class="auth-form {% if active_form == 'reset_code' %}is-active{% endif %}" data-form="reset_code" method="post" action="{{ url_for('reset_with_code') }}">
-                    <h3>Restablecer con código de seguridad</h3>
-                    <div class="auth-inline-alert" aria-live="polite"></div>
-                    <p class="auth-help">Ingresa el código de 6 dígitos recibido por correo y define una nueva contraseña.</p>
-
-                    <label for="reset-code-email">Correo electrónico</label>
-                    <input id="reset-code-email" type="email" name="email" placeholder="correo@ejemplo.com" value="{{ form_data.reset_code.email if form_data else '' }}" required data-rule="email">
-                    <p class="field-message" data-for="reset-code-email"></p>
-
-                    <label for="reset-code">Código de seguridad</label>
-                    <input id="reset-code" type="text" name="code" maxlength="6" inputmode="numeric" pattern="\d{6}" placeholder="000000" value="{{ form_data.reset_code.code if form_data else '' }}" required data-rule="code6">
-                    <p class="field-message" data-for="reset-code"></p>
-
-                    <label for="reset-code-password">Nueva contraseña</label>
-                    <input id="reset-code-password" type="password" name="password" placeholder="Mínimo 8 caracteres" required data-rule="password">
-                    <p class="field-message" data-for="reset-code-password"></p>
-
-                    <ul class="field-rules" data-rules-for="reset-code-password">
-                        <li data-check="length">Mínimo 8 caracteres</li>
-                        <li data-check="upper">Al menos una mayúscula</li>
-                        <li data-check="lower">Al menos una minúscula</li>
-                        <li data-check="digit">Al menos un número</li>
-                    </ul>
-
-                    <label for="reset-code-confirm">Confirmar nueva contraseña</label>
-                    <input id="reset-code-confirm" type="password" name="confirm_password" placeholder="Repite la contraseña" required data-rule="confirm-password" data-password-source="reset-code-password">
-                    <p class="field-message" data-for="reset-code-confirm"></p>
-
-                    <button class="button button--primary auth-submit" type="submit">
-                        <i class="fa-solid fa-key"></i> Cambiar contraseña
-                    </button>
-
-                    <button class="auth-link auth-link--center" type="button" data-open="forgot">Solicitar otro código</button>
-                </form>
-            </article>
-            {% endif %}
-        </aside>
-
-    </div>
+  <div class="hero-scroll-cue">
+    <span>Descubre mas</span>
+    <i class="fa-solid fa-chevron-down"></i>
+  </div>
 </section>
 
-<section class="section section--muted" id="seguridad">
-    <div class="container">
-        <div class="section-header">
-            <span class="section-eyebrow"><i class="fa-solid fa-shield-halved"></i> Seguridad inicial</span>
-            <h2 class="section-title">Base lista para endurecer</h2>
-            <p class="section-sub">La autenticación ya incluye hash de contraseña, validaciones de formulario y control de sesiones.</p>
-        </div>
 
-        <div class="grid-4">
-            <div class="card">
-                <div class="card__icon"><i class="fa-solid fa-key"></i></div>
-                <h3>Contraseñas hasheadas</h3>
-                <p>Las credenciales no se guardan en texto plano, se almacenan con hash seguro.</p>
-            </div>
-            <div class="card">
-                <div class="card__icon"><i class="fa-solid fa-user-check"></i></div>
-                <h3>Acceso protegido</h3>
-                <p>El módulo de trabajadores solo permite entrada con sesión iniciada.</p>
-            </div>
-            <div class="card">
-                <div class="card__icon"><i class="fa-solid fa-hourglass-half"></i></div>
-                <h3>Sesión persistente</h3>
-                <p>Opción de recordarme para mejorar continuidad sin perder seguridad básica.</p>
-            </div>
-            <div class="card">
-                <div class="card__icon"><i class="fa-solid fa-envelope-circle-check"></i></div>
-                <h3>Flujo de recuperación</h3>
-                <p>Formulario de olvido de contraseña listo para integrar envío de correo/token.</p>
-            </div>
-        </div>
+<!-- STATS BAND -->
+<div class="stats-band">
+  <div class="container">
+    <div class="stats-band__grid">
+      <div class="stat-item" data-aos="fade-up" data-aos-delay="0">
+        <span class="stat-item__num" data-count="500">0</span>
+        <span class="stat-item__label">Trabajadores gestionados</span>
+      </div>
+      <div class="stat-item" data-aos="fade-up" data-aos-delay="100">
+        <span class="stat-item__num" data-count="1200">0</span>
+        <span class="stat-item__label">Recibos emitidos</span>
+      </div>
+      <div class="stat-item" data-aos="fade-up" data-aos-delay="200">
+        <span class="stat-item__num" data-count="6">0</span>
+        <span class="stat-item__label">Módulos integrados</span>
+      </div>
+      <div class="stat-item" data-aos="fade-up" data-aos-delay="300">
+        <span class="stat-item__num" data-count="100">0</span>
+        <span class="stat-item__label">% disponibilidad</span>
+      </div>
     </div>
+  </div>
+</div>
+
+
+<!-- MARQUEE -->
+<div class="marquee-section">
+  <div class="marquee-track">
+    <span class="marquee-item"><i class="fa-solid fa-receipt"></i> Gesti&#243;n de Recibos</span>
+    <span class="marquee-sep">&#183;</span>
+    <span class="marquee-item"><i class="fa-solid fa-users"></i> Control de Trabajadores</span>
+    <span class="marquee-sep">&#183;</span>
+    <span class="marquee-item"><i class="fa-solid fa-tractor"></i> Producci&#243;n Arrocera</span>
+    <span class="marquee-sep">&#183;</span>
+    <span class="marquee-item"><i class="fa-solid fa-chart-pie"></i> Reportes Din&#225;micos</span>
+    <span class="marquee-sep">&#183;</span>
+    <span class="marquee-item"><i class="fa-solid fa-wallet"></i> Presupuesto y Costos</span>
+    <span class="marquee-sep">&#183;</span>
+    <span class="marquee-item"><i class="fa-solid fa-gears"></i> Configuraci&#243;n Global</span>
+    <span class="marquee-sep">&#183;</span>
+    <span class="marquee-item"><i class="fa-solid fa-shield-halved"></i> Seguridad Garantizada</span>
+    <span class="marquee-sep">&#183;</span>
+    <span class="marquee-item"><i class="fa-solid fa-seedling"></i> Siembra y Cosecha</span>
+    <span class="marquee-sep">&#183;</span>
+    <!-- Duplicate for seamless loop -->
+    <span class="marquee-item"><i class="fa-solid fa-receipt"></i> Gesti&#243;n de Recibos</span>
+    <span class="marquee-sep">&#183;</span>
+    <span class="marquee-item"><i class="fa-solid fa-users"></i> Control de Trabajadores</span>
+    <span class="marquee-sep">&#183;</span>
+    <span class="marquee-item"><i class="fa-solid fa-tractor"></i> Producci&#243;n Arrocera</span>
+    <span class="marquee-sep">&#183;</span>
+    <span class="marquee-item"><i class="fa-solid fa-chart-pie"></i> Reportes Din&#225;micos</span>
+    <span class="marquee-sep">&#183;</span>
+    <span class="marquee-item"><i class="fa-solid fa-wallet"></i> Presupuesto y Costos</span>
+    <span class="marquee-sep">&#183;</span>
+    <span class="marquee-item"><i class="fa-solid fa-gears"></i> Configuraci&#243;n Global</span>
+    <span class="marquee-sep">&#183;</span>
+    <span class="marquee-item"><i class="fa-solid fa-shield-halved"></i> Seguridad Garantizada</span>
+    <span class="marquee-sep">&#183;</span>
+    <span class="marquee-item"><i class="fa-solid fa-seedling"></i> Siembra y Cosecha</span>
+    <span class="marquee-sep">&#183;</span>
+  </div>
+</div>
+
+
+<!-- IMAGE CAROUSEL -->
+<section class="carousel-section">
+  <div class="container">
+    <div class="section-header" data-aos="fade-up">
+      <span class="section-eyebrow"><i class="fa-solid fa-images"></i> El campo digitalizado</span>
+      <h2 class="section-title">Del surco al sistema</h2>
+      <p class="section-sub">Una plataforma construida pensando en la realidad del cultivo de arroz colombiano.</p>
+    </div>
+    <div style="margin-top: var(--s12)">
+      <div class="swiper swiper-main" data-aos="fade-up" data-aos-delay="100">
+        <div class="swiper-wrapper">
+          <div class="swiper-slide">
+            <img src="https://images.unsplash.com/photo-1601493700631-2b16ec4b4716?w=1200&auto=format&fit=crop&q=80" alt="Campos de arroz al amanecer" loading="lazy">
+            <div class="slide-caption">
+              <h3><i class="fa-solid fa-sun"></i> Amanecer en el cultivo</h3>
+              <p>Cada ciclo comienza con planificacion. El sistema acompana desde el primer surco.</p>
+            </div>
+          </div>
+          <div class="swiper-slide">
+            <img src="https://images.unsplash.com/photo-1536431311719-398b6704d4cc?w=1200&auto=format&fit=crop&q=80" alt="Trabajadores en arrozal" loading="lazy">
+            <div class="slide-caption">
+              <h3><i class="fa-solid fa-people-group"></i> Tu equipo, siempre organizado</h3>
+              <p>Registra labores, abonos y desague de cada trabajador con precision y en tiempo real.</p>
+            </div>
+          </div>
+          <div class="swiper-slide">
+            <img src="https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=1200&auto=format&fit=crop&q=80" alt="Cosecha de arroz" loading="lazy">
+            <div class="slide-caption">
+              <h3><i class="fa-solid fa-tractor"></i> Cosecha y liquidacion</h3>
+              <p>Genera recibos y reportes al momento de cerrar cada temporada de cosecha.</p>
+            </div>
+          </div>
+          <div class="swiper-slide">
+            <img src="https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1200&auto=format&fit=crop&q=80" alt="Grano de arroz" loading="lazy">
+            <div class="slide-caption">
+              <h3><i class="fa-solid fa-chart-bar"></i> Datos que impulsan decisiones</h3>
+              <p>Consulta presupuestos, produccion y costos en tiempo real desde cualquier dispositivo.</p>
+            </div>
+          </div>
+          <div class="swiper-slide">
+            <img src="https://images.unsplash.com/photo-1591208130341-e33c0e2b1f4b?w=1200&auto=format&fit=crop&q=80" alt="Lote de arroz vista aerea" loading="lazy">
+            <div class="slide-caption">
+              <h3><i class="fa-solid fa-map"></i> Gestion por lote</h3>
+              <p>Selecciona el lote activo y filtra toda la informacion por ciclo de produccion.</p>
+            </div>
+          </div>
+        </div>
+        <div class="swiper-pagination"></div>
+        <div class="swiper-button-prev"></div>
+        <div class="swiper-button-next"></div>
+      </div>
+      <!-- Thumbs strip -->
+      <div class="swiper swiper-thumbs" style="margin-top:var(--s4)">
+        <div class="swiper-wrapper">
+          <div class="swiper-slide"><img src="https://images.unsplash.com/photo-1601493700631-2b16ec4b4716?w=200&auto=format&fit=crop&q=60" alt="" loading="lazy"></div>
+          <div class="swiper-slide"><img src="https://images.unsplash.com/photo-1536431311719-398b6704d4cc?w=200&auto=format&fit=crop&q=60" alt="" loading="lazy"></div>
+          <div class="swiper-slide"><img src="https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=200&auto=format&fit=crop&q=60" alt="" loading="lazy"></div>
+          <div class="swiper-slide"><img src="https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=200&auto=format&fit=crop&q=60" alt="" loading="lazy"></div>
+          <div class="swiper-slide"><img src="https://images.unsplash.com/photo-1591208130341-e33c0e2b1f4b?w=200&auto=format&fit=crop&q=60" alt="" loading="lazy"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
-<section class="section" id="experiencia">
-    <div class="container">
-        <div class="section-header">
-            <span class="section-eyebrow"><i class="fa-solid fa-sparkles"></i> Experiencia de usuario</span>
-            <h2 class="section-title">Flujo simple, claro y consistente</h2>
-        </div>
 
-        <div class="objectives">
-            <div class="objective">
-                <span class="objective__num">01</span>
-                <div>
-                    <h4><i class="fa-solid fa-toggle-on"></i> Cambio rápido entre formularios</h4>
-                    <p>Login, registro y recuperación viven en una sola pantalla con pestañas dinámicas.</p>
-                </div>
-            </div>
-            <div class="objective">
-                <span class="objective__num">02</span>
-                <div>
-                    <h4><i class="fa-solid fa-circle-info"></i> Mensajes de estado</h4>
-                    <p>El usuario recibe feedback inmediato para saber cómo continuar en cada paso.</p>
-                </div>
-            </div>
-            <div class="objective">
-                <span class="objective__num">03</span>
-                <div>
-                    <h4><i class="fa-solid fa-mobile-screen"></i> Diseño responsive</h4>
-                    <p>La interfaz mantiene legibilidad y jerarquía visual en escritorio y móvil.</p>
-                </div>
-            </div>
-            <div class="objective">
-                <span class="objective__num">04</span>
-                <div>
-                    <h4><i class="fa-solid fa-puzzle-piece"></i> Base para mejoras futuras</h4>
-                    <p>Queda lista para agregar verificación por correo, tokens de recuperación y 2FA.</p>
-                </div>
-            </div>
-        </div>
+<!-- MODULES / FEATURES -->
+<section class="features-section" id="modulos">
+  <div class="container">
+    <div class="section-header" data-aos="fade-up">
+      <span class="section-eyebrow"><i class="fa-solid fa-cubes"></i> M&#243;dulos del sistema</span>
+      <h2 class="section-title">Todo lo que necesitas en un solo lugar</h2>
+      <p class="section-sub">Seis modulos especializados para cubrir el ciclo completo de una arrocera.</p>
     </div>
+    <div class="feature-grid">
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="0">
+        <div class="feature-card__icon"><i class="fa-solid fa-receipt"></i></div>
+        <h3>Gesti&#243;n de Recibos</h3>
+        <p>Crea, detalla y concilia recibos de labores, abonos y desague por trabajador y periodo de pago.</p>
+        <span class="feature-card__tag">Recibos</span>
+      </div>
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="80">
+        <div class="feature-card__icon"><i class="fa-solid fa-users"></i></div>
+        <h3>Control de Trabajadores</h3>
+        <p>Registra plantel completo con datos personales, tipos de labor y vinculos laborales activos.</p>
+        <span class="feature-card__tag">Trabajadores</span>
+      </div>
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="160">
+        <div class="feature-card__icon"><i class="fa-solid fa-tractor"></i></div>
+        <h3>Producci&#243;n Arrocera</h3>
+        <p>Registra jornadas y consulta el avance por lote, ciclo y tipo de labor con detalle diario.</p>
+        <span class="feature-card__tag">Produccion</span>
+      </div>
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="0">
+        <div class="feature-card__icon"><i class="fa-solid fa-wallet"></i></div>
+        <h3>Presupuesto</h3>
+        <p>Define costos estimados por lote, comparalos contra los reales y controla el gasto por etapa.</p>
+        <span class="feature-card__tag">Presupuesto</span>
+      </div>
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="80">
+        <div class="feature-card__icon"><i class="fa-solid fa-chart-pie"></i></div>
+        <h3>Reportes</h3>
+        <p>Genera informes semanales y por lote con resumenes ejecutivos y graficas de produccion.</p>
+        <span class="feature-card__tag">Reportes</span>
+      </div>
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="160">
+        <div class="feature-card__icon"><i class="fa-solid fa-gears"></i></div>
+        <h3>Configuracion</h3>
+        <p>Ajusta tipos de labor, tasas salariales, lotes activos y parametros globales del sistema.</p>
+        <span class="feature-card__tag">Config</span>
+      </div>
+    </div>
+  </div>
 </section>
 
-</main>
-<footer class="footer">
-    <div class="container footer__inner">
-        <div class="footer__brand">
-            <i class="fa-solid fa-seedling"></i>
-            <span>Contabilidad Arroceras</span>
-        </div>
-        <p class="footer__copy">Proyecto académico 2026 · Acceso de usuarios en evolución</p>
+
+<!-- TIMELINE -->
+<section class="timeline-section" id="como-funciona">
+  <div class="container">
+    <div class="section-header" data-aos="fade-up">
+      <span class="section-eyebrow"><i class="fa-solid fa-diagram-project"></i> Flujo de trabajo</span>
+      <h2 class="section-title">&#191;C&#243;mo funciona el sistema?</h2>
+      <p class="section-sub">Un ciclo claro desde el inicio de la temporada hasta la liquidacion final.</p>
     </div>
+    <div class="timeline">
+      <div class="timeline-item" data-aos="fade-right">
+        <div class="timeline-content">
+          <h4><i class="fa-solid fa-map-pin"></i> Configura tu lote</h4>
+          <p>Selecciona o crea el lote activo con sus parametros de produccion, area y presupuesto estimado.</p>
+        </div>
+        <div class="timeline-dot"><i class="fa-solid fa-1"></i></div>
+        <div class="timeline-blank"></div>
+      </div>
+      <div class="timeline-item" data-aos="fade-left">
+        <div class="timeline-blank"></div>
+        <div class="timeline-dot"><i class="fa-solid fa-2"></i></div>
+        <div class="timeline-content">
+          <h4><i class="fa-solid fa-users"></i> Registra trabajadores</h4>
+          <p>Agrega el plantel con sus datos completos, tipo de labor y condicion contractual vigente.</p>
+        </div>
+      </div>
+      <div class="timeline-item" data-aos="fade-right">
+        <div class="timeline-content">
+          <h4><i class="fa-solid fa-tractor"></i> Registra produccion</h4>
+          <p>Ingresa jornadas de trabajo, tipo de labor y produccion diaria durante todo el ciclo agricola.</p>
+        </div>
+        <div class="timeline-dot"><i class="fa-solid fa-3"></i></div>
+        <div class="timeline-blank"></div>
+      </div>
+      <div class="timeline-item" data-aos="fade-left">
+        <div class="timeline-blank"></div>
+        <div class="timeline-dot"><i class="fa-solid fa-4"></i></div>
+        <div class="timeline-content">
+          <h4><i class="fa-solid fa-receipt"></i> Genera recibos</h4>
+          <p>Crea recibos detallados por trabajador con desglose de labores, abonos y descuentos aplicados.</p>
+        </div>
+      </div>
+      <div class="timeline-item" data-aos="fade-right">
+        <div class="timeline-content">
+          <h4><i class="fa-solid fa-chart-bar"></i> Consulta reportes y cierra ciclo</h4>
+          <p>Analiza costos reales vs presupuesto y exporta informes semanales para toma de decisiones.</p>
+        </div>
+        <div class="timeline-dot" style="background:var(--gold-500)"><i class="fa-solid fa-flag-checkered"></i></div>
+        <div class="timeline-blank"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- CTA BAND -->
+<section class="cta-band">
+  <div class="container cta-band__inner">
+    <h2 data-aos="fade-up">&#191;¿Listo para modernizar tu arrocera?</h2>
+    <p data-aos="fade-up" data-aos-delay="100">Crea tu cuenta en segundos y empieza a gestionar desde hoy mismo.</p>
+    <div data-aos="fade-up" data-aos-delay="200">
+      <a class="button button--gold" href="#acceso" id="cta-signup-btn">
+        <i class="fa-solid fa-rocket"></i> Comenzar ahora
+      </a>
+    </div>
+  </div>
+</section>
+
+
+<!-- FOOTER -->
+<footer class="footer-enhanced">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand-row">
+          <i class="fa-solid fa-seedling"></i>
+          <span>Contabilidad Arroceras</span>
+        </div>
+        <p class="footer-brand-desc">
+          Sistema de gestion contable y operativa para arroceras colombianas.
+          Desde el cultivo hasta la liquidacion, todo en un solo lugar, seguro y siempre disponible.
+        </p>
+      </div>
+      <div class="footer-col">
+        <h5>Módulos</h5>
+        <ul>
+          <li><a href="{{ url_for('dashboard') }}"><i class="fa-solid fa-gauge" style="font-size:.75rem"></i> Dashboard</a></li>
+          <li><a href="#modulos"><i class="fa-solid fa-receipt" style="font-size:.75rem"></i> Recibos</a></li>
+          <li><a href="#modulos"><i class="fa-solid fa-users" style="font-size:.75rem"></i> Trabajadores</a></li>
+          <li><a href="#modulos"><i class="fa-solid fa-tractor" style="font-size:.75rem"></i> Produccion</a></li>
+          <li><a href="#modulos"><i class="fa-solid fa-chart-pie" style="font-size:.75rem"></i> Reportes</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Acceso</h5>
+        <ul>
+          <li><a href="#acceso"><i class="fa-solid fa-right-to-bracket" style="font-size:.75rem"></i> Iniciar sesion</a></li>
+          <li><a href="#acceso" id="footer-signup-link"><i class="fa-solid fa-user-plus" style="font-size:.75rem"></i> Crear cuenta</a></li>
+          <li><a href="#acceso" id="footer-forgot-link"><i class="fa-solid fa-key" style="font-size:.75rem"></i> Recuperar contrasena</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&#169; 2026 Contabilidad Arroceras &#183; Proyecto academico</span>
+      <span class="footer-heart">Hecho con <i class="fa-solid fa-heart"></i> para el campo colombiano</span>
+    </div>
+  </div>
 </footer>
 
+
+<!-- SCRIPTS -->
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
 <script src="{{ url_for('static', filename='css/js/script.js') }}"></script>
+
 <script>
-/* ── Email domain autocomplete ─────────────────────────────────────────── */
-(function(){
+/* AOS */
+AOS.init({ duration: 700, easing: 'ease-out-cubic', once: true, offset: 50 });
+
+/* Swiper */
+const thumbsSwiper = new Swiper('.swiper-thumbs', {
+  spaceBetween: 10,
+  freeMode: true,
+  watchSlidesProgress: true,
+  breakpoints: { 0: { slidesPerView: 3 }, 600: { slidesPerView: 4 }, 900: { slidesPerView: 5 } }
+});
+const mainSwiper = new Swiper('.swiper-main', {
+  loop: true,
+  speed: 900,
+  autoplay: { delay: 5500, disableOnInteraction: false, pauseOnMouseEnter: true },
+  pagination: { el: '.swiper-pagination', clickable: true },
+  navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
+  thumbs: { swiper: thumbsSwiper }
+});
+
+/* Particles */
+(function () {
+  const canvas = document.getElementById('particles-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  function resize() { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+  function spawn() {
+    return { x: Math.random() * canvas.width, y: canvas.height + 10,
+      r: Math.random() * 2.5 + 0.5, speed: Math.random() * 0.55 + 0.15,
+      opacity: Math.random() * 0.45 + 0.05, drift: (Math.random() - 0.5) * 0.25 };
+  }
+  for (let i = 0; i < 70; i++) { const p = spawn(); p.y = Math.random() * canvas.height; particles.push(p); }
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach((p, i) => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,' + p.opacity + ')';
+      ctx.fill();
+      p.y -= p.speed; p.x += p.drift;
+      if (p.y < -10) particles[i] = spawn();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* Floating blobs */
+(function () {
+  const wrap = document.getElementById('hero-floats');
+  if (!wrap) return;
+  for (let i = 0; i < 10; i++) {
+    const el = document.createElement('div');
+    el.className = 'hero-float';
+    const size = Math.random() * 140 + 30;
+    el.style.cssText = 'width:' + size + 'px;height:' + size + 'px;' +
+      'left:' + (Math.random() * 100) + '%;' +
+      'bottom:' + (Math.random() * -30 - 5) + '%;' +
+      'animation-duration:' + (Math.random() * 16 + 10) + 's;' +
+      'animation-delay:' + (Math.random() * -25) + 's;';
+    wrap.appendChild(el);
+  }
+})();
+
+/* Counter animation */
+(function () {
+  function animateCount(el, target, duration) {
+    const start = performance.now();
+    function update(now) {
+      const progress = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      const value = Math.round(ease * target);
+      el.textContent = value.toLocaleString('es-CO') + (target === 100 ? '%' : '+');
+      if (progress < 1) requestAnimationFrame(update);
+      else el.textContent = target.toLocaleString('es-CO') + (target === 100 ? '%' : '+');
+    }
+    requestAnimationFrame(update);
+  }
+  const obs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        const el = entry.target;
+        const target = parseInt(el.dataset.count, 10);
+        if (!isNaN(target)) animateCount(el, target, 1800);
+        obs.unobserve(el);
+      }
+    });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('[data-count]').forEach(function(el) { obs.observe(el); });
+})();
+
+/* CTA / footer links -> open auth tab */
+(function () {
+  function openTab(tabName) {
+    const btn = document.querySelector('.auth-tab[data-target="' + tabName + '"]');
+    if (btn) btn.click();
+    const s = document.getElementById('acceso');
+    if (s) s.scrollIntoView({ behavior: 'smooth' });
+  }
+  const ctaBtn = document.getElementById('cta-signup-btn');
+  if (ctaBtn) ctaBtn.addEventListener('click', function(e) { e.preventDefault(); openTab('signup'); });
+  const fSignup = document.getElementById('footer-signup-link');
+  if (fSignup) fSignup.addEventListener('click', function(e) { e.preventDefault(); openTab('signup'); });
+  const fForgot = document.getElementById('footer-forgot-link');
+  if (fForgot) fForgot.addEventListener('click', function(e) { e.preventDefault(); openTab('forgot'); });
+})();
+
+/* Email autocomplete */
+(function () {
   const DOMAINS = ['gmail.com','outlook.com','hotmail.com','yahoo.com','icloud.com','live.com','protonmail.com','aol.com'];
   function initEmailSuggest(input) {
     const wrap = input.parentElement;
     wrap.style.position = 'relative';
     const box = document.createElement('ul');
     box.className = 'email-suggest-list';
-    box.style.cssText = 'position:absolute;top:calc(100% + 2px);left:0;right:0;margin:0;padding:0;list-style:none;background:var(--bg,#fff);border:1px solid var(--brd,#ddd);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:500;display:none;max-height:220px;overflow-y:auto;';
+    box.style.cssText = 'position:absolute;top:calc(100% + 2px);left:0;right:0;margin:0;padding:0;list-style:none;background:#fff;border:1px solid #ddd;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:500;display:none;max-height:220px;overflow-y:auto;';
     wrap.appendChild(box);
     function show(suggestions) {
-      box.innerHTML = suggestions.map(d =>
-        `<li data-domain="${d}" style="padding:.5rem .85rem;cursor:pointer;font-size:.9rem;border-bottom:1px solid var(--brd,#eee)">${d}</li>`
-      ).join('');
+      box.innerHTML = suggestions.map(function(d) {
+        return '<li data-domain="' + d + '" style="padding:.5rem .85rem;cursor:pointer;font-size:.9rem;border-bottom:1px solid #eee">' + d + '</li>';
+      }).join('');
       box.style.display = suggestions.length ? 'block' : 'none';
-      box.querySelectorAll('li').forEach(li => {
+      box.querySelectorAll('li').forEach(function(li) {
         li.addEventListener('mousedown', function(e) {
           e.preventDefault();
           const at = input.value.indexOf('@');
-          input.value = (at !== -1 ? input.value.slice(0, at+1) : input.value + '@') + this.dataset.domain;
+          input.value = (at !== -1 ? input.value.slice(0, at + 1) : input.value + '@') + this.dataset.domain;
           box.style.display = 'none';
           input.dispatchEvent(new Event('input'));
         });
-        li.addEventListener('mouseover', function(){ this.style.background='var(--clr-50,#e8f5e9)'; });
-        li.addEventListener('mouseout', function(){ this.style.background=''; });
+        li.addEventListener('mouseover', function() { this.style.background = '#e8f5e9'; });
+        li.addEventListener('mouseout', function() { this.style.background = ''; });
       });
     }
     input.addEventListener('input', function() {
-      const val = this.value;
-      const at = val.indexOf('@');
-      if (at === -1) { box.style.display='none'; return; }
-      const partial = val.slice(at+1).toLowerCase();
-      const matches = partial ? DOMAINS.filter(d => d.startsWith(partial)) : DOMAINS;
-      show(matches);
+      const at = this.value.indexOf('@');
+      if (at === -1) { box.style.display = 'none'; return; }
+      const partial = this.value.slice(at + 1).toLowerCase();
+      show(partial ? DOMAINS.filter(function(d) { return d.startsWith(partial); }) : DOMAINS);
     });
-    input.addEventListener('blur', function() { setTimeout(()=>box.style.display='none', 200); });
+    input.addEventListener('blur', function() { setTimeout(function() { box.style.display = 'none'; }, 200); });
     input.addEventListener('keydown', function(e) {
       if (box.style.display === 'none') return;
       const items = box.querySelectorAll('li');
       const active = box.querySelector('li.is-active');
       let idx = active ? Array.from(items).indexOf(active) : -1;
-      if (e.key === 'ArrowDown') { e.preventDefault(); if(active) active.classList.remove('is-active'); idx=(idx+1)%items.length; items[idx].classList.add('is-active'); items[idx].style.background='var(--clr-50,#e8f5e9)'; }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); if(active) active.classList.remove('is-active'); idx=(idx-1+items.length)%items.length; items[idx].classList.add('is-active'); items[idx].style.background='var(--clr-50,#e8f5e9)'; }
-      else if (e.key === 'Enter' || e.key === 'Tab') { if(active){ e.preventDefault(); active.dispatchEvent(new MouseEvent('mousedown')); } }
-      else if (e.key === 'Escape') { box.style.display='none'; }
+      if (e.key === 'ArrowDown')  { e.preventDefault(); if (active) active.classList.remove('is-active'); idx = (idx + 1) % items.length; items[idx].classList.add('is-active'); items[idx].style.background = '#e8f5e9'; }
+      else if (e.key === 'ArrowUp')   { e.preventDefault(); if (active) active.classList.remove('is-active'); idx = (idx - 1 + items.length) % items.length; items[idx].classList.add('is-active'); items[idx].style.background = '#e8f5e9'; }
+      else if (e.key === 'Enter' || e.key === 'Tab') { if (active) { e.preventDefault(); active.dispatchEvent(new MouseEvent('mousedown')); } }
+      else if (e.key === 'Escape') { box.style.display = 'none'; }
     });
   }
   document.querySelectorAll('input[type="email"]').forEach(initEmailSuggest);

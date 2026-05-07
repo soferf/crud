@@ -64,6 +64,7 @@
     </div>
 
     <form method="POST" id="reciboForm" class="form-card" {% if form_action %}action="{{ form_action }}"{% endif %}>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="force" id="forceField" value="false">
 
       <!-- SECCIÓN 1: Identificación -->

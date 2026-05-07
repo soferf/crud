@@ -861,6 +861,13 @@ a     { text-decoration: none; color: inherit; }
   color: var(--txt-muted);
   margin-top: .2rem;
 }
+.form-label {
+  display: block;
+  font-size: .86rem;
+  font-weight: 700;
+  color: var(--txt);
+  margin-bottom: .35rem;
+}
 .req-star { color: #e53935; }
 .badge-optional {
   font-size: .7rem;
@@ -2473,4 +2480,166 @@ input[name="tipo_labor"] { display: none; }
   .sidebar { transform: translateX(-100%); }
   .sidebar.is-mobile-open { transform: translateX(0); }
   .sidebar__mobile-toggle { display: flex; align-items: center; }
+}
+
+/* ================================================
+   MODERNIZACIÓN UI — Mejoras visuales globales
+================================================ */
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--clr-300); border-radius: var(--r-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--clr-500); }
+
+/* Focus ring moderno */
+:focus-visible {
+  outline: 2.5px solid var(--clr-500);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+/* Sidebar — active state con gradiente */
+.sidebar__nav-item.is-active {
+  background: linear-gradient(90deg, rgba(233,168,0,.18) 0%, rgba(233,168,0,.06) 100%);
+  color: var(--gold-300);
+  border-left: 3px solid var(--gold-500);
+  padding-left: calc(var(--s4) - 3px);
+}
+.sidebar__nav-item--sub.is-active {
+  background: linear-gradient(90deg, rgba(233,168,0,.12) 0%, transparent 100%);
+  border-left: 3px solid var(--gold-500);
+  padding-left: calc(var(--s4) + var(--s6) - 3px);
+}
+
+/* Sidebar — sombra interior sutil */
+.sidebar {
+  background: linear-gradient(180deg, #1b3a2e 0%, var(--clr-900) 100%);
+  box-shadow: 4px 0 24px rgba(0,0,0,.18);
+}
+
+/* Stat cards — gradiente sutil + borde izquierdo de color */
+.stat-card {
+  border-left: 4px solid var(--clr-300);
+  transition: transform .2s, box-shadow .2s, border-color .2s;
+}
+.stat-card:hover { transform: translateY(-3px); box-shadow: var(--sh-md); border-color: var(--clr-500); }
+.stat-card--warning { border-left-color: var(--gold-500); }
+.stat-card--danger  { border-left-color: #e53e3e; }
+.stat-card--success { border-left-color: var(--clr-500); }
+
+/* Form card — sombra más pronunciada */
+.form-card {
+  box-shadow: var(--sh-md);
+  transition: box-shadow .25s;
+}
+.form-card:hover { box-shadow: var(--sh-lg); }
+
+/* Inputs — focus más llamativo */
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--clr-500);
+  box-shadow: 0 0 0 4px rgba(64,145,108,.12), 0 1px 4px rgba(27,67,50,.08);
+  background: #fff;
+}
+
+/* Tabla — header con gradiente */
+.data-table thead {
+  background: linear-gradient(135deg, var(--clr-900) 0%, var(--clr-700) 100%);
+}
+.per-worker-table thead th {
+  background: linear-gradient(135deg, var(--clr-700) 0%, var(--clr-500) 100%);
+}
+
+/* Botón primary — gradiente + sombra */
+.button--primary {
+  background: linear-gradient(135deg, var(--gold-700) 0%, var(--gold-500) 60%, var(--gold-300) 100%);
+  background-size: 200% auto;
+  transition: background-position .35s ease, transform .2s, box-shadow .2s;
+}
+.button--primary:hover {
+  background-position: right center;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(233,168,0,.4);
+}
+
+/* Cards del dashboard — hover más moderno */
+.chart-card, .gauge-section {
+  transition: box-shadow .25s, transform .25s;
+}
+.chart-card:hover, .gauge-section:hover {
+  box-shadow: var(--sh-md);
+  transform: translateY(-2px);
+}
+
+/* Page hero — patrón animado */
+.page-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--gold-500), var(--clr-300), var(--gold-500));
+  background-size: 200% auto;
+  animation: shimmer 3s linear infinite;
+}
+@keyframes shimmer {
+  from { background-position: 0 0; }
+  to   { background-position: 200% 0; }
+}
+
+/* Animación entrada para secciones */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.section, .form-card, .stats-grid, .charts-row {
+  animation: fadeUp .35s ease both;
+}
+
+/* Badge de serial más moderno */
+.serial-badge {
+  background: linear-gradient(135deg, var(--clr-100), var(--clr-50));
+  border: 1px solid var(--clr-300);
+  font-size: .88rem;
+}
+
+/* Worker card selector — borde activo más visible */
+.worker-card-sel.is-selected {
+  border-color: var(--clr-500);
+  background: linear-gradient(135deg, var(--clr-50), #fff);
+  box-shadow: 0 0 0 3px rgba(64,145,108,.18), var(--sh-sm);
+}
+
+/* Export cards más modernas */
+.export-card {
+  border-top: 3px solid transparent;
+  transition: border-color .2s, box-shadow .2s, transform .2s;
+}
+.export-card--pdf:hover  { border-top-color: #c0392b; }
+.export-card--xlsx:hover { border-top-color: #27ae60; }
+
+/* Lote chip glassmorphism mejorado */
+.sidebar__lote-chip {
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.16);
+  backdrop-filter: blur(8px);
+  transition: background .2s;
+}
+.sidebar__lote-chip:hover { background: rgba(255,255,255,.15); }
+
+/* Tipografía — headings más definidos */
+h1, h2, h3 { letter-spacing: -.01em; }
+
+/* Mejora visual del gauge bar */
+.gauge-bar-wrap {
+  background: var(--clr-50);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.06);
+}
+
+/* Cargo filter pills más modernas */
+.cargo-filter-btn.is-active {
+  background: linear-gradient(135deg, var(--clr-700), var(--clr-500));
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(45,106,79,.3);
 }

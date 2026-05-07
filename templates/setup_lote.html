@@ -73,31 +73,156 @@
         {% else %}
         <!-- Fallback manual form -->
         <div class="card">
-          <h3 style="font-family:var(--ff-heading); margin-bottom:1rem;">Datos del lote</h3>
-          <form method="POST" action="{{ url_for('setup_lote_confirmar') }}">
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
-              <div>
-                <label style="font-size:.85rem; font-weight:700; color:var(--txt); display:block; margin-bottom:.4rem;">Nombre del lote *</label>
-                <input type="text" name="nombre_lote" required placeholder="Ej: El Mangon" class="form-input">
-              </div>
-              <div>
-                <label style="font-size:.85rem; font-weight:700; color:var(--txt); display:block; margin-bottom:.4rem;">Propietario *</label>
-                <input type="text" name="propietario" required placeholder="Nombre del dueño" class="form-input">
-              </div>
-              <div>
-                <label style="font-size:.85rem; font-weight:700; color:var(--txt); display:block; margin-bottom:.4rem;">Hectáreas *</label>
-                <input type="number" name="hectareas" required min="0.1" step="0.1" placeholder="20" class="form-input">
-              </div>
-              <div>
-                <label style="font-size:.85rem; font-weight:700; color:var(--txt); display:block; margin-bottom:.4rem;">Municipio *</label>
-                <input type="text" name="municipio" required placeholder="Ej: Espinal" class="form-input">
-              </div>
-              <div>
-                <label style="font-size:.85rem; font-weight:700; color:var(--txt); display:block; margin-bottom:.4rem;">Departamento *</label>
-                <input type="text" name="departamento" required placeholder="Ej: Tolima" class="form-input">
+          <h3 style="font-family:var(--ff-heading); margin-bottom:1.25rem; color:var(--txt);">
+            <i class="fa-solid fa-seedling" style="color:var(--clr-500);"></i> Datos del lote
+          </h3>
+          <form method="POST" action="{{ url_for('setup_lote_confirmar') }}" id="loteForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <!-- SECCIÓN 1: Identificación del lote -->
+            <div style="margin-bottom:1.5rem;">
+              <p style="font-size:.78rem; font-weight:700; color:var(--clr-600); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.75rem; border-bottom:2px solid var(--clr-100); padding-bottom:.4rem;">
+                <i class="fa-solid fa-map-location-dot"></i> Información del lote
+              </p>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div>
+                  <label class="form-label">Nombre del lote *</label>
+                  <input type="text" name="nombre_lote" required placeholder="Ej: El Mangon" class="form-input"
+                         pattern="[A-Za-záéíóúÁÉÍÓÚñÑüÜ0-9 \-_'\.]+" title="Solo letras, números y caracteres básicos">
+                </div>
+                <div>
+                  <label class="form-label">Cultivo principal *</label>
+                  <select name="cultivo_principal" class="form-input" required>
+                    <option value="Arroz" selected>Arroz</option>
+                    <option value="Maíz">Maíz</option>
+                    <option value="Soya">Soya</option>
+                    <option value="Sorgo">Sorgo</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">Hectáreas totales *</label>
+                  <input type="number" name="hectareas" required min="0.1" max="50000" step="0.1" placeholder="Ej: 20" class="form-input">
+                </div>
+                <div>
+                  <label class="form-label">Hectáreas sembradas</label>
+                  <input type="number" name="area_sembrada_ha" min="0.1" max="50000" step="0.1" placeholder="Si difiere del total" class="form-input">
+                </div>
+                <div>
+                  <label class="form-label">Municipio *</label>
+                  <input type="text" name="municipio" required placeholder="Ej: Natagaima" class="form-input"
+                         pattern="[A-Za-záéíóúÁÉÍÓÚñÑüÜ \-]+" title="Solo letras y espacios">
+                </div>
+                <div>
+                  <label class="form-label">Departamento *</label>
+                  <input type="text" name="departamento" required placeholder="Ej: Tolima" class="form-input"
+                         pattern="[A-Za-záéíóúÁÉÍÓÚñÑüÜ \-]+" title="Solo letras y espacios">
+                </div>
+                <div>
+                  <label class="form-label">Vereda / Corregimiento</label>
+                  <input type="text" name="vereda" placeholder="Ej: El Tambo" class="form-input">
+                </div>
+                <div>
+                  <label class="form-label">Tipo de tenencia</label>
+                  <select name="tipo_tenencia" class="form-input">
+                    <option value="propia">Propiedad propia</option>
+                    <option value="arriendo">Arriendo</option>
+                    <option value="aparceria">Aparcería</option>
+                    <option value="usufructo">Usufructo</option>
+                    <option value="otro">Otro</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">Fecha inicio operación</label>
+                  <input type="date" name="fecha_inicio_operacion" class="form-input">
+                </div>
               </div>
             </div>
-            <button type="submit" class="btn btn--primary">
+
+            <!-- SECCIÓN 2: Propietario -->
+            <div style="margin-bottom:1.5rem;">
+              <p style="font-size:.78rem; font-weight:700; color:var(--clr-600); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.75rem; border-bottom:2px solid var(--clr-100); padding-bottom:.4rem;">
+                <i class="fa-solid fa-user-tie"></i> Propietario / Dueño
+              </p>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div>
+                  <label class="form-label">Nombre completo *</label>
+                  <input type="text" name="propietario" required placeholder="Nombre y apellidos" class="form-input"
+                         pattern="[A-Za-záéíóúÁÉÍÓÚñÑüÜ '\-\.]+" title="Solo letras, espacios y guiones">
+                </div>
+                <div>
+                  <label class="form-label">Documento (CC / NIT) *</label>
+                  <input type="text" name="propietario_documento" required placeholder="Ej: 12345678" class="form-input"
+                         pattern="[0-9\-]+" title="Solo números" minlength="5" maxlength="15">
+                </div>
+                <div>
+                  <label class="form-label">Teléfono / Celular *</label>
+                  <input type="tel" name="propietario_telefono" required placeholder="Ej: 3001234567" class="form-input"
+                         pattern="[0-9+\- ]+" title="Solo números, +, guiones o espacios" minlength="7" maxlength="15">
+                </div>
+                <div>
+                  <label class="form-label">Correo electrónico *</label>
+                  <input type="email" name="propietario_email" required placeholder="correo@gmail.com" class="form-input"
+                         id="propietarioEmail" autocomplete="email">
+                  <div id="propietarioEmailSug" style="display:none; margin-top:.3rem;"></div>
+                </div>
+                <div style="grid-column:1/-1;">
+                  <label class="form-label">Dirección</label>
+                  <input type="text" name="propietario_direccion" placeholder="Calle, carrera, vereda..." class="form-input">
+                </div>
+              </div>
+            </div>
+
+            <!-- SECCIÓN 3: Administrador (opcional) -->
+            <div style="margin-bottom:1.5rem;">
+              <p style="font-size:.78rem; font-weight:700; color:var(--clr-600); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.75rem; border-bottom:2px solid var(--clr-100); padding-bottom:.4rem;">
+                <i class="fa-solid fa-user-gear"></i> Administrador del lote <span style="font-weight:400;font-size:.75rem;color:var(--txt-muted)">(opcional, si es distinto al propietario)</span>
+              </p>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div>
+                  <label class="form-label">Nombre del administrador</label>
+                  <input type="text" name="administrador_nombre" placeholder="Nombre y apellidos" class="form-input"
+                         pattern="[A-Za-záéíóúÁÉÍÓÚñÑüÜ '\-\.]*" title="Solo letras, espacios y guiones">
+                </div>
+                <div>
+                  <label class="form-label">Teléfono del administrador</label>
+                  <input type="tel" name="administrador_telefono" placeholder="Ej: 3101234567" class="form-input"
+                         pattern="[0-9+\- ]*" minlength="0" maxlength="15">
+                </div>
+                <div>
+                  <label class="form-label">Correo del administrador</label>
+                  <input type="email" name="administrador_email" placeholder="admin@gmail.com" class="form-input"
+                         id="adminEmail" autocomplete="email">
+                  <div id="adminEmailSug" style="display:none; margin-top:.3rem;"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECCIÓN 4: Parámetros operativos -->
+            <div style="margin-bottom:1.5rem;">
+              <p style="font-size:.78rem; font-weight:700; color:var(--clr-600); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.75rem; border-bottom:2px solid var(--clr-100); padding-bottom:.4rem;">
+                <i class="fa-solid fa-sliders"></i> Parámetros operativos
+              </p>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div>
+                  <label class="form-label">Meta de cargas por hectárea *</label>
+                  <input type="number" name="meta_cargas_ha" required min="1" max="9999" step="1" placeholder="Ej: 100" class="form-input">
+                </div>
+                <div>
+                  <label class="form-label">Límite de gasto por ha ($) *</label>
+                  <input type="number" name="limite_gasto_ha" required min="1" step="1000" placeholder="Ej: 11000000" class="form-input">
+                </div>
+                <div>
+                  <label class="form-label">Moneda</label>
+                  <select name="moneda" class="form-input">
+                    <option value="COP" selected>COP — Peso colombiano</option>
+                    <option value="USD">USD — Dólar</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn--primary" style="margin-top:.5rem;">
               <i class="fa-solid fa-check"></i> Crear lote
             </button>
           </form>
@@ -113,8 +238,13 @@
         <div id="fieldsList" style="display:flex; flex-direction:column; gap:.4rem;">
           <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Nombre del lote</span>
           <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Propietario</span>
+          <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Doc. propietario</span>
+          <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Tel. propietario</span>
+          <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Correo propietario</span>
           <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Hectáreas</span>
           <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Ubicación</span>
+          <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Vereda</span>
+          <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Tipo tenencia</span>
           <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Meta de cargas</span>
         </div>
       </div>
@@ -125,6 +255,7 @@
 
 {% block scripts %}
 <script>
+const CSRF_TOKEN = "{{ csrf_token() }}";
 const chatMessages = document.getElementById('chatMessages');
 const chatInput = document.getElementById('chatInput');
 const sendBtn = document.getElementById('sendBtn');
@@ -162,9 +293,12 @@ function updateFieldsPanel(fields) {
   if (!fields) return;
   container.innerHTML = '';
   const labels = {
-    nombre_lote:'Nombre del lote', propietario:'Propietario', hectareas:'Hectáreas',
-    municipio:'Municipio', departamento:'Departamento', meta_cargas_ha:'Meta de cargas',
-    cultivo_principal:'Cultivo', fecha_inicio_operacion:'Fecha inicio', moneda:'Moneda'
+    nombre_lote:'Nombre del lote', propietario:'Propietario', propietario_documento:'Doc. propietario',
+    propietario_telefono:'Tel. propietario', propietario_email:'Correo propietario',
+    hectareas:'Hectáreas', municipio:'Municipio', departamento:'Departamento',
+    vereda:'Vereda', tipo_tenencia:'Tipo tenencia',
+    meta_cargas_ha:'Meta de cargas', cultivo_principal:'Cultivo',
+    fecha_inicio_operacion:'Fecha inicio', moneda:'Moneda'
   };
   Object.keys(labels).forEach(function(k) {
     const tag = document.createElement('span');
@@ -187,7 +321,7 @@ async function sendMessage() {
   try {
     const res = await fetch('/setup/lote/chat', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: {'Content-Type':'application/json', 'X-CSRFToken': CSRF_TOKEN},
       body: JSON.stringify({message: msg})
     });
     const data = await res.json();
@@ -219,10 +353,43 @@ chatInput.addEventListener('keydown', function(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 });
 
+// ── Email domain autocomplete ─────────────────────────────────────────────
+const EMAIL_DOMAINS = ['gmail.com','hotmail.com','outlook.com','yahoo.com',
+                       'icloud.com','live.com','protonmail.com','aol.com'];
+
+function setupEmailAutocomplete(inputId, sugId) {
+  const inp = document.getElementById(inputId);
+  const sug = document.getElementById(sugId);
+  if (!inp || !sug) return;
+  inp.addEventListener('input', function() {
+    const val = inp.value;
+    const at = val.indexOf('@');
+    if (at === -1) { sug.style.display = 'none'; return; }
+    const typed = val.slice(at + 1).toLowerCase();
+    const base  = val.slice(0, at + 1);
+    const matches = EMAIL_DOMAINS.filter(d => d.startsWith(typed) && d !== typed);
+    if (!matches.length) { sug.style.display = 'none'; return; }
+    sug.style.display = 'flex';
+    sug.style.flexWrap = 'wrap';
+    sug.style.gap = '.4rem';
+    sug.innerHTML = matches.slice(0, 5).map(d =>
+      `<span onclick="document.getElementById('${inputId}').value='${base}${d}';document.getElementById('${sugId}').style.display='none';"
+             style="cursor:pointer;padding:.2rem .55rem;border-radius:999px;background:var(--clr-100);color:var(--clr-800);font-size:.78rem;font-weight:600;border:1px solid var(--clr-200);">
+         @${d}
+       </span>`
+    ).join('');
+  });
+  inp.addEventListener('blur', function() {
+    setTimeout(() => { sug.style.display = 'none'; }, 200);
+  });
+}
+setupEmailAutocomplete('propietarioEmail', 'propietarioEmailSug');
+setupEmailAutocomplete('adminEmail', 'adminEmailSug');
+
 async function confirmLote() {
   const res = await fetch('/setup/lote/confirmar', {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
+    headers: {'Content-Type':'application/json', 'X-CSRFToken': CSRF_TOKEN},
     body: JSON.stringify({payload: currentPayload, ai_session_id: currentAiSessionId})
   });
   const data = await res.json();
@@ -234,7 +401,7 @@ async function cancelSetup() {
   if (!confirm('¿Cancelar la configuración?')) return;
   await fetch('/setup/lote/cancelar', {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
+    headers: {'Content-Type':'application/json', 'X-CSRFToken': CSRF_TOKEN},
     body: JSON.stringify({ai_session_id: currentAiSessionId})
   });
   window.location.href = '/select-lote';

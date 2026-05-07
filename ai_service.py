@@ -1,184 +1,228 @@
 """
-ai_service.py — Servicio Ollama para onboarding asistido de lotes.
+ai_service.py — Servicio GPT4All para onboarding asistido de lotes.
 
 Variables de entorno:
-    OLLAMA_BASE_URL  → http://localhost:11434
-    OLLAMA_MODEL     → qwen2.5:7b-instruct
-    OLLAMA_TIMEOUT   → 30
-    AI_ENABLED       → true
+    GPT4ALL_MODEL     → gpt4all-falcon-newbpe-q4_0.gguf
+    AI_ENABLED        → true
 """
 
 import os
 import json
 import re
-import time
+import sys
+import pathlib
+import threading
 import logging
-import urllib.request
-import urllib.error
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 
 logger = logging.getLogger(__name__)
 
 # ── Configuración ─────────────────────────────────────────────────────────────
-OLLAMA_BASE_URL = os.environ.get('OLLAMA_BASE_URL', 'http://localhost:11434')
-OLLAMA_MODEL    = os.environ.get('OLLAMA_MODEL',    'qwen2.5:7b-instruct')
-OLLAMA_TIMEOUT  = int(os.environ.get('OLLAMA_TIMEOUT', '30'))
-AI_ENABLED      = os.environ.get('AI_ENABLED', 'true').lower() == 'true'
+GPT4ALL_MODEL = os.environ.get('GPT4ALL_MODEL', 'orca-mini-3b-gguf2-q4_0.gguf')
+AI_ENABLED    = os.environ.get('AI_ENABLED', 'true').lower() == 'true'
 
 # ── Campos del formulario de configuración de lote ───────────────────────────
 LOTE_FIELDS = {
-    'nombre_lote':             {'label': 'Nombre del lote',           'tipo': 'str',   'requerido': True},
-    'propietario':             {'label': 'Nombre del propietario',     'tipo': 'str',   'requerido': True},
-    'hectareas':               {'label': 'Hectáreas totales',          'tipo': 'float', 'requerido': True,  'min': 0.1,   'max': 50000},
-    'municipio':               {'label': 'Municipio',                  'tipo': 'str',   'requerido': True},
-    'departamento':            {'label': 'Departamento',               'tipo': 'str',   'requerido': True},
-    'cultivo_principal':       {'label': 'Cultivo principal',          'tipo': 'str',   'requerido': False, 'default': 'Arroz'},
-    'fecha_inicio_operacion':  {'label': 'Fecha de inicio (YYYY-MM-DD)', 'tipo': 'date', 'requerido': False},
-    'moneda':                  {'label': 'Moneda',                     'tipo': 'str',   'requerido': False, 'default': 'COP'},
-    'meta_cargas_ha':          {'label': 'Meta de cargas por hectárea','tipo': 'int',   'requerido': False, 'default': 100, 'min': 1},
-    'limite_gasto_ha':         {'label': 'Límite de gasto por ha ($)', 'tipo': 'float', 'requerido': False, 'default': 11000000, 'min': 1},
+    'nombre_lote':             {'label': 'Nombre del lote',              'tipo': 'str',   'requerido': True},
+    'propietario':             {'label': 'Nombre del propietario',        'tipo': 'str',   'requerido': True},
+    'hectareas':               {'label': 'Hectáreas totales',             'tipo': 'float', 'requerido': True,  'min': 0.1,   'max': 50000},
+    'municipio':               {'label': 'Municipio',                     'tipo': 'str',   'requerido': True},
+    'departamento':            {'label': 'Departamento',                  'tipo': 'str',   'requerido': True},
+    'cultivo_principal':       {'label': 'Cultivo principal',             'tipo': 'str',   'requerido': False, 'default': 'Arroz'},
+    'fecha_inicio_operacion':  {'label': 'Fecha de inicio (YYYY-MM-DD)', 'tipo': 'date',  'requerido': False},
+    'moneda':                  {'label': 'Moneda',                        'tipo': 'str',   'requerido': False, 'default': 'COP'},
+    'meta_cargas_ha':          {'label': 'Meta de cargas por hectárea',   'tipo': 'int',   'requerido': False, 'default': 100, 'min': 1},
+    'limite_gasto_ha':         {'label': 'Límite de gasto por ha ($)',    'tipo': 'float', 'requerido': False, 'default': 11000000, 'min': 1},
 }
 
-SYSTEM_PROMPT = """Eres un asistente amigable y profesional que ayuda a configurar un lote arrocero
-en el sistema de contabilidad agrícola. Tu tarea es recopilar los datos del lote nuevo de forma
-conversacional en español colombiano.
+SYSTEM_PROMPT = """Eres un asistente que recoge datos de un lote arrocero en español colombiano. Sé muy breve.
 
-Campos a recopilar (en orden sugerido):
-- nombre_lote: nombre del lote (ej: "El Mangón", "La Esperanza")
-- propietario: nombre completo del dueño
-- hectareas: número positivo (ej: 20.5)
-- municipio y departamento: ubicación en Colombia
-- cultivo_principal: por defecto "Arroz"
-- fecha_inicio_operacion: fecha en formato YYYY-MM-DD (opcional)
-- moneda: "COP" por defecto
-- meta_cargas_ha: meta de cargas por hectárea (default 100)
-- limite_gasto_ha: límite de gasto por ha en pesos (default 11000000)
+Recopila en orden: nombre_lote, propietario, hectareas (número positivo), municipio, departamento.
+Opcionales: cultivo_principal (default "Arroz"), fecha_inicio_operacion (YYYY-MM-DD), moneda (default "COP"), meta_cargas_ha (default 100), limite_gasto_ha (default 11000000).
 
-Reglas:
-1. Pregunta solo lo que falta, nunca repitas preguntas ya respondidas.
-2. Valida que hectáreas sea un número positivo.
-3. Acepta correcciones: si el usuario dice "cambia X a Y", actualiza el campo.
-4. Cuando tengas todos los campos requeridos (nombre_lote, propietario, hectareas, municipio, departamento),
-   presenta un resumen completo y pide confirmación.
-5. Sé breve, amigable y profesional. Usa emojis moderadamente.
+Reglas: pregunta solo lo que falta. Acepta correcciones. Cuando tengas los 5 campos requeridos, muestra resumen y pide confirmación.
 
-IMPORTANTE: Responde SIEMPRE en este JSON exacto (sin texto adicional):
-{
-  "mensaje": "texto de respuesta al usuario",
-  "datos_detectados": {
-    "nombre_lote": null,
-    "propietario": null,
-    "hectareas": null,
-    "municipio": null,
-    "departamento": null,
-    "cultivo_principal": null,
-    "fecha_inicio_operacion": null,
-    "moneda": null,
-    "meta_cargas_ha": null,
-    "limite_gasto_ha": null
-  },
-  "paso_actual": "recopilando|confirmando|completado|cancelado",
-  "campos_faltantes": [],
-  "listo_para_guardar": false
-}
+RESPONDE SOLO con este JSON (sin texto extra):
+{"mensaje":"...","datos_detectados":{"nombre_lote":null,"propietario":null,"hectareas":null,"municipio":null,"departamento":null,"cultivo_principal":null,"fecha_inicio_operacion":null,"moneda":null,"meta_cargas_ha":null,"limite_gasto_ha":null},"paso_actual":"recopilando","campos_faltantes":[],"listo_para_guardar":false}
 """
 
-# ── Cliente Ollama ─────────────────────────────────────────────────────────────
+# ── Singleton del modelo GPT4All ──────────────────────────────────────────────
+_load_lock      = threading.Lock()
+_generate_lock  = threading.Lock()
+_model_instance = None
 
-class OllamaClient:
+GENERATION_TIMEOUT = 25  # segundos máximos — modelo 3B q4_0 responde más rápido
+
+
+def _get_model():
+    """Carga el modelo GPT4All una sola vez y lo reutiliza."""
+    global _model_instance
+    if _model_instance is None:
+        with _load_lock:
+            if _model_instance is None:
+                from gpt4all import GPT4All
+                model_folder = _models_folder()
+                logger.info(f'[ai_service] Cargando modelo: {GPT4ALL_MODEL} desde {model_folder}')
+                _model_instance = GPT4All(
+                    GPT4ALL_MODEL,
+                    model_path=str(model_folder),
+                    allow_download=False,
+                    verbose=False,
+                )
+                logger.info('[ai_service] Modelo GPT4All listo.')
+    return _model_instance
+
+
+def _models_folder() -> pathlib.Path:
+    """Retorna la carpeta de modelos por defecto de GPT4All."""
+    candidates = []
+    # Carpeta de la app de escritorio GPT4All en Windows (tiene prioridad si el modelo ya está ahí)
+    if sys.platform == 'win32':
+        desktop = pathlib.Path.home() / 'AppData' / 'Local' / 'nomic.ai' / 'GPT4All'
+        candidates.append(desktop)
+    # La librería gpt4all 2.x usa ~/.cache/gpt4all/
+    cache = pathlib.Path.home() / '.cache' / 'gpt4all'
+    candidates.append(cache)
+
+    # Devolver la primera carpeta que contenga el modelo
+    for folder in candidates:
+        if (folder / GPT4ALL_MODEL).exists():
+            return folder
+    # Si no se encontró, devolver la primera existente o el cache por defecto
+    for folder in candidates:
+        if folder.exists():
+            return folder
+    return cache
+
+
+# ── Cliente GPT4All ───────────────────────────────────────────────────────────
+
+class GPT4AllClient:
+
     def __init__(self):
-        self.base_url = OLLAMA_BASE_URL.rstrip('/')
-        self.model    = OLLAMA_MODEL
-        self.timeout  = OLLAMA_TIMEOUT
-        self._healthy = None
+        self.model_name = GPT4ALL_MODEL
 
     def health_check(self) -> tuple[bool, str]:
-        """Verifica que Ollama esté corriendo y el modelo disponible."""
+        """Verifica que el paquete gpt4all esté instalado y el modelo disponible."""
         try:
-            req = urllib.request.urlopen(f'{self.base_url}/api/tags', timeout=5)
-            if req.status != 200:
-                return False, f'Ollama responde con status {req.status}'
-            tags = json.loads(req.read().decode()).get('models', [])
-            names = [m.get('name', '') for m in tags]
-            model_ok = any(self.model in n or n.startswith(self.model.split(':')[0]) for n in names)
-            if not model_ok:
-                return False, (f'Modelo "{self.model}" no encontrado. '
-                               f'Disponibles: {", ".join(names) or "ninguno"}. '
-                               f'Ejecuta: ollama pull {self.model}')
-            self._healthy = True
+            import gpt4all  # noqa
+        except ImportError:
+            return False, 'Paquete gpt4all no instalado. Ejecuta: pip install gpt4all'
+
+        folder = _models_folder()
+        model_path = folder / self.model_name
+        if model_path.exists():
             return True, 'OK'
-        except urllib.error.URLError:
-            self._healthy = False
-            return False, f'No se puede conectar a Ollama en {self.base_url}. Asegúrate de que Ollama esté corriendo.'
+
+        return False, (
+            f'Modelo "{self.model_name}" no encontrado en {folder}. '
+            f'Descárgalo desde la aplicación GPT4All Desktop o ejecuta el chat una vez '
+            f'para que se descargue automáticamente (puede tardar varios minutos).'
+        )
+
+    def chat(self, messages: list[dict]) -> tuple[bool, str]:
+        """
+        Genera una respuesta usando GPT4All con timeout.
+        Acepta el mismo formato de mensajes que Ollama:
+          [{"role": "system"|"user"|"assistant", "content": "..."}]
+        """
+        system_parts = [m['content'] for m in messages if m['role'] == 'system']
+        system_msg   = '\n\n'.join(system_parts) if system_parts else ''
+        non_system   = [m for m in messages if m['role'] != 'system']
+
+        if not non_system:
+            return False, 'No hay mensajes de conversación.'
+        if non_system[-1]['role'] != 'user':
+            return False, 'El último mensaje debe ser del usuario.'
+
+        new_user_msg  = non_system[-1]['content']
+        prior_history = non_system[:-1]
+
+        def _run():
+            with _generate_lock:
+                model = _get_model()
+                with model.chat_session(system_prompt=system_msg):
+                    model._history.extend(prior_history)
+                    resp = model.generate(
+                        new_user_msg,
+                        max_tokens=60,
+                        temp=0.1,
+                        top_p=0.85,
+                        top_k=20,
+                        repeat_penalty=1.18,
+                    )
+            # Intentar parsear JSON
+            try:
+                parsed = json.loads(resp)
+                return json.dumps(parsed, ensure_ascii=False)
+            except json.JSONDecodeError:
+                extracted = _extract_json_from_text(resp)
+                if extracted:
+                    return json.dumps(extracted, ensure_ascii=False)
+                return resp
+
+        try:
+            with ThreadPoolExecutor(max_workers=1) as ex:
+                future = ex.submit(_run)
+                result = future.result(timeout=GENERATION_TIMEOUT)
+            return True, result
+        except FuturesTimeoutError:
+            logger.warning('[ai_service] chat: timeout alcanzado')
+            return False, f'El modelo tardó más de {GENERATION_TIMEOUT}s. Intenta con una pregunta más corta.'
         except Exception as e:
-            self._healthy = False
+            logger.error(f'[ai_service] chat error: {e}')
             return False, str(e)
 
-    def chat(self, messages: list[dict], retries: int = 2) -> tuple[bool, str]:
+    def generate_text(self, messages: list[dict]) -> tuple[bool, str]:
         """
-        Envía mensajes al modelo y retorna (éxito, texto_respuesta).
-        Reintentos con instrucción de corrección JSON si falla el parse.
+        Genera una respuesta en texto libre con timeout.
+        Ideal para el asistente general del dashboard.
         """
-        payload = {
-            'model': self.model,
-            'messages': messages,
-            'stream': False,
-            'format': 'json',
-            'options': {'temperature': 0.3, 'top_p': 0.9},
-        }
-        for attempt in range(retries + 1):
-            try:
-                body = json.dumps(payload).encode('utf-8')
-                req = urllib.request.Request(
-                    f'{self.base_url}/api/chat',
-                    data=body,
-                    headers={'Content-Type': 'application/json'},
-                    method='POST'
-                )
-                with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                    if resp.status != 200:
-                        if attempt < retries:
-                            time.sleep(1)
-                            continue
-                        return False, f'Error Ollama HTTP {resp.status}'
-                    content = json.loads(resp.read().decode()).get('message', {}).get('content', '')
+        system_parts = [m['content'] for m in messages if m['role'] == 'system']
+        system_msg   = '\n\n'.join(system_parts) if system_parts else ''
+        non_system   = [m for m in messages if m['role'] != 'system']
 
-                # Intentar parsear JSON
-                try:
-                    parsed = json.loads(content)
-                    return True, json.dumps(parsed, ensure_ascii=False)
-                except json.JSONDecodeError:
-                    extracted = _extract_json_from_text(content)
-                    if extracted:
-                        return True, json.dumps(extracted, ensure_ascii=False)
-                    if attempt < retries:
-                        messages = messages + [{
-                            'role': 'user',
-                            'content': 'Tu respuesta anterior no era JSON válido. Responde ÚNICAMENTE con el JSON exacto, sin texto adicional.'
-                        }]
-                        continue
-                    return False, content
+        if not non_system or non_system[-1]['role'] != 'user':
+            return False, 'Mensaje inválido.'
 
-            except urllib.error.URLError as e:
-                if 'timed out' in str(e).lower() or isinstance(getattr(e, 'reason', None), Exception):
-                    if attempt < retries:
-                        time.sleep(1)
-                        continue
-                    return False, 'Tiempo de espera agotado. Ollama tardó demasiado en responder.'
-                if attempt < retries:
-                    time.sleep(1)
-                    continue
-                return False, str(e)
-            except Exception as e:
-                if attempt < retries:
-                    time.sleep(1)
-                    continue
-                return False, str(e)
+        new_user_msg  = non_system[-1]['content']
+        prior_history = non_system[:-1]
 
-        return False, 'No se obtuvo respuesta del modelo.'
+        def _run():
+            with _generate_lock:
+                model = _get_model()
+                with model.chat_session(system_prompt=system_msg):
+                    model._history.extend(prior_history)
+                    resp = model.generate(
+                        new_user_msg,
+                        max_tokens=160,
+                        temp=0.1,
+                        top_p=0.85,
+                        top_k=20,
+                        repeat_penalty=1.18,
+                    )
+            return resp.strip()
+
+        try:
+            with ThreadPoolExecutor(max_workers=1) as ex:
+                future = ex.submit(_run)
+                result = future.result(timeout=GENERATION_TIMEOUT)
+            return True, result
+        except FuturesTimeoutError:
+            logger.warning('[ai_service] generate_text: timeout alcanzado')
+            return False, f'El modelo tardó más de {GENERATION_TIMEOUT}s. Intenta con una pregunta más corta.'
+        except Exception as e:
+            logger.error(f'[ai_service] generate_text error: {e}')
+            return False, str(e)
 
 
-ollama = OllamaClient()
+ai_client = GPT4AllClient()
+
+DASHBOARD_SYSTEM_PROMPT = """Eres "AgroIA", asistente agrícola del sistema Arroceras Colombia.
+Ayudas con: gastos, presupuesto, producción (cargas), trabajadores y recibos del lote.
+Responde en español colombiano, breve (máx 2 párrafos). No inventes datos fuera del contexto dado.
+"""
 
 
 def _extract_json_from_text(text: str) -> dict | None:
@@ -195,7 +239,7 @@ def _extract_json_from_text(text: str) -> dict | None:
                 return json.loads(m.group(1))
             except Exception:
                 pass
-    # Último recurso: encontrar el primer { ... } balanceado
+    # Último recurso: primer bloque { ... } balanceado
     depth = 0
     start = None
     for i, ch in enumerate(text):
@@ -207,7 +251,7 @@ def _extract_json_from_text(text: str) -> dict | None:
             depth -= 1
             if depth == 0 and start is not None:
                 try:
-                    return json.loads(text[start:i+1])
+                    return json.loads(text[start:i + 1])
                 except Exception:
                     pass
     return None
@@ -216,10 +260,7 @@ def _extract_json_from_text(text: str) -> dict | None:
 # ── Validadores de campos ──────────────────────────────────────────────────────
 
 def validate_lote_payload(data: dict) -> tuple[bool, list[str]]:
-    """
-    Valida el payload de configuración de lote.
-    Retorna (es_valido, lista_de_errores).
-    """
+    """Valida el payload de configuración de lote. Retorna (es_valido, errores)."""
     errors = []
     for field, meta in LOTE_FIELDS.items():
         val = data.get(field)
@@ -255,25 +296,24 @@ def validate_lote_payload(data: dict) -> tuple[bool, list[str]]:
 
 
 def apply_field_defaults(data: dict) -> dict:
-    """Aplica valores por defecto a campos opcionales no especificados o vacíos."""
+    """Aplica valores por defecto a campos opcionales vacíos."""
     result = dict(data)
     for field, meta in LOTE_FIELDS.items():
         val = result.get(field)
-        # Apply default when field is absent, None, or an empty/whitespace string
         if (val is None or (isinstance(val, str) and val.strip() == '')) and 'default' in meta:
             result[field] = meta['default']
     return result
 
 
 def missing_required_fields(data: dict) -> list[str]:
-    """Retorna la lista de campos requeridos que faltan."""
-    missing = []
-    for field, meta in LOTE_FIELDS.items():
-        if meta.get('requerido'):
-            val = data.get(field)
-            if val is None or str(val).strip() == '':
-                missing.append(meta['label'])
-    return missing
+    """Retorna la lista de etiquetas de campos requeridos que faltan."""
+    return [
+        meta['label']
+        for field, meta in LOTE_FIELDS.items()
+        if meta.get('requerido') and (
+            data.get(field) is None or str(data.get(field, '')).strip() == ''
+        )
+    ]
 
 
 # ── Gestor de sesión de chat ──────────────────────────────────────────────────
@@ -286,7 +326,7 @@ class LoteOnboardingSession:
 
     def __init__(self, session_id: int, existing_payload: dict | None = None):
         self.session_id = session_id
-        self.payload = existing_payload or {}
+        self.payload    = existing_payload or {}
         self.messages: list[dict] = [{'role': 'system', 'content': SYSTEM_PROMPT}]
 
     def add_user_message(self, text: str):
@@ -302,34 +342,43 @@ class LoteOnboardingSession:
 
         self.add_user_message(user_message)
 
-        # Inyectar contexto del estado actual en el último mensaje del sistema
+        # Inyectar contexto del estado actual como mensaje de sistema adicional
         context_msg = {
             'role': 'system',
             'content': (
                 f"Estado actual del formulario: {json.dumps(self.payload, ensure_ascii=False)}. "
                 f"Campos faltantes requeridos: {missing_required_fields(self.payload)}. "
                 f"Responde SOLO en JSON."
-            )
+            ),
         }
         messages_to_send = [self.messages[0], context_msg] + self.messages[1:]
 
-        ok, raw = ollama.chat(messages_to_send)
+        ok, raw = ai_client.chat(messages_to_send)
         if not ok:
-            logger.warning(f"[ai_service] Error Ollama: {raw}")
+            logger.warning(f'[ai_service] Error GPT4All: {raw}')
             return {
-                'mensaje': f'⚠️ El asistente no pudo responder. Puedes continuar con el formulario manual o intentar de nuevo.\nDetalle: {raw}',
-                'datos_detectados': {},
-                'paso_actual': 'error',
-                'campos_faltantes': missing_required_fields(self.payload),
+                'mensaje': (
+                    f'⚠️ El asistente no pudo responder. '
+                    f'Puedes continuar con el formulario manual o intentar de nuevo.\n'
+                    f'Detalle: {raw}'
+                ),
+                'datos_detectados':  {},
+                'paso_actual':        'error',
+                'campos_faltantes':   missing_required_fields(self.payload),
                 'listo_para_guardar': False,
-                'error': raw,
+                'error':              raw,
             }
 
         try:
             result = json.loads(raw)
         except Exception:
-            result = {'mensaje': raw, 'datos_detectados': {}, 'paso_actual': 'recopilando',
-                      'campos_faltantes': missing_required_fields(self.payload), 'listo_para_guardar': False}
+            result = {
+                'mensaje':            raw,
+                'datos_detectados':   {},
+                'paso_actual':        'recopilando',
+                'campos_faltantes':   missing_required_fields(self.payload),
+                'listo_para_guardar': False,
+            }
 
         # Merge datos_detectados con payload acumulado (no sobrescribir con null)
         nuevos = result.get('datos_detectados') or {}
@@ -337,40 +386,44 @@ class LoteOnboardingSession:
             if v is not None and str(v).strip() not in ('', 'null', 'None'):
                 self.payload[k] = v
 
-        # Recalcular campos faltantes
-        result['campos_faltantes'] = missing_required_fields(self.payload)
-        result['payload_actual'] = self.payload
+        result['campos_faltantes']   = missing_required_fields(self.payload)
+        result['payload_actual']     = self.payload
         result['listo_para_guardar'] = len(result['campos_faltantes']) == 0
 
-        # Añadir respuesta del asistente al historial
         self.messages.append({'role': 'assistant', 'content': result.get('mensaje', '')})
 
         return result
 
     def _degraded_response(self) -> dict:
         return {
-            'mensaje': '🔧 El asistente de IA no está disponible en este momento. Por favor completa el formulario manual.',
-            'datos_detectados': {},
-            'paso_actual': 'degradado',
-            'campos_faltantes': missing_required_fields(self.payload),
-            'payload_actual': self.payload,
+            'mensaje': (
+                '🔧 El asistente de IA no está disponible en este momento. '
+                'Por favor completa el formulario manual.'
+            ),
+            'datos_detectados':  {},
+            'paso_actual':        'degradado',
+            'campos_faltantes':   missing_required_fields(self.payload),
+            'payload_actual':     self.payload,
             'listo_para_guardar': False,
-            'degraded': True,
+            'degraded':           True,
         }
 
 
-# ── Health check al arrancar ──────────────────────────────────────────────────
+# ── Verificación al arrancar ──────────────────────────────────────────────────
 
-def check_ollama_on_startup():
+def check_ai_on_startup():
     """
-    Verifica la disponibilidad de Ollama al iniciar la aplicación.
-    No bloquea el arranque si Ollama no está disponible.
+    Verifica la disponibilidad de GPT4All al iniciar la aplicación.
+    No bloquea el arranque si el modelo no está disponible.
     """
     if not AI_ENABLED:
         logger.info('[ai_service] IA deshabilitada (AI_ENABLED=false)')
         return
-    ok, msg = ollama.health_check()
+    ok, msg = ai_client.health_check()
     if ok:
-        logger.info(f'[ai_service] Ollama OK — modelo: {OLLAMA_MODEL}')
+        logger.info(f'[ai_service] GPT4All OK — modelo: {GPT4ALL_MODEL}')
     else:
-        logger.warning(f'[ai_service] Ollama no disponible: {msg}. El modo degradado (formulario manual) estará activo.')
+        logger.warning(
+            f'[ai_service] GPT4All no disponible: {msg}. '
+            f'El modo degradado (formulario manual) estará activo.'
+        )

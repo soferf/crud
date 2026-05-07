@@ -18,6 +18,7 @@
         <div><strong>Lote activo:</strong> {{lote_nombre}}<br><strong>Total de recibos:</strong> {{total_recibos}}<br><strong>Serial configurado:</strong> {{config.get('serial_inicial', '1')}}<br><strong>Próximo serial efectivo:</strong> {{next_serial_effective}}</div>
       </div>
       <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-group" style="max-width:280px;margin-top:1.5rem">
           <label for="serial_inicial">Serial inicial para nuevos recibos</label>
           <input type="number" id="serial_inicial" name="serial_inicial" value="{{config.get('serial_inicial', '1')}}" min="1" required>

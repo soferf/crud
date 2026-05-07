@@ -14,8 +14,7 @@ import mysql.connector
 
 
 def get_db_connection():
-    """Import-safe lazy import to avoid circular references with app.py."""
-    from app import get_db_connection as _gdc
+    from db import get_db_connection as _gdc
     return _gdc()
 
 

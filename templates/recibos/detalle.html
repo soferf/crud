@@ -171,6 +171,7 @@
             action="{{ url_for('eliminar_recibo', serial=recibo.serial) }}"
             onsubmit="return confirm('\u00bfEliminar el recibo #{{ recibo.serial }}? Esta acci\u00f3n no se puede deshacer.')"
             style="margin:0">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="button button--danger">
           <i class="fa-solid fa-trash"></i> Eliminar recibo
         </button>

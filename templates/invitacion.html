@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Invitación al Lote{% endblock %}
+{% block content %}
+<section class="container py-5" style="max-width:520px">
+
+  <div class="card shadow-sm border-0 rounded-4">
+    <div class="card-body p-4">
+
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="rounded-3 p-3" style="background:#1B4332">
+          <i class="bi bi-envelope-open fs-3 text-white"></i>
+        </div>
+        <div>
+          <h4 class="mb-0 fw-bold" style="color:#1B4332">Invitación a lote</h4>
+          <small class="text-muted">Te han invitado a colaborar</small>
+        </div>
+      </div>
+
+      <div class="alert alert-info rounded-3 mb-4">
+        <p class="mb-1">
+          <strong>Lote:</strong> {{ inv.lote_nombre }}
+        </p>
+        <p class="mb-1">
+          <strong>Rol asignado:</strong> {{ inv.rol_nombre | replace('_', ' ') | title }}
+        </p>
+        <p class="mb-0">
+          <strong>Correo invitado:</strong> {{ inv.email }}
+        </p>
+      </div>
+
+      {% if 'user_id' not in session %}
+      <div class="alert alert-warning rounded-3">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        Debes <a href="/?form=login" class="alert-link">iniciar sesión</a> o
+        <a href="/?form=signup" class="alert-link">registrarte</a> para aceptar esta invitación.
+      </div>
+      <a href="/?form=login" class="btn btn-success w-100 mt-2">
+        <i class="bi bi-box-arrow-in-right me-2"></i>Ir al inicio de sesión
+      </a>
+      {% else %}
+      <p class="text-muted mb-3">
+        Estás iniciado como <strong>{{ session.get('user_name', 'Usuario') }}</strong>.
+        Al aceptar, se te asignará el rol indicado en el lote.
+      </p>
+      <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-success w-100">
+          <i class="bi bi-check-circle me-2"></i>Aceptar invitación
+        </button>
+      </form>
+      <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary w-100 mt-2">
+        Cancelar
+      </a>
+      {% endif %}
+
+    </div>
+  </div>
+
+</section>
+{% endblock %}

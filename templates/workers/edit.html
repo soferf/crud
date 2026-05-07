@@ -28,6 +28,7 @@
     {% endif %}
 
     <form method="POST" enctype="multipart/form-data" class="form-card">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
       <!-- Foto actual + nueva -->
       <div class="form-section">

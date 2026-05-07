@@ -84,6 +84,7 @@
                   <i class="fa-solid fa-pen-to-square"></i>
                 </a>
                 <form method="POST" action="{{ url_for('toggle_worker', wid=w.id_worker) }}" style="margin:0">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit"
                           class="button button--sm {{ 'button--warning' if w.activo else 'button--ghost' }}"
                           title="{{ 'Desactivar' if w.activo else 'Activar' }}"

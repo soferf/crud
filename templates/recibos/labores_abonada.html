@@ -23,6 +23,7 @@
   {% if error %}<div class="alert alert--danger"><i class="fa-solid fa-circle-xmark"></i> {{ error }}</div>{% endif %}
 
   <form method="POST" id="abonadaForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <!-- PASO 1: Tipo de labor + datos comunes -->
     <div class="form-card" style="margin-bottom:var(--s6)">
