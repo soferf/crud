@@ -1,0 +1,228 @@
+@startuml Anexo_B_entidad_relacion
+' Anexo B — Diagrama Entidad-Relación (modelo de datos)
+' Sistema de Gestión de Arrocera — esquema real (init_db.py)
+' Notación: una entidad por tabla; PK en negrita, FK marcadas, relaciones con cardinalidad.
+
+hide circle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam classFontSize 12
+title Anexo B — Modelo Entidad-Relación (Sistema de Gestión de Arrocera)
+
+' ===================== ENTIDADES PRINCIPALES =====================
+
+entity "lotes" as lotes {
+  * **id** : INT <<PK>>
+  --
+  nombre : VARCHAR(120)
+  propietario_nombre : VARCHAR(120)
+  administrador_nombre : VARCHAR(120)
+  hectareas : DECIMAL(8,2)
+  municipio / departamento : VARCHAR
+  tipo_tenencia : ENUM
+  cultivo_principal : VARCHAR(80)
+  meta_cargas_ha : INT
+  limite_gasto_ha : DECIMAL(14,2)
+  estado : ENUM(activo/inactivo)
+}
+
+entity "users" as users {
+  * **id_user** : INT <<PK>>
+  --
+  full_name : VARCHAR(120)
+  email : VARCHAR(120) <<UQ>>
+  password_hash : VARCHAR(255)
+  email_verified : BOOLEAN
+  is_active : BOOLEAN
+}
+
+entity "roles" as roles {
+  * **id** : INT <<PK>>
+  --
+  nombre : VARCHAR(60) <<UQ>>
+  descripcion : VARCHAR(200)
+  es_global : BOOLEAN
+}
+
+entity "permissions" as perms {
+  * **id** : INT <<PK>>
+  --
+  clave : VARCHAR(60) <<UQ>>
+  descripcion : VARCHAR(200)
+}
+
+entity "role_permissions" as rolperm {
+  * **role_id** : INT <<PK,FK>>
+  * **permission_id** : INT <<PK,FK>>
+}
+
+entity "user_lote_roles" as ulr {
+  * **id** : INT <<PK>>
+  --
+  + user_id : INT <<FK>>
+  + lote_id : INT <<FK>>
+  + role_id : INT <<FK>>
+  invited_by : INT
+}
+
+entity "lote_invitations" as inv {
+  * **id** : INT <<PK>>
+  --
+  + lote_id : INT <<FK>>
+  + role_id : INT <<FK>>
+  + invited_by : INT <<FK>>
+  email : VARCHAR(120)
+  token : VARCHAR(100) <<UQ>>
+  expires_at : DATETIME
+  used : BOOLEAN
+}
+
+entity "workers" as workers {
+  * **id_worker** : INT <<PK>>
+  --
+  name / lastname : VARCHAR(100)
+  cc : VARCHAR(20) <<UQ>>
+  phone_number : VARCHAR(20)
+  trabajo_desarrolla : ENUM
+  rol : VARCHAR
+  valor_habitual : DECIMAL(12,2)
+  activo : BOOLEAN
+}
+
+entity "recibos" as recibos {
+  * **id** : INT <<PK>>
+  --
+  serial : INT
+  + lote_id : INT <<FK>>
+  fecha : DATE
+  proveedor : VARCHAR(100)
+  nit : VARCHAR(20)
+  concepto : TEXT
+  conceptos_json : TEXT
+  valor_operacion : DECIMAL(12,2)
+  rte_fte : DECIMAL(12,2)
+  neto_a_pagar : DECIMAL(12,2)
+  tipo : VARCHAR(20)
+}
+
+entity "cosechas" as cosechas {
+  * **id** : INT <<PK>>
+  --
+  fecha : DATE
+  lote : VARCHAR(100)
+  hectareas : DECIMAL(6,2)
+  fase : ENUM(siembra/cosecha)
+  cargas : INT
+  kg_total : DECIMAL(10,2)
+  precio_carga : DECIMAL(10,2)
+  valor_total : DECIMAL(14,2)
+}
+
+entity "presupuesto_recargas" as presu {
+  * **id** : INT <<PK>>
+  --
+  + lote_id : INT <<FK>>
+  monto : DECIMAL(15,2)
+  descripcion : VARCHAR(255)
+  fecha : DATE
+}
+
+entity "config" as config {
+  * **id** : INT <<PK>>
+  --
+  clave : VARCHAR(50)
+  valor : VARCHAR(200)
+  + lote_id : INT <<FK>>
+}
+
+' ===================== MÓDULO HUMEDAD / RIEGO =====================
+
+entity "humedad_sensores" as sensores {
+  * **id** : INT <<PK>>
+  --
+  + lote_id : INT <<FK>>
+  codigo : VARCHAR(20)
+  pos_x / pos_y : DECIMAL
+  profundidad_cm : INT
+  activo : BOOLEAN
+}
+
+entity "humedad_lecturas" as lecturas {
+  * **id** : BIGINT <<PK>>
+  --
+  + sensor_id : INT <<FK>>
+  lote_id : INT
+  humedad_pct : DECIMAL(5,1)
+  temperatura_c : DECIMAL(4,1)
+  fuente : ENUM(simulado/arduino)
+  fecha_hora : DATETIME
+}
+
+entity "humedad_config" as hconfig {
+  * **lote_id** : INT <<PK,FK>>
+  --
+  umbral_min_pct / umbral_max_pct : DECIMAL
+  modo_auto : BOOLEAN
+  riego_activo : BOOLEAN
+}
+
+entity "riego_eventos" as riego {
+  * **id** : INT <<PK>>
+  --
+  + lote_id : INT <<FK>>
+  sensor_id : INT
+  tipo : ENUM(inicio/fin)
+  modo : ENUM(manual/automatico)
+  humedad_prom : DECIMAL(5,1)
+}
+
+' ===================== MÓDULO ASISTENTE IA =====================
+
+entity "ai_sessions" as aisess {
+  * **id** : INT <<PK>>
+  --
+  + user_id : INT <<FK>>
+  status : ENUM(pending/confirmed/cancelled)
+}
+
+entity "ai_messages" as aimsg {
+  * **id** : INT <<PK>>
+  --
+  + session_id : INT <<FK>>
+  role : ENUM(user/assistant/system)
+  content : TEXT
+}
+
+' ===================== RELACIONES =====================
+' Cardinalidad: ||--o{ = uno a muchos
+
+roles    ||--o{ rolperm  : tiene
+perms    ||--o{ rolperm  : se asigna
+
+users    ||--o{ ulr      : participa
+lotes    ||--o{ ulr      : asigna
+roles    ||--o{ ulr      : define
+
+lotes    ||--o{ inv      : emite
+roles    ||--o{ inv      : con rol
+users    ||--o{ inv      : invita
+
+lotes    ||--o{ recibos  : registra
+lotes    ||--o{ presu    : recarga
+lotes    ||--o{ config   : configura
+
+lotes    ||--o{ sensores : instala
+sensores ||--o{ lecturas : genera
+lotes    ||--|| hconfig  : parametriza
+lotes    ||--o{ riego    : controla
+
+users    ||--o{ aisess   : inicia
+aisess   ||--o{ aimsg    : contiene
+
+note bottom of cosechas
+  cosechas y workers no tienen FK física a lotes
+  en el esquema actual (se filtran por lógica de
+  aplicación / sesión del lote activo).
+end note
+
+@enduml

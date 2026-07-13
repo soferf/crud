@@ -1,0 +1,170 @@
+@startuml diagrama_casos_de_uso
+' Diagrama de Casos de Uso — Sistema de Gestión de Arrocera
+' Actores y permisos basados en init_db.py (_seed_roles_and_permissions)
+' Casos de uso basados en las rutas Flask (routes_*.py)
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam shadowing false
+title Sistema de Gestión de Arrocera — Diagrama de Casos de Uso
+
+' ===================== ACTORES =====================
+actor "Superadmin"            as SA
+actor "Dueño del Lote"        as Duenio
+actor "Administrador de Lote" as Admin
+actor "Operador de Lote"      as Operador
+actor "Usuario de Consulta"   as Consulta
+actor "Visitante\n(no autenticado)" as Visitante
+
+' Actores externos / sistemas
+actor "Sensor de Humedad"  as Sensor << device >>
+actor "Asistente IA"       as IA      << system >>
+actor "Servicio de Correo" as Mail    << system >>
+
+' ===================== CASOS DE USO =====================
+rectangle "Sistema de Gestión de Arrocera" {
+
+  package "Autenticación y Cuenta" {
+    usecase "Registrarse"                    as UC_signup
+    usecase "Verificar código de registro"   as UC_verify
+    usecase "Iniciar sesión"                 as UC_login
+    usecase "Recuperar contraseña"           as UC_forgot
+    usecase "Verificar correo electrónico"   as UC_vemail
+    usecase "Cerrar sesión"                  as UC_logout
+  }
+
+  package "Gestión de Lotes" {
+    usecase "Crear lote (asistente IA)"  as UC_setup
+    usecase "Seleccionar lote"           as UC_sellote
+    usecase "Invitar usuarios al lote"   as UC_invite
+    usecase "Asignar roles"              as UC_roles
+    usecase "Aceptar invitación"         as UC_accept
+  }
+
+  package "Trabajadores" {
+    usecase "Ver trabajadores"              as UC_wview
+    usecase "Registrar trabajador"          as UC_wcreate
+    usecase "Editar trabajador"             as UC_wedit
+    usecase "Activar / Desactivar trabajador" as UC_wtoggle
+  }
+
+  package "Recibos" {
+    usecase "Ver recibos"            as UC_rview
+    usecase "Crear recibo"           as UC_rcreate
+    usecase "Registrar labores"      as UC_rlabores
+    usecase "Editar recibo"          as UC_redit
+    usecase "Eliminar recibo"        as UC_rdelete
+    usecase "Conciliar recibos"      as UC_rconcilia
+  }
+
+  package "Producción" {
+    usecase "Ver producción"        as UC_pview
+    usecase "Registrar cosecha"     as UC_pcreate
+  }
+
+  package "Finanzas" {
+    usecase "Gestionar presupuesto" as UC_presu
+    usecase "Gestionar ahorro"      as UC_ahorro
+  }
+
+  package "Reportes" {
+    usecase "Ver reportes"          as UC_repview
+    usecase "Exportar (PDF/Excel/TXT)" as UC_export
+  }
+
+  package "Humedad y Riego" {
+    usecase "Ver módulo de humedad" as UC_hview
+    usecase "Controlar riego"       as UC_hriego
+    usecase "Configurar sensores"   as UC_hsensores
+    usecase "Ingestar datos de sensor" as UC_hingest
+  }
+
+  package "Asistente IA" {
+    usecase "Chatear con asistente IA" as UC_chat
+    usecase "Ver / borrar historial"   as UC_chathist
+  }
+
+  usecase "Gestionar configuración" as UC_config
+}
+
+' ===================== RELACIONES include / extend =====================
+UC_signup  ..> UC_verify : <<include>>
+UC_login   ..> UC_sellote : <<include>>
+UC_rcreate <.. UC_rlabores : <<extend>>
+UC_repview ..> UC_export : <<extend>>
+UC_invite  ..> UC_roles : <<include>>
+UC_setup   ..> UC_chat : <<include>>
+
+' ===================== ASOCIACIONES VISITANTE =====================
+Visitante --> UC_signup
+Visitante --> UC_verify
+Visitante --> UC_login
+Visitante --> UC_forgot
+Visitante --> UC_vemail
+Visitante --> UC_accept
+
+' ===================== USUARIO DE CONSULTA (solo lectura) =====================
+Consulta --> UC_logout
+Consulta --> UC_sellote
+Consulta --> UC_wview
+Consulta --> UC_rview
+Consulta --> UC_pview
+Consulta --> UC_repview
+Consulta --> UC_export
+Consulta --> UC_hview
+Consulta --> UC_chat
+
+' ===================== OPERADOR (hereda lectura + edición operativa) =====================
+Operador --> UC_wview
+Operador --> UC_wcreate
+Operador --> UC_wedit
+Operador --> UC_rview
+Operador --> UC_rcreate
+Operador --> UC_rlabores
+Operador --> UC_redit
+Operador --> UC_pview
+Operador --> UC_pcreate
+Operador --> UC_repview
+Operador --> UC_hview
+Operador --> UC_hriego
+Operador --> UC_hsensores
+Operador --> UC_presu
+Operador --> UC_ahorro
+Operador --> UC_chat
+Operador --> UC_logout
+
+' ===================== ADMINISTRADOR (operativo + gestión) =====================
+Admin --> UC_wtoggle
+Admin --> UC_rdelete
+Admin --> UC_rconcilia
+Admin --> UC_invite
+Admin --> UC_config
+Admin --> UC_pcreate
+Admin --> UC_redit
+' (hereda casos del Operador)
+Admin --> Operador
+
+' ===================== DUEÑO DEL LOTE (acceso completo al lote) =====================
+Duenio --> UC_setup
+Duenio --> UC_roles
+Duenio --> UC_invite
+Duenio --> UC_config
+' (hereda casos del Administrador)
+Duenio --> Admin
+
+' ===================== SUPERADMIN (acceso total) =====================
+SA --> Duenio
+
+' ===================== ACTORES EXTERNOS =====================
+Sensor --> UC_hingest
+UC_chat  --> IA
+UC_setup --> IA
+UC_signup --> Mail
+UC_invite --> Mail
+UC_forgot --> Mail
+UC_vemail --> Mail
+
+' Nota: la herencia entre actores (flecha actor->actor) indica que
+' el actor superior dispone también de los casos de uso del inferior.
+@enduml

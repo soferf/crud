@@ -1,0 +1,63 @@
+@startuml Anexo_D_flujo_procesos
+' Anexo D — Diagrama de flujo de procesos
+' Secuencia desde el registro de una operación hasta la generación
+' del reporte de utilidades. Sistema de Gestión de Arrocera.
+
+skinparam shadowing false
+skinparam ActivityBackgroundColor #FEFEFE
+skinparam ActivityBorderColor #333333
+skinparam ActivityDiamondBackgroundColor #F5F5F5
+title Anexo D — Flujo de Procesos: del registro de la operación al reporte de utilidades
+
+|Usuario / Operador|
+start
+:Iniciar sesión y seleccionar lote activo;
+
+|Sistema|
+if (¿Tipo de operación?) then (Gasto / Compra)
+  |Usuario / Operador|
+  :Registrar recibo de gasto\n(proveedor, concepto, valor);
+  |Sistema|
+  :Calcular retención (rte_fte)\ny neto a pagar;
+  :Validar contra límite de gasto por ha\n(MAX_GASTO_POR_HA);
+  if (¿Excede el presupuesto?) then (sí)
+    :Marcar alerta de sobregiro;
+  else (no)
+  endif
+  :Guardar en tabla recibos\n(asociado al lote);
+else (Producción / Cosecha)
+  |Usuario / Operador|
+  :Registrar cosecha\n(cargas, kg, precio por carga);
+  |Sistema|
+  :Calcular valor_total de la venta\n(cargas x precio_carga);
+  :Guardar en tabla cosechas;
+endif
+
+|Sistema|
+:Actualizar presupuesto del lote\n(recargas - gastos);
+
+|Usuario / Operador|
+:Solicitar reporte / consulta;
+
+|Sistema|
+:Consolidar movimientos del lote;
+fork
+  :Sumar ingresos\n(valor_total de cosechas);
+fork again
+  :Sumar egresos\n(neto_a_pagar de recibos);
+end fork
+:Calcular utilidad\n= ingresos - egresos;
+:Calcular indicadores\n(gasto/ha, cargas/ha, rendimiento);
+
+|Usuario / Operador|
+if (¿Formato de salida?) then (Pantalla)
+  :Visualizar reporte\n(/reportes, /reportes/semana);
+else (Exportación)
+  |Sistema|
+  :Generar archivo\n(PDF / Excel / TXT);
+  |Usuario / Operador|
+  :Descargar reporte de utilidades;
+endif
+
+stop
+@enduml
