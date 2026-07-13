@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+{% block title %}Configurar sensores y lote | AGROTOL{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container hum-wrap" id="humSensWrap"
+       data-cantidad="{{ n_sensores }}"
+       data-forma="{{ cfg.forma_lote or 'rectangular' }}"
+       data-prof="{{ (sensores[0].profundidad_cm if sensores else 20) }}"
+       data-ancho="{{ (cfg.ancho_m or 200)|int }}"
+       data-largo="{{ (cfg.largo_m or 400)|int }}">
+
+    <!-- ── Hero ───────────────────────────────────────────────────────────── -->
+    <div class="hum-hero">
+      <div class="hum-hero__inner">
+        <div>
+          <span class="hum-hero__eyebrow">
+            <i class="fa-solid fa-microchip"></i> Configuración · Malla de sensores
+          </span>
+          <h1 class="hum-hero__title">Sensores y geometría del lote</h1>
+          <p class="hum-hero__lead">
+            Define cuántos sensores tiene <strong>{{ lote_nombre or 'tu lote' }}</strong>,
+            su profundidad, y la <strong>forma y tamaño</strong> del terreno. La malla se
+            redistribuye automáticamente para cubrir el lote de forma uniforme.
+          </p>
+        </div>
+        <a class="hum-btn hum-btn--ghost" href="{{ url_for('humedad_panel') }}" style="align-self:flex-start;">
+          <i class="fa-solid fa-arrow-left"></i> Volver al panel
+        </a>
+      </div>
+    </div>
+
+    <div class="hum-grid">
+      <!-- ── Formulario de configuración ──────────────────────────────────── -->
+      <div class="hum-card">
+        <div class="hum-card__head">
+          <div>
+            <div class="hum-card__eyebrow"><i class="fa-solid fa-sliders"></i> Parámetros</div>
+            <h2 class="hum-card__title">Configuración del lote</h2>
+            <p class="hum-card__sub">Al guardar se regenera la malla de sensores.</p>
+          </div>
+        </div>
+
+        <div class="hum-irrigation">
+          <!-- Cantidad de sensores -->
+          <div class="hum-range-group">
+            <label>Cantidad de sensores <b><span id="cantVal">{{ n_sensores }}</span></b></label>
+            <input type="range" min="1" max="24" value="{{ n_sensores }}" class="hum-range" id="cantRange">
+            <small style="color:var(--hum-muted)">Entre 1 y 24 sensores distribuidos en el lote.</small>
+          </div>
+
+          <!-- Profundidad -->
+          <div class="hum-range-group">
+            <label>Profundidad de instalación <b><span id="profVal">{{ (sensores[0].profundidad_cm if sensores else 20) }}</span> cm</b></label>
+            <input type="range" min="5" max="60" value="{{ (sensores[0].profundidad_cm if sensores else 20) }}" class="hum-range" id="profRange">
+            <small style="color:var(--hum-muted)">Profundidad del bulbo de raíces (5–60 cm).</small>
+          </div>
+
+          <!-- Forma del lote -->
+          <div class="hum-range-group">
+            <label style="margin-bottom:.5rem;">Forma del lote</label>
+            <div class="hum-forma-grid" id="formaGrid">
+              {% set formas = [
+                ('rectangular', 'fa-rectangle-ad', 'Rectangular'),
+                ('cuadrado',    'fa-square',       'Cuadrado'),
+                ('L',           'fa-shapes',       'En forma de L'),
+                ('irregular',   'fa-draw-polygon', 'Irregular')
+              ] %}
+              {% for val, icono, etiqueta in formas %}
+              <button type="button" class="hum-forma-opt" data-forma="{{ val }}">
+                <i class="fa-solid {{ icono }}"></i>
+                <span>{{ etiqueta }}</span>
+              </button>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Tamaño del lote -->
+          <div class="hum-range-group">
+            <label style="margin-bottom:.5rem;">Tamaño del lote (metros)</label>
+            <div class="hum-size-row">
+              <div class="hum-size-field">
+                <span>Ancho</span>
+                <input type="number" min="1" max="5000" id="anchoInput"
+                       value="{{ (cfg.ancho_m or 200)|int }}"> <em>m</em>
+              </div>
+              <span class="hum-size-x">×</span>
+              <div class="hum-size-field">
+                <span>Largo</span>
+                <input type="number" min="1" max="5000" id="largoInput"
+                       value="{{ (cfg.largo_m or 400)|int }}"> <em>m</em>
+              </div>
+            </div>
+            <small style="color:var(--hum-muted)">Área aproximada: <b id="areaVal">—</b></small>
+          </div>
+
+          <button class="hum-btn hum-btn--water" id="btnGuardarSensores" style="margin-top:.4rem;">
+            <i class="fa-solid fa-floppy-disk"></i> Guardar y regenerar malla
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Previsualización de la malla ─────────────────────────────────── -->
+      <div class="hum-card">
+        <div class="hum-card__head">
+          <div>
+            <div class="hum-card__eyebrow"><i class="fa-solid fa-map"></i> Previsualización</div>
+            <h2 class="hum-card__title">Distribución de sensores</h2>
+            <p class="hum-card__sub"><span id="previewMeta">—</span></p>
+          </div>
+        </div>
+        <div class="hum-map-wrap">
+          <div class="hum-map" id="previewMap">
+            <span class="hum-map__inlet"><i class="fa-solid fa-water"></i> Ingreso de agua</span>
+          </div>
+        </div>
+        <p class="hum-card__sub" style="margin-top:.7rem;">
+          Vista esquemática. La posición real se interpola en el mapa de calor del panel.
+        </p>
+      </div>
+    </div>
+
+    <!-- ── Sensores actuales ──────────────────────────────────────────────── -->
+    <div class="hum-card">
+      <div class="hum-card__head">
+        <div>
+          <div class="hum-card__eyebrow"><i class="fa-solid fa-list"></i> Inventario</div>
+          <h2 class="hum-card__title">Sensores instalados actualmente ({{ n_sensores }})</h2>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="hum-sensor-table">
+          <thead>
+            <tr><th>Código</th><th>Nombre</th><th>Posición (x, y)</th><th>Profundidad</th><th>Estado</th></tr>
+          </thead>
+          <tbody>
+            {% for s in sensores %}
+            <tr>
+              <td><strong>{{ s.codigo }}</strong></td>
+              <td>{{ s.nombre }}</td>
+              <td class="txt-muted">{{ s.pos_x }}%, {{ s.pos_y }}%</td>
+              <td>{{ s.profundidad_cm }} cm</td>
+              <td>
+                {% if s.activo %}
+                  <span class="hum-chip hum-chip--optimo"><i class="fa-solid fa-check"></i> Activo</span>
+                {% else %}
+                  <span class="hum-chip hum-chip--seco"><i class="fa-solid fa-power-off"></i> Inactivo</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" style="text-align:center;color:var(--hum-muted);padding:1.2rem;">
+              Aún no hay sensores. Configura la cantidad y guarda para crearlos.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="hum-toast" id="humToast"></div>
+
+<style>
+  .hum-forma-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:.6rem; }
+  .hum-forma-opt{
+    display:flex; flex-direction:column; align-items:center; gap:.4rem;
+    padding:.9rem .6rem; border:1.5px solid var(--border,#2a3b4d);
+    background:transparent; color:var(--hum-muted,#8aa); border-radius:14px;
+    cursor:pointer; font-size:.82rem; font-weight:600; transition:all .15s ease;
+  }
+  .hum-forma-opt i{ font-size:1.3rem; }
+  .hum-forma-opt:hover{ border-color:var(--hum-cyan,#22b8c4); color:var(--hum-text,#eaf6f8); }
+  .hum-forma-opt.is-active{
+    border-color:var(--hum-cyan,#22b8c4); color:#fff;
+    background:rgba(34,184,196,.14); box-shadow:0 0 0 3px rgba(34,184,196,.12);
+  }
+  .hum-size-row{ display:flex; align-items:flex-end; gap:.8rem; }
+  .hum-size-field{ display:flex; flex-direction:column; gap:.3rem; flex:1; }
+  .hum-size-field span{ font-size:.78rem; color:var(--hum-muted,#8aa); }
+  .hum-size-field input{
+    width:100%; padding:.55rem .7rem; border-radius:10px;
+    border:1.5px solid var(--border,#2a3b4d); background:rgba(255,255,255,.04);
+    color:var(--hum-text,#eaf6f8); font-size:1rem; font-weight:600;
+  }
+  .hum-size-field em{ display:none; }
+  .hum-size-x{ font-size:1.4rem; color:var(--hum-muted,#8aa); padding-bottom:.55rem; }
+  #previewMap .hum-sensor-dot{
+    position:absolute; transform:translate(-50%,-50%);
+    width:26px; height:26px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:.7rem; font-weight:700; color:#06222b;
+    background:var(--hum-cyan,#22b8c4); border:2px solid rgba(255,255,255,.6);
+  }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  const wrap = document.getElementById('humSensWrap');
+  const cantRange = document.getElementById('cantRange');
+  const cantVal   = document.getElementById('cantVal');
+  const profRange = document.getElementById('profRange');
+  const profVal   = document.getElementById('profVal');
+  const anchoIn   = document.getElementById('anchoInput');
+  const largoIn   = document.getElementById('largoInput');
+  const areaVal   = document.getElementById('areaVal');
+  const formaGrid = document.getElementById('formaGrid');
+  const previewMap= document.getElementById('previewMap');
+  const previewMeta=document.getElementById('previewMeta');
+  const toast     = document.getElementById('humToast');
+
+  let forma = wrap.dataset.forma || 'rectangular';
+
+  function showToast(msg, isErr){
+    toast.textContent=msg; toast.classList.toggle('hum-toast--error', !!isErr);
+    toast.classList.add('is-show'); setTimeout(()=>toast.classList.remove('is-show'), 2600);
+  }
+
+  // ── Generación de malla (réplica de humedad_sim.generar_malla) ──────────────
+  function generarMalla(n, forma){
+    const pts=[];
+    if(forma==='rectangular' || forma==='cuadrado'){
+      const cols=Math.max(1, Math.round(Math.sqrt(n)));
+      const rows=Math.ceil(n/cols);
+      let idx=0;
+      for(let r=0;r<rows;r++){
+        for(let c=0;c<cols;c++){
+          if(idx>=n) break;
+          pts.push([ (c+0.5)/cols*100, (r+0.5)/rows*100 ]); idx++;
+        }
+      }
+    } else if(forma==='L'){
+      for(let i=0;i<n;i++){
+        if(i%2===0) pts.push([ (i/Math.max(1,n-1))*60+10, 75 ]);
+        else        pts.push([ 20, (i/Math.max(1,n-1))*70+10 ]);
+      }
+    } else { // irregular — semilla fija para estabilidad visual
+      let seed=42;
+      const rnd=()=>{ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; };
+      for(let i=0;i<n;i++) pts.push([ 8+rnd()*84, 8+rnd()*84 ]);
+    }
+    return pts;
+  }
+
+  function renderPreview(){
+    const n=+cantRange.value;
+    const pts=generarMalla(n, forma);
+    previewMap.querySelectorAll('.hum-sensor-dot').forEach(e=>e.remove());
+    pts.forEach((p,i)=>{
+      const dot=document.createElement('div');
+      dot.className='hum-sensor-dot';
+      dot.style.left=p[0]+'%'; dot.style.top=p[1]+'%';
+      dot.textContent=(i+1);
+      previewMap.appendChild(dot);
+    });
+    // El recuadro adopta la proporción del lote (ancho/largo).
+    const ancho=Math.max(1,+anchoIn.value||1), largo=Math.max(1,+largoIn.value||1);
+    const ratio=Math.min(2.2, Math.max(0.45, ancho/largo));
+    previewMap.style.aspectRatio = ratio.toFixed(3);
+    if(forma==='cuadrado') previewMap.style.aspectRatio='1';
+    previewMeta.textContent = `${n} sensor${n!==1?'es':''} · forma ${forma} · ${ancho} × ${largo} m`;
+  }
+
+  function updateArea(){
+    const ancho=+anchoIn.value||0, largo=+largoIn.value||0;
+    const m2=ancho*largo;
+    areaVal.textContent = m2 ? `${m2.toLocaleString('es-CO')} m² (${(m2/10000).toFixed(2)} ha)` : '—';
+  }
+
+  // ── Selección de forma ──────────────────────────────────────────────────────
+  formaGrid.querySelectorAll('.hum-forma-opt').forEach(btn=>{
+    if(btn.dataset.forma===forma) btn.classList.add('is-active');
+    btn.addEventListener('click', ()=>{
+      forma=btn.dataset.forma;
+      formaGrid.querySelectorAll('.hum-forma-opt').forEach(b=>b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      renderPreview();
+    });
+  });
+
+  cantRange.addEventListener('input', ()=>{ cantVal.textContent=cantRange.value; renderPreview(); });
+  profRange.addEventListener('input', ()=>{ profVal.textContent=profRange.value; });
+  anchoIn.addEventListener('input', ()=>{ updateArea(); renderPreview(); });
+  largoIn.addEventListener('input', ()=>{ updateArea(); renderPreview(); });
+
+  // ── Guardar ─────────────────────────────────────────────────────────────────
+  document.getElementById('btnGuardarSensores').addEventListener('click', async()=>{
+    const body={
+      cantidad:+cantRange.value,
+      forma:forma,
+      profundidad:+profRange.value,
+      ancho_m:+anchoIn.value||0,
+      largo_m:+largoIn.value||0
+    };
+    try{
+      const r=await fetch('{{ url_for("humedad_api_sensores") }}',{
+        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+      const d=await r.json();
+      if(d.success){
+        showToast(`Malla regenerada: ${d.sensores} sensores`);
+        setTimeout(()=>{ window.location.href = d.redirect || '{{ url_for("humedad_panel") }}'; }, 900);
+      } else showToast(d.error||'Error al guardar', true);
+    }catch(err){ showToast('Error de conexión', true); }
+  });
+
+  // ── Init ────────────────────────────────────────────────────────────────────
+  updateArea();
+  renderPreview();
+})();
+</script>
+{% endblock %}

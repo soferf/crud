@@ -1,0 +1,230 @@
+/* ================================================================
+   MÓDULO HUMEDAD / RIEGO — AGROTOL
+   Sistema de medidor de humedad para lotes de arroz.
+   Usa los tokens globales (--clr-*, --rd-*, --surface…) y soporta
+   el modo oscuro vía [data-theme="dark"].
+================================================================ */
+.hum-wrap {
+  --hum-blue:    #2f7df6;
+  --hum-blue-2:  #5aa0ff;
+  --hum-cyan:    #22b8c4;
+  --hum-green:   #22b573;
+  --hum-amber:   #f59f0b;
+  --hum-red:     #ef5d64;
+  --hum-surface: var(--surface, #fff);
+  --hum-ink:     var(--txt, #10203a);
+  --hum-muted:   var(--txt-muted, #5e6d87);
+  --hum-border:  var(--border, rgba(120,140,180,.22));
+  display: grid;
+  gap: 1.25rem;
+}
+
+[data-theme="dark"] .hum-wrap {
+  --hum-surface: #131c2e;
+  --hum-ink: #e8eef9;
+  --hum-muted: #93a3bd;
+  --hum-border: rgba(120,140,180,.22);
+}
+
+/* ── Hero del módulo ───────────────────────────────────────────── */
+.hum-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  padding: 1.7rem 1.9rem;
+  color: #eaf2ff;
+  background:
+    radial-gradient(120% 140% at 85% -20%, rgba(90,160,255,.55), transparent 55%),
+    radial-gradient(120% 160% at 10% 120%, rgba(34,184,196,.45), transparent 50%),
+    linear-gradient(135deg, #0c2350 0%, #123a73 55%, #0f5f6e 100%);
+  box-shadow: 0 24px 60px rgba(13,30,68,.28);
+}
+.hum-hero::after {
+  content: ""; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px);
+  background-size: 26px 26px;
+  mask-image: linear-gradient(180deg, rgba(0,0,0,.5), transparent 70%);
+  pointer-events: none;
+}
+.hum-hero__inner { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: center; justify-content: space-between; }
+.hum-hero__eyebrow {
+  display: inline-flex; align-items: center; gap: .5rem;
+  font-size: .72rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: #9fd4ff; margin-bottom: .35rem;
+}
+.hum-hero__title { font-family: var(--ff-heading, inherit); font-size: clamp(1.5rem, 3vw, 2.1rem); font-weight: 700; line-height: 1.1; margin: 0; }
+.hum-hero__lead { margin: .55rem 0 0; max-width: 46ch; color: rgba(234,242,255,.82); font-size: .95rem; }
+.hum-hero__phase {
+  display: flex; flex-direction: column; gap: .45rem;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16);
+  border-radius: 18px; padding: 1rem 1.2rem; min-width: 220px;
+  backdrop-filter: blur(6px);
+}
+.hum-hero__phase-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .12em; color: #9fd4ff; }
+.hum-hero__phase-name { font-size: 1.25rem; font-weight: 700; font-family: var(--ff-heading, inherit); }
+.hum-hero__phase-meta { font-size: .8rem; color: rgba(234,242,255,.78); }
+.hum-phase-track { height: 6px; border-radius: 99px; background: rgba(255,255,255,.18); overflow: hidden; margin-top: .2rem; }
+.hum-phase-track__fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--hum-cyan), var(--hum-blue-2)); }
+
+/* ── KPI cards ──────────────────────────────────────────────────── */
+.hum-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; }
+.hum-kpi {
+  position: relative; background: var(--hum-surface); border: 1px solid var(--hum-border);
+  border-radius: 18px; padding: 1.15rem 1.25rem; box-shadow: var(--rd-shadow-soft, 0 10px 28px rgba(15,23,42,.07));
+  overflow: hidden;
+}
+.hum-kpi::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--hum-blue); }
+.hum-kpi--ok::before    { background: var(--hum-green); }
+.hum-kpi--warn::before  { background: var(--hum-amber); }
+.hum-kpi--alert::before { background: var(--hum-red); }
+.hum-kpi__label { font-size: .74rem; text-transform: uppercase; letter-spacing: .08em; color: var(--hum-muted); font-weight: 700; }
+.hum-kpi__value { font-size: 2rem; font-weight: 800; color: var(--hum-ink); font-family: var(--ff-heading, inherit); line-height: 1.1; margin-top: .25rem; }
+.hum-kpi__value small { font-size: .9rem; font-weight: 600; color: var(--hum-muted); }
+.hum-kpi__sub { font-size: .8rem; color: var(--hum-muted); margin-top: .15rem; }
+.hum-kpi__icon { position: absolute; right: 1rem; top: 1rem; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 1.1rem; background: rgba(47,125,246,.12); color: var(--hum-blue); }
+
+/* ── Layout principal ──────────────────────────────────────────── */
+.hum-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+@media (max-width: 980px) { .hum-grid { grid-template-columns: 1fr; } }
+
+.hum-card {
+  background: var(--hum-surface); border: 1px solid var(--hum-border);
+  border-radius: 20px; padding: 1.3rem 1.4rem; box-shadow: var(--rd-shadow-soft, 0 10px 28px rgba(15,23,42,.07));
+}
+.hum-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.hum-card__title { font-family: var(--ff-heading, inherit); font-size: 1.15rem; font-weight: 700; color: var(--hum-ink); margin: 0; }
+.hum-card__eyebrow { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; color: var(--hum-blue); font-weight: 700; display: flex; align-items: center; gap: .4rem; margin-bottom: .2rem; }
+.hum-card__sub { font-size: .82rem; color: var(--hum-muted); margin: .15rem 0 0; }
+
+/* ── Mapa de calor del lote ────────────────────────────────────── */
+.hum-map-wrap { position: relative; }
+.hum-map {
+  position: relative; width: 100%; aspect-ratio: 16 / 10; border-radius: 16px; overflow: hidden;
+  background: #0c2350; border: 1px solid var(--hum-border);
+}
+.hum-map canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hum-map__inlet {
+  position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+  font-size: .68rem; color: #eaf2ff; background: rgba(0,0,0,.35);
+  padding: .15rem .6rem; border-radius: 99px; z-index: 3; display: flex; align-items: center; gap: .3rem;
+}
+.hum-sensor-dot {
+  position: absolute; z-index: 2; transform: translate(-50%, -50%);
+  width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  font-size: .62rem; font-weight: 800; color: #06203a; cursor: pointer;
+  border: 2px solid rgba(255,255,255,.85); box-shadow: 0 2px 8px rgba(0,0,0,.35);
+  transition: transform .15s;
+}
+.hum-sensor-dot:hover { transform: translate(-50%, -50%) scale(1.18); z-index: 4; }
+.hum-sensor-dot__tip {
+  position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%);
+  background: #0b1424; color: #eaf2ff; font-size: .72rem; padding: .4rem .6rem; border-radius: 8px;
+  white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .15s; box-shadow: 0 6px 18px rgba(0,0,0,.4);
+}
+.hum-sensor-dot:hover .hum-sensor-dot__tip { opacity: 1; }
+.hum-legend { display: flex; flex-wrap: wrap; gap: .9rem; margin-top: .9rem; font-size: .76rem; color: var(--hum-muted); }
+.hum-legend span { display: inline-flex; align-items: center; gap: .35rem; }
+.hum-legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+/* ── Panel de control de riego ─────────────────────────────────── */
+.hum-irrigation { display: grid; gap: 1.1rem; }
+.hum-status-banner {
+  display: flex; align-items: center; gap: .9rem; padding: 1rem 1.15rem; border-radius: 16px;
+  border: 1px solid var(--hum-border); background: rgba(47,125,246,.06);
+}
+.hum-status-banner__icon { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 1.3rem; flex-shrink: 0; }
+.hum-status-banner.is-on { background: rgba(34,184,196,.12); border-color: rgba(34,184,196,.4); }
+.hum-status-banner.is-on .hum-status-banner__icon { background: var(--hum-cyan); color: #fff; animation: humPulse 1.6s infinite; }
+.hum-status-banner.is-off .hum-status-banner__icon { background: rgba(120,140,180,.18); color: var(--hum-muted); }
+@keyframes humPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(34,184,196,.5); } 50% { box-shadow: 0 0 0 10px rgba(34,184,196,0); } }
+.hum-status-banner__title { font-weight: 700; color: var(--hum-ink); font-size: 1rem; }
+.hum-status-banner__sub { font-size: .8rem; color: var(--hum-muted); }
+
+.hum-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .65rem 0; border-bottom: 1px dashed var(--hum-border); }
+.hum-toggle-row:last-child { border-bottom: 0; }
+.hum-toggle-row__label { font-size: .9rem; color: var(--hum-ink); font-weight: 600; }
+.hum-toggle-row__label small { display: block; font-weight: 400; color: var(--hum-muted); font-size: .76rem; }
+
+.hum-switch { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+.hum-switch input { opacity: 0; width: 0; height: 0; }
+.hum-switch__track { position: absolute; inset: 0; background: rgba(120,140,180,.35); border-radius: 99px; transition: background .2s; cursor: pointer; }
+.hum-switch__track::before { content: ""; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.hum-switch input:checked + .hum-switch__track { background: var(--hum-green); }
+.hum-switch input:checked + .hum-switch__track::before { transform: translateX(20px); }
+
+.hum-range-group { margin-top: .4rem; }
+.hum-range-group label { display: flex; justify-content: space-between; font-size: .82rem; color: var(--hum-ink); font-weight: 600; margin-bottom: .3rem; }
+.hum-range-group label b { color: var(--hum-blue); }
+.hum-range { width: 100%; accent-color: var(--hum-blue); }
+
+.hum-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  border: none; border-radius: 12px; padding: .7rem 1.1rem; font-weight: 700; font-size: .9rem;
+  cursor: pointer; font-family: inherit; transition: filter .15s, transform .1s; width: 100%;
+}
+.hum-btn:active { transform: translateY(1px); }
+.hum-btn--water { background: linear-gradient(135deg, var(--hum-blue), var(--hum-cyan)); color: #fff; }
+.hum-btn--stop  { background: rgba(239,93,100,.14); color: var(--hum-red); border: 1px solid rgba(239,93,100,.4); }
+.hum-btn--ghost { background: transparent; color: var(--hum-blue); border: 1px solid var(--hum-border); }
+.hum-btn:hover { filter: brightness(1.05); }
+.hum-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── Recomendaciones ───────────────────────────────────────────── */
+.hum-recs { display: grid; gap: .6rem; }
+.hum-rec { display: flex; gap: .7rem; align-items: flex-start; padding: .7rem .85rem; border-radius: 12px; font-size: .86rem; line-height: 1.45; border: 1px solid var(--hum-border); }
+.hum-rec i { margin-top: .15rem; flex-shrink: 0; }
+.hum-rec--success { background: rgba(34,181,115,.1); border-color: rgba(34,181,115,.3); color: #0f7a4f; }
+.hum-rec--warning { background: rgba(245,159,11,.1); border-color: rgba(245,159,11,.32); color: #9a6300; }
+.hum-rec--danger  { background: rgba(239,93,100,.1); border-color: rgba(239,93,100,.34); color: #c0353c; }
+.hum-rec--info    { background: rgba(47,125,246,.08); border-color: rgba(47,125,246,.28); color: #1f59c0; }
+[data-theme="dark"] .hum-rec--success { color: #5bd2a0; }
+[data-theme="dark"] .hum-rec--warning { color: #ffc24d; }
+[data-theme="dark"] .hum-rec--danger  { color: #ff8a8f; }
+[data-theme="dark"] .hum-rec--info    { color: #7fb0ff; }
+
+/* ── Tabla de sensores ─────────────────────────────────────────── */
+.hum-sensor-table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+.hum-sensor-table th { text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--hum-muted); padding: .55rem .6rem; border-bottom: 1px solid var(--hum-border); }
+.hum-sensor-table td { padding: .6rem; border-bottom: 1px solid var(--hum-border); color: var(--hum-ink); }
+.hum-sensor-table tr:last-child td { border-bottom: 0; }
+.hum-chip { display: inline-flex; align-items: center; gap: .35rem; padding: .2rem .55rem; border-radius: 99px; font-size: .74rem; font-weight: 700; }
+.hum-chip--optimo   { background: rgba(34,181,115,.14); color: #0f7a4f; }
+.hum-chip--seco     { background: rgba(245,159,11,.16); color: #9a6300; }
+.hum-chip--critico  { background: rgba(239,93,100,.16); color: #c0353c; }
+.hum-chip--saturado { background: rgba(47,125,246,.14); color: #1f59c0; }
+.hum-bar { height: 7px; border-radius: 99px; background: rgba(120,140,180,.18); overflow: hidden; min-width: 70px; }
+.hum-bar__fill { height: 100%; border-radius: 99px; }
+
+.hum-chart-box { position: relative; height: 240px; }
+.hum-live-dot { display: inline-flex; align-items: center; gap: .4rem; font-size: .74rem; color: var(--hum-green); font-weight: 700; }
+.hum-live-dot::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--hum-green); animation: humPulse 1.6s infinite; }
+
+/* ── Página de configuración de sensores ──────────────────────── */
+.hum-shape-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: .75rem; }
+.hum-shape {
+  border: 2px solid var(--hum-border); border-radius: 14px; padding: 1rem; text-align: center; cursor: pointer;
+  background: var(--hum-surface); transition: border-color .15s, transform .1s;
+}
+.hum-shape:hover { transform: translateY(-2px); }
+.hum-shape.is-active { border-color: var(--hum-blue); background: rgba(47,125,246,.06); }
+.hum-shape__icon { font-size: 1.6rem; color: var(--hum-blue); margin-bottom: .4rem; }
+.hum-shape__name { font-weight: 700; font-size: .9rem; color: var(--hum-ink); }
+.hum-field { margin-bottom: 1rem; }
+.hum-field label { display: block; font-size: .82rem; font-weight: 600; color: var(--hum-ink); margin-bottom: .35rem; }
+.hum-field input[type="number"], .hum-field input[type="date"] {
+  width: 100%; padding: .6rem .75rem; border-radius: 10px; border: 1px solid var(--hum-border);
+  background: var(--hum-surface); color: var(--hum-ink); font-family: inherit; font-size: .9rem;
+}
+.hum-toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%) translateY(120%); z-index: 2000; background: #0f7a4f; color: #fff; padding: .8rem 1.3rem; border-radius: 12px; font-weight: 600; box-shadow: 0 12px 32px rgba(0,0,0,.3); transition: transform .3s; }
+.hum-toast.is-show { transform: translateX(-50%) translateY(0); }
+.hum-toast--error { background: #c0353c; }
+
+/* ── Badge "Live" en el sidebar ────────────────────────────────── */
+.sidebar__badge {
+  margin-left: auto; font-size: .58rem; font-weight: 800; letter-spacing: .06em;
+  text-transform: uppercase; padding: .12rem .4rem; border-radius: 99px;
+  background: linear-gradient(135deg, #22b8c4, #2f7df6); color: #fff;
+  box-shadow: 0 0 0 0 rgba(34,184,196,.5); animation: humPulse 1.8s infinite;
+}
