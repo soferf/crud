@@ -26,9 +26,9 @@
 {% block content %}
 <div class="container" style="padding-top:2rem; padding-bottom:3rem;">
   <div style="max-width:900px; margin:0 auto;">
-    <div style="margin-bottom:1.5rem;">
-      <h1 style="font-family:var(--ff-heading); color:var(--txt); font-size:1.75rem; margin-bottom:.35rem;">
-        <i class="fa-solid fa-seedling" style="color:var(--clr-500); margin-right:.5rem;"></i>
+    <div class="setup-heading">
+      <h1>
+        <span class="setup-heading__icon"><i data-lucide="sprout"></i></span>
         Configura tu lote
       </h1>
       <p style="color:var(--txt-muted); font-size:.95rem;">
@@ -40,12 +40,12 @@
       </p>
     </div>
 
-    <div style="display:grid; grid-template-columns:1fr 260px; gap:1.5rem; align-items:start;">
+    <div class="setup-grid">
       <!-- Chat / Form -->
       <div>
         {% if ai_available %}
         <!-- AI Chat Interface -->
-        <div class="card" style="padding:0; overflow:hidden;">
+        <div class="setup-panel" style="padding:0; overflow:hidden;">
           <div class="chat-container" id="chatContainer">
             <div class="chat-messages" id="chatMessages">
               <div class="chat-bubble chat-bubble--ai">
@@ -56,7 +56,7 @@
             </div>
             <div class="chat-input-row">
               <input type="text" id="chatInput" placeholder="Escribe tu respuesta..." autofocus>
-              <button onclick="sendMessage()" id="sendBtn"><i class="fa-solid fa-paper-plane"></i></button>
+              <button onclick="sendMessage()" id="sendBtn"><i data-lucide="send"></i></button>
             </div>
           </div>
         </div>
@@ -64,25 +64,25 @@
         <!-- Confirm buttons (hidden until ready) -->
         <div id="confirmBar" style="display:none; margin-top:1rem; gap:.75rem; flex-wrap:wrap;">
           <button class="btn btn--primary" onclick="confirmLote()">
-            <i class="fa-solid fa-check"></i> Confirmar y guardar
+            <i data-lucide="check"></i> Confirmar y guardar
           </button>
           <button class="btn btn--outline" onclick="cancelSetup()">
-            <i class="fa-solid fa-times"></i> Cancelar
+            <i data-lucide="x"></i> Cancelar
           </button>
         </div>
         {% else %}
         <!-- Fallback manual form -->
-        <div class="card">
+        <div class="setup-panel">
           <h3 style="font-family:var(--ff-heading); margin-bottom:1.25rem; color:var(--txt);">
-            <i class="fa-solid fa-seedling" style="color:var(--clr-500);"></i> Datos del lote
+            <i data-lucide="sprout" style="color:var(--clr-500);"></i> Datos del lote
           </h3>
           <form method="POST" action="{{ url_for('setup_lote_confirmar') }}" id="loteForm">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
             <!-- SECCIÓN 1: Identificación del lote -->
             <div style="margin-bottom:1.5rem;">
-              <p style="font-size:.78rem; font-weight:700; color:var(--clr-600); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.75rem; border-bottom:2px solid var(--clr-100); padding-bottom:.4rem;">
-                <i class="fa-solid fa-map-location-dot"></i> Información del lote
+              <p class="setup-section-divider">
+                <i data-lucide="map-pinned"></i> Información del lote
               </p>
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
                 <div>
@@ -141,8 +141,8 @@
 
             <!-- SECCIÓN 2: Propietario -->
             <div style="margin-bottom:1.5rem;">
-              <p style="font-size:.78rem; font-weight:700; color:var(--clr-600); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.75rem; border-bottom:2px solid var(--clr-100); padding-bottom:.4rem;">
-                <i class="fa-solid fa-user-tie"></i> Propietario / Dueño
+              <p class="setup-section-divider">
+                <i data-lucide="user-round"></i> Propietario / Dueño
               </p>
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
                 <div>
@@ -175,8 +175,8 @@
 
             <!-- SECCIÓN 3: Administrador (opcional) -->
             <div style="margin-bottom:1.5rem;">
-              <p style="font-size:.78rem; font-weight:700; color:var(--clr-600); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.75rem; border-bottom:2px solid var(--clr-100); padding-bottom:.4rem;">
-                <i class="fa-solid fa-user-gear"></i> Administrador del lote <span style="font-weight:400;font-size:.75rem;color:var(--txt-muted)">(opcional, si es distinto al propietario)</span>
+              <p class="setup-section-divider">
+                <i data-lucide="user-cog"></i> Administrador del lote <span style="font-weight:400;font-size:.75rem;color:var(--txt-muted)">(opcional, si es distinto al propietario)</span>
               </p>
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
                 <div>
@@ -200,8 +200,8 @@
 
             <!-- SECCIÓN 4: Parámetros operativos -->
             <div style="margin-bottom:1.5rem;">
-              <p style="font-size:.78rem; font-weight:700; color:var(--clr-600); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.75rem; border-bottom:2px solid var(--clr-100); padding-bottom:.4rem;">
-                <i class="fa-solid fa-sliders"></i> Parámetros operativos
+              <p class="setup-section-divider">
+                <i data-lucide="sliders-horizontal"></i> Parámetros operativos
               </p>
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
                 <div>
@@ -223,7 +223,7 @@
             </div>
 
             <button type="submit" class="btn btn--primary" style="margin-top:.5rem;">
-              <i class="fa-solid fa-check"></i> Crear lote
+              <i data-lucide="check"></i> Crear lote
             </button>
           </form>
         </div>
@@ -231,21 +231,21 @@
       </div>
 
       <!-- Fields panel -->
-      <div class="card" style="padding:1rem;" id="fieldsPanel">
+      <div class="setup-side-card" id="fieldsPanel">
         <p style="font-size:.8rem; font-weight:700; color:var(--txt-muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:.75rem;">
-          <i class="fa-solid fa-clipboard-list"></i> Campos detectados
+          <i data-lucide="clipboard-list"></i> Campos detectados
         </p>
         <div id="fieldsList" style="display:flex; flex-direction:column; gap:.4rem;">
-          <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Nombre del lote</span>
-          <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Propietario</span>
-          <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Doc. propietario</span>
-          <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Tel. propietario</span>
-          <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Correo propietario</span>
-          <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Hectáreas</span>
-          <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Ubicación</span>
-          <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Vereda</span>
-          <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Tipo tenencia</span>
-          <span class="field-tag field-tag--pending"><i class="fa-solid fa-circle-dot"></i> Meta de cargas</span>
+          <span class="field-tag field-tag--pending"><i data-lucide="dot"></i> Nombre del lote</span>
+          <span class="field-tag field-tag--pending"><i data-lucide="dot"></i> Propietario</span>
+          <span class="field-tag field-tag--pending"><i data-lucide="dot"></i> Doc. propietario</span>
+          <span class="field-tag field-tag--pending"><i data-lucide="dot"></i> Tel. propietario</span>
+          <span class="field-tag field-tag--pending"><i data-lucide="dot"></i> Correo propietario</span>
+          <span class="field-tag field-tag--pending"><i data-lucide="dot"></i> Hectáreas</span>
+          <span class="field-tag field-tag--pending"><i data-lucide="dot"></i> Ubicación</span>
+          <span class="field-tag field-tag--pending"><i data-lucide="dot"></i> Vereda</span>
+          <span class="field-tag field-tag--pending"><i data-lucide="dot"></i> Tipo tenencia</span>
+          <span class="field-tag field-tag--pending"><i data-lucide="dot"></i> Meta de cargas</span>
         </div>
       </div>
     </div>
@@ -303,11 +303,13 @@ function updateFieldsPanel(fields) {
   Object.keys(labels).forEach(function(k) {
     const tag = document.createElement('span');
     const done = fields[k] !== undefined && fields[k] !== null && fields[k] !== '';
+    const icon = done ? 'circle-check-big' : 'dot';
     tag.className = 'field-tag ' + (done ? 'field-tag--done' : 'field-tag--pending');
-    tag.innerHTML = '<i class="fa-solid ' + (done ? 'fa-check-circle' : 'fa-circle-dot') + '"></i> ' + labels[k];
+    tag.innerHTML = '<i data-lucide="' + icon + '"></i> ' + labels[k];
     if (done) tag.title = String(fields[k]);
     container.appendChild(tag);
   });
+  if (window.renderLucideIcons) window.renderLucideIcons();
 }
 
 async function sendMessage() {

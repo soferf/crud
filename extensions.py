@@ -3,10 +3,10 @@ extensions.py — Instancia central de Flask.
 Importar desde aquí en todos los módulos de rutas para evitar importaciones circulares.
 """
 import os
-from datetime import timedelta
-from flask import Flask, session, redirect, url_for as _url_for
+from datetime import timedelta, datetime
+from flask import Flask, session, redirect, request, url_for as _url_for
 from flask_wtf.csrf import CSRFProtect, CSRFError
-from config import SECRET_KEY, PERMANENT_SESSION_LIFETIME, UPLOAD_FOLDER
+from config import SECRET_KEY, PERMANENT_SESSION_LIFETIME, UPLOAD_FOLDER, SESSION_IDLE_MINUTES
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
@@ -29,6 +29,22 @@ csrf = CSRFProtect(app)
 @app.before_request
 def _make_session_permanent():
     session.permanent = True
+
+
+# ── Hardening: cierre de sesión por inactividad ───────────────────────────────
+@app.before_request
+def _enforce_idle_timeout():
+    # Solo aplica a usuarios autenticados; no interferir con estáticos.
+    if request.endpoint == 'static' or 'user_id' not in session:
+        return
+    now = datetime.utcnow().timestamp()
+    last = session.get('last_seen')
+    if last is not None and (now - last) > SESSION_IDLE_MINUTES * 60:
+        session.clear()
+        return redirect(_url_for('home', form='login',
+                                 message='Tu sesión se cerró por inactividad. Inicia sesión de nuevo.',
+                                 type='warning'))
+    session['last_seen'] = now
 
 # ── CSRF error handler — redirect instead of raw 400 Bad Request ──────────────
 @app.errorhandler(CSRFError)

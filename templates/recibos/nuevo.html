@@ -6,18 +6,18 @@
 {% block content %}
 <div class="page-hero">
   <div class="container page-hero__inner">
-    <div class="page-hero__icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+    <div class="page-hero__icon"><i data-lucide="receipt-text"></i></div>
     <div>
       <h1 class="page-hero__title">{{ page_title or 'Nuevo Recibo' }}</h1>
       <p class="page-hero__sub">{{ page_subtitle or 'Registra un pago. El serial se asigna según la fecha.' }}</p>
     </div>
     <div class="page-hero__actions">
       <a href="{{ back_url or url_for('lista_recibos') }}" class="button button--ghost">
-        <i class="fa-solid fa-list"></i> Ver recibos
+        <i data-lucide="list"></i> Ver recibos
       </a>
       {% if page_mode != 'edit' %}
       <a href="{{ url_for('nuevo_recibo_lote') }}" class="button button--ghost">
-        <i class="fa-solid fa-users-between-lines"></i> Por lote
+        <i data-lucide="users-round"></i> Por lote
       </a>
       {% endif %}
     </div>
@@ -28,18 +28,18 @@
   <div class="container" style="max-width:860px;">
 
     {% if success %}
-    <div class="alert alert--success"><i class="fa-solid fa-circle-check"></i> {{ success }}</div>
+    <div class="alert alert--success"><i data-lucide="circle-check-big"></i> {{ success }}</div>
     {% endif %}
     {% if error %}
-    <div class="alert alert--danger"><i class="fa-solid fa-circle-xmark"></i> {{ error }}</div>
+    <div class="alert alert--danger"><i data-lucide="circle-x"></i> {{ error }}</div>
     {% endif %}
 
     {% if warning %}
     <div class="alert alert--warning" id="warningAlert">
-      <i class="fa-solid fa-triangle-exclamation"></i> {{ warning }}
+      <i data-lucide="triangle-alert"></i> {{ warning }}
       <div style="margin-top:.6rem;display:flex;gap:.6rem;flex-wrap:wrap;">
         <button type="button" class="button button--sm button--primary" id="btnForceGuardar">
-          <i class="fa-solid fa-floppy-disk"></i> Guardar de todas formas
+          <i data-lucide="save"></i> Guardar de todas formas
         </button>
         <button type="button" class="button button--sm button--ghost-dark"
                 onclick="document.getElementById('warningAlert').style.display='none'">
@@ -52,7 +52,7 @@
     <!-- Buscador de trabajadores -->
     <div class="trabajador-search-box">
       <label class="search-label">
-        <i class="fa-solid fa-magnifying-glass"></i> Buscar trabajador por nombre o apodo
+        <i data-lucide="search"></i> Buscar trabajador por nombre o apodo
       </label>
       <div class="search-input-wrap">
         <input type="text" id="buscarTrabajador"
@@ -70,7 +70,7 @@
       <!-- SECCIÓN 1: Identificación -->
       <div class="form-section">
         <h3 class="form-section__title">
-          <i class="fa-solid fa-hashtag"></i> Identificación del recibo
+          <i data-lucide="hash"></i> Identificación del recibo
         </h3>
         <div class="form-grid form-grid--3">
           <div class="form-group">
@@ -90,7 +90,7 @@
       <!-- SECCIÓN 2: Proveedor -->
       <div class="form-section">
         <h3 class="form-section__title">
-          <i class="fa-solid fa-user-tie"></i> Proveedor / Trabajador
+          <i data-lucide="user-round-search"></i> Proveedor / Trabajador
         </h3>
         <div class="form-grid form-grid--2">
           <div class="form-group">
@@ -129,21 +129,21 @@
       <!-- SECCIÓN 3: Conceptos y Valores (hasta 7 líneas) -->
       <div class="form-section">
         <h3 class="form-section__title">
-          <i class="fa-solid fa-file-lines"></i> Conceptos y valores
+          <i data-lucide="files"></i> Conceptos y valores
         </h3>
         <p class="field-hint" style="margin-bottom:.8rem">
-          <i class="fa-solid fa-circle-info"></i>
+          <i data-lucide="circle-help"></i>
           Cada recibo puede tener hasta 7 líneas de concepto con su propio valor. El subtotal se calcula automáticamente.
-          <br><span style="color:#c0392b"><i class="fa-solid fa-circle-xmark"></i> No registrar compras de aceite ni ACPM directo.</span>
+          <br><span style="color:#c0392b"><i data-lucide="circle-x"></i> No registrar compras de aceite ni ACPM directo.</span>
         </p>
 
         <!-- Panel de conceptos rápidos (aparece al seleccionar trabajador) -->
         <div id="conceptosRapidosPanel" class="crp-panel" style="display:none">
           <div class="crp-header">
-            <i class="fa-solid fa-bolt-lightning"></i>
+            <i data-lucide="zap"></i>
             Conceptos frecuentes de <strong id="crpNombre">—</strong>
             <button type="button" class="crp-close" onclick="document.getElementById('conceptosRapidosPanel').style.display='none'" title="Cerrar">
-              <i class="fa-solid fa-xmark"></i>
+              <i data-lucide="x"></i>
             </button>
           </div>
           <p class="crp-hint">Haz clic para agregar al recibo. Puedes editar el texto después.</p>
@@ -174,7 +174,7 @@
                    oninput="formatValorInput(this); recalcSubtotal()">
             {% if i > 1 %}
             <button type="button" class="cr-remove" onclick="removeRow({{ i }})" title="Quitar línea">
-              <i class="fa-solid fa-xmark"></i>
+              <i data-lucide="x"></i>
             </button>
             {% else %}
             <span class="cr-remove cr-remove--ph"></span>
@@ -185,7 +185,7 @@
 
         <div class="conceptos-footer">
           <button type="button" id="addLineaBtn" class="button button--sm button--outline-green" onclick="addLinea()">
-            <i class="fa-solid fa-circle-plus"></i> Agregar concepto
+            <i data-lucide="circle-plus"></i> Agregar concepto
           </button>
           <div class="subtotal-box">
             <span class="subtotal-label">Subtotal operación:</span>
@@ -197,7 +197,7 @@
         <div class="rte-neto-box">
           <div class="rte-row">
             <label for="rte_fte" class="rte-label">
-              <i class="fa-solid fa-percent"></i> RTE FTE (Retención en la Fuente)
+              <i data-lucide="badge-percent"></i> RTE FTE (Retención en la Fuente)
               <span class="field-hint--inline">Opcional — se descuenta del subtotal</span>
             </label>
             <div class="rte-inputs">
@@ -216,7 +216,7 @@
           </div>
           <div class="neto-row">
             <label for="neto_a_pagar" class="neto-label">
-              <i class="fa-solid fa-hand-holding-dollar"></i> Neto a pagar (COP)
+              <i data-lucide="hand-coins"></i> Neto a pagar (COP)
             </label>
             <input type="text" id="neto_a_pagar" name="neto_a_pagar"
                    value="{{ form_data.get('neto_a_pagar','') if form_data else '' }}"
@@ -231,8 +231,8 @@
       <!-- SECCIÓN 4: Calculadora de jornales (colapsable) -->
       <div class="form-section form-section--collapsible" id="calcSection">
         <button type="button" class="form-section__toggle" onclick="toggleCalc()">
-          <i class="fa-solid fa-calculator"></i> Calculadora de jornales
-          <i class="fa-solid fa-chevron-down toggle-icon" id="calcIcon"></i>
+          <i data-lucide="calculator"></i> Calculadora de jornales
+          <i data-lucide="chevron-down" class="toggle-icon" id="calcIcon"></i>
         </button>
         <div class="calc-body" id="calcBody" style="display:none;">
           <p class="field-hint" style="margin-bottom:1rem">
@@ -257,7 +257,7 @@
             <span class="calc-result__label">Resultado:</span>
             <span class="calc-result__valor" id="calcValor">—</span>
             <button type="button" class="button button--sm button--primary" onclick="aplicarCalculo()">
-              <i class="fa-solid fa-arrow-right"></i> Aplicar al valor
+              <i data-lucide="arrow-right"></i> Aplicar al valor
             </button>
           </div>
         </div>
@@ -265,10 +265,10 @@
 
       <div class="form-actions">
         <button type="submit" class="button button--primary">
-          <i class="fa-solid fa-floppy-disk"></i> {{ submit_label or 'Guardar recibo' }}
+          <i data-lucide="save"></i> {{ submit_label or 'Guardar recibo' }}
         </button>
         <a href="{{ back_url or url_for('lista_recibos') }}" class="button button--ghost-dark">
-          <i class="fa-solid fa-list"></i> {{ back_label or 'Ver todos los recibos' }}
+          <i data-lucide="list"></i> {{ back_label or 'Ver todos los recibos' }}
         </a>
       </div>
     </form>
@@ -387,8 +387,9 @@ function updateAddBtn() {
   if (btn) {
     btn.disabled = activeRows >= MAX_ROWS;
     btn.innerHTML = activeRows >= MAX_ROWS
-      ? '<i class="fa-solid fa-circle-check"></i> 7/7 conceptos'
-      : `<i class="fa-solid fa-circle-plus"></i> Agregar concepto (${activeRows}/${MAX_ROWS})`;
+      ? '<i data-lucide="circle-check-big"></i> 7/7 conceptos'
+      : `<i data-lucide="circle-plus"></i> Agregar concepto (${activeRows}/${MAX_ROWS})`;
+    if (window.renderLucideIcons) window.renderLucideIcons();
   }
 }
 
@@ -438,12 +439,13 @@ function showConceptosRapidos(t) {
       ? `<span class="crp-val">$${formatCOP(cp.valor_base)}</span>` : '';
     // Show short ID + valor, full description in tooltip
     const shortLabel = cp.id.replace(/_/g,' ');
-    btn.innerHTML = `<i class="fa-solid fa-file-lines"></i> ${shortLabel} ${valText}`;
+    btn.innerHTML = `<i data-lucide="files"></i> ${shortLabel} ${valText}`;
     btn.title = cp.descripcion;
     btn.addEventListener('click', () => fillNextConcepto(cp));
     chips.appendChild(btn);
   });
   panel.style.display = 'block';
+  if (window.renderLucideIcons) window.renderLucideIcons();
 }
 
 function fillNextConcepto(cp) {

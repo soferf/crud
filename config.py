@@ -54,6 +54,12 @@ AUTH_SEND_LOGIN_ALERT = os.environ.get('AUTH_SEND_LOGIN_ALERT', 'true').lower() 
 AUTH_CODE_TTL_MINUTES = 10
 AUTH_CODE_MAX_ATTEMPTS = 5
 
+# ── Hardening ─────────────────────────────────────────────────────────────────
+MAX_LOGIN_ATTEMPTS   = int(os.environ.get('MAX_LOGIN_ATTEMPTS', '5'))
+LOCKOUT_MINUTES      = int(os.environ.get('LOCKOUT_MINUTES', '15'))
+SESSION_IDLE_MINUTES = int(os.environ.get('SESSION_IDLE_MINUTES', '30'))
+RECOVERY_CODES_COUNT = int(os.environ.get('RECOVERY_CODES_COUNT', '10'))
+
 # ── Trabajadores ──────────────────────────────────────────────────────────────
 WORKER_OPTIONS = [
     'administrador', 'agronomo', 'bombero', 'despalillador',

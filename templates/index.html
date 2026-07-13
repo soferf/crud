@@ -19,6 +19,7 @@
 
   <!-- App CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 
   <style>
     /* === LANDING ENHANCEMENTS === */
@@ -170,8 +171,9 @@
       .footer-bottom { flex-direction: column; gap: var(--s3); text-align: center; }
     }
   </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/redesign.css') }}">
 </head>
-<body>
+<body class="landing-body">
 
 <!-- TOPBAR -->
 <header class="topbar">
@@ -254,14 +256,14 @@
 
       {% if logged_in %}
       <article class="auth-card auth-card--logged">
-        <h3><i class="fa-solid fa-circle-check"></i> Bienvenido, {{ user_name }}</h3>
+        <h3><i data-lucide="circle-check-big"></i> Bienvenido, {{ user_name }}</h3>
         <p>Tu sesion esta activa. Gestiona recibos, trabajadores, produccion y reportes desde el panel.</p>
         <div class="hero__actions auth-actions">
           <a class="button button--primary" href="{{ url_for('dashboard') }}">
-            <i class="fa-solid fa-gauge"></i> Ir al Dashboard
+            <i data-lucide="layout-dashboard"></i> Ir al Dashboard
           </a>
           <a class="button button--ghost" href="{{ url_for('logout') }}">
-            <i class="fa-solid fa-right-from-bracket"></i> Cerrar sesion
+            <i data-lucide="log-out"></i> Cerrar sesion
           </a>
         </div>
       </article>
@@ -293,7 +295,7 @@
             <button class="auth-link" type="button" data-open="forgot">Olvide mi contrasena</button>
           </div>
           <button class="button button--primary auth-submit" type="submit">
-            <i class="fa-solid fa-right-to-bracket"></i> Entrar
+            <i data-lucide="log-in"></i> Entrar
           </button>
         </form>
 
@@ -324,8 +326,25 @@
                  required data-rule="confirm-password" data-password-source="signup-password">
           <p class="field-message" data-for="signup-confirm"></p>
           <button class="button button--primary auth-submit" type="submit">
-            <i class="fa-solid fa-user-plus"></i> Crear cuenta
+            <i data-lucide="user-plus"></i> Crear cuenta
           </button>
+        </form>
+
+        <!-- SIGNUP CONFIRM — el usuario autoriza el envío del código -->
+        <form class="auth-form {% if active_form == 'signup_confirm' %}is-active{% endif %}" data-form="signup_confirm" method="post" action="{{ url_for('send_signup_code') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <h3>Confirma tu correo</h3>
+          <div class="auth-inline-alert" aria-live="polite"></div>
+          <p class="auth-help">Por seguridad, el código de verificación solo se envía cuando tú lo solicitas.</p>
+          <div class="config-info-box" style="margin:0 0 1rem">
+            <i data-lucide="mail-check"></i>
+            <div>Enviaremos un código de 6 dígitos a:<br>
+              <strong>{{ form_data.signup_confirm.email if form_data else '' }}</strong></div>
+          </div>
+          <button class="button button--primary auth-submit" type="submit">
+            <i data-lucide="send"></i> Enviar código a mi correo
+          </button>
+          <button class="auth-link auth-link--center" type="button" data-open="signup">Corregir mis datos</button>
         </form>
 
         <!-- SIGNUP CODE -->
@@ -343,8 +362,9 @@
                  placeholder="000000" value="{{ form_data.signup_code.code if form_data else '' }}" required data-rule="code6">
           <p class="field-message" data-for="signup-code"></p>
           <button class="button button--primary auth-submit" type="submit">
-            <i class="fa-solid fa-shield-check"></i> Validar codigo
+            <i data-lucide="shield-check"></i> Validar codigo
           </button>
+          <button class="auth-link auth-link--center" type="submit" formaction="{{ url_for('send_signup_code') }}" formnovalidate>Reenviar código</button>
           <button class="auth-link auth-link--center" type="button" data-open="signup">Volver a crear cuenta</button>
         </form>
 
@@ -359,8 +379,9 @@
                  value="{{ form_data.forgot.email if form_data else '' }}" required data-rule="email">
           <p class="field-message" data-for="forgot-email"></p>
           <button class="button button--primary auth-submit" type="submit">
-            <i class="fa-solid fa-paper-plane"></i> Enviar solicitud
+            <i data-lucide="send"></i> Enviar solicitud
           </button>
+          <button class="auth-link auth-link--center" type="button" data-open="recover_code">Tengo un código de recuperación</button>
           <button class="auth-link auth-link--center" type="button" data-open="login">Volver a iniciar sesion</button>
         </form>
 
@@ -392,9 +413,43 @@
                  required data-rule="confirm-password" data-password-source="reset-code-password">
           <p class="field-message" data-for="reset-code-confirm"></p>
           <button class="button button--primary auth-submit" type="submit">
-            <i class="fa-solid fa-key"></i> Cambiar contrasena
+            <i data-lucide="key-round"></i> Cambiar contrasena
           </button>
           <button class="auth-link auth-link--center" type="button" data-open="forgot">Solicitar otro codigo</button>
+        </form>
+
+        <!-- RECOVER CODE — recuperación con código del .zip -->
+        <form class="auth-form {% if active_form == 'recover_code' %}is-active{% endif %}" data-form="recover_code" method="post" action="{{ url_for('recover_with_code') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <h3>Recuperar con código</h3>
+          <div class="auth-inline-alert" aria-live="polite"></div>
+          <p class="auth-help">Usa uno de los códigos de recuperación de tu respaldo (.zip) si perdiste acceso al correo.</p>
+          <label for="recover-email">Correo electronico</label>
+          <input id="recover-email" type="email" name="email" placeholder="correo@ejemplo.com"
+                 value="{{ form_data.recover_code.email if form_data else '' }}" required data-rule="email">
+          <p class="field-message" data-for="recover-email"></p>
+          <label for="recover-code">Código de recuperación</label>
+          <input id="recover-code" type="text" name="code" maxlength="11" autocomplete="off"
+                 placeholder="XXXXX-XXXXX" value="{{ form_data.recover_code.code if form_data else '' }}" required
+                 style="text-transform:uppercase;letter-spacing:1px">
+          <p class="field-message" data-for="recover-code"></p>
+          <label for="recover-password">Nueva contrasena</label>
+          <input id="recover-password" type="password" name="password" placeholder="Minimo 8 caracteres" required data-rule="password">
+          <p class="field-message" data-for="recover-password"></p>
+          <ul class="field-rules" data-rules-for="recover-password">
+            <li data-check="length">Minimo 8 caracteres</li>
+            <li data-check="upper">Al menos una mayuscula</li>
+            <li data-check="lower">Al menos una minuscula</li>
+            <li data-check="digit">Al menos un numero</li>
+          </ul>
+          <label for="recover-confirm">Confirmar nueva contrasena</label>
+          <input id="recover-confirm" type="password" name="confirm_password" placeholder="Repite la contrasena"
+                 required data-rule="confirm-password" data-password-source="recover-password">
+          <p class="field-message" data-for="recover-confirm"></p>
+          <button class="button button--primary auth-submit" type="submit">
+            <i data-lucide="key-round"></i> Recuperar acceso
+          </button>
+          <button class="auth-link auth-link--center" type="button" data-open="login">Volver a iniciar sesion</button>
         </form>
       </article>
       {% endif %}
@@ -860,6 +915,17 @@ const mainSwiper = new Swiper('.swiper-main', {
   }
   document.querySelectorAll('input[type="email"]').forEach(initEmailSuggest);
 })();
+</script>
+<script>
+  if (window.lucide && window.lucide.createIcons) {
+    window.lucide.createIcons({
+      attrs: {
+        width: 18,
+        height: 18,
+        'stroke-width': 2
+      }
+    });
+  }
 </script>
 </body>
 </html>

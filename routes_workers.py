@@ -38,7 +38,7 @@ def _is_safe_image(file_stream) -> bool:
             or header[:4] in {b'RIFF'} and b'WEBP' in header)
 
 
-def _save_upload(file_obj) -> str | None:
+def _save_upload(file_obj):
     """Validate and save an uploaded image; return the stored filename or None."""
     if not file_obj or not file_obj.filename:
         return None

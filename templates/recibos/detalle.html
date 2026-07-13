@@ -6,7 +6,10 @@
   <div class="container page-hero__inner">
     <div class="page-hero__icon"><i class="fa-solid fa-file-invoice"></i></div>
     <div>
-      <h1 class="page-hero__title">Recibo #{{ recibo.serial }}</h1>
+      <h1 class="page-hero__title">
+        Recibo #{{ recibo.serial }}
+        <span class="recibo-status-badge">Emitido</span>
+      </h1>
       <p class="page-hero__sub">
         {{ recibo.fecha.strftime('%d/%m/%Y') if recibo.fecha else 'Sin fecha' }}
         &nbsp;&middot;&nbsp; {{ recibo.proveedor }}

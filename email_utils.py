@@ -216,3 +216,51 @@ def render_reset_code_email(full_name: str, code: str) -> str:
         body_html=body,
         notes_html=notes,
     )
+
+
+def render_backup_alert_email(full_name: str, lote_nombre: str, when_text: str) -> str:
+    body = (
+        "<p style='margin:0 0 12px;'>"
+        "Se genero y descargo un respaldo de recuperacion cifrado de tu cuenta."
+        "</p>"
+        f"<p style='margin:0 0 12px;'><strong>Lote:</strong> {lote_nombre}</p>"
+        f"<p style='margin:0 0 12px;'><strong>Fecha y hora:</strong> {when_text}</p>"
+        "<p style='margin:0 0 12px;'>El respaldo incluye nuevos codigos de recuperacion; "
+        "los codigos anteriores quedaron invalidados.</p>"
+    )
+    notes = (
+        "<div style='border:1px solid #f4c842;background:#fff9e9;border-radius:10px;padding:12px 14px;'>"
+        "<p style='margin:0;color:#7a5a00;font-size:12px;line-height:1.6;'>"
+        "Si no realizaste esta accion, cambia tu contrasena de inmediato."
+        "</p></div>"
+    )
+    return _build_email(
+        title="Respaldo de recuperacion generado",
+        preheader="Se descargo un respaldo cifrado de tu cuenta.",
+        greeting=f"Hola, {full_name}",
+        body_html=body,
+        notes_html=notes,
+    )
+
+
+def render_recovery_codes_email(full_name: str, when_text: str) -> str:
+    body = (
+        "<p style='margin:0 0 12px;'>"
+        "Se generaron nuevos codigos de recuperacion para tu cuenta. "
+        "Los codigos anteriores ya no son validos."
+        "</p>"
+        f"<p style='margin:0 0 12px;'><strong>Fecha y hora:</strong> {when_text}</p>"
+    )
+    notes = (
+        "<div style='border:1px solid #f4c842;background:#fff9e9;border-radius:10px;padding:12px 14px;'>"
+        "<p style='margin:0;color:#7a5a00;font-size:12px;line-height:1.6;'>"
+        "Si no realizaste esta accion, cambia tu contrasena de inmediato."
+        "</p></div>"
+    )
+    return _build_email(
+        title="Codigos de recuperacion actualizados",
+        preheader="Se regeneraron los codigos de recuperacion de tu cuenta.",
+        greeting=f"Hola, {full_name}",
+        body_html=body,
+        notes_html=notes,
+    )

@@ -21,6 +21,7 @@ import routes_presupuesto # noqa: F401
 import routes_config      # noqa: F401
 import routes_ai          # noqa: F401
 import routes_ahorro      # noqa: F401
+import routes_humedad     # noqa: F401
 
 if __name__ == '__main__':
     import os
@@ -29,4 +30,7 @@ if __name__ == '__main__':
     init_templates()
     init_database()
     debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
-    app.run(debug=debug_mode)
+    # En macOS el puerto 5000 lo ocupa el receptor de AirPlay (Control Center),
+    # así que usamos 8000 por defecto. Configurable con la variable PORT.
+    port = int(os.environ.get('PORT', '8000'))
+    app.run(host='127.0.0.1', port=port, debug=debug_mode)

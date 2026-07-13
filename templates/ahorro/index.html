@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-hero">
   <div class="container page-hero__inner">
-    <div class="page-hero__icon"><i class="fa-solid fa-piggy-bank"></i></div>
+    <div class="page-hero__icon"><i data-lucide="piggy-bank"></i></div>
     <div>
       <h1 class="page-hero__title">Ahorro</h1>
       <p class="page-hero__sub">Registra y consulta los ahorros del lote.</p>
@@ -16,16 +16,16 @@
   <div class="container" style="max-width:760px;">
 
     {% if message %}
-    <div class="alert alert--success"><i class="fa-solid fa-circle-check"></i> {{ message }}</div>
+    <div class="alert alert--success"><i data-lucide="circle-check-big"></i> {{ message }}</div>
     {% endif %}
     {% if error %}
-    <div class="alert alert--danger"><i class="fa-solid fa-circle-xmark"></i> {{ error }}</div>
+    <div class="alert alert--danger"><i data-lucide="circle-x"></i> {{ error }}</div>
     {% endif %}
 
     <!-- Formulario -->
     <div class="form-card" style="margin-bottom:2rem;">
       <div class="form-section">
-        <h3 class="form-section__title"><i class="fa-solid fa-plus"></i> Nuevo ahorro</h3>
+        <h3 class="form-section__title"><i data-lucide="hand-coins"></i> Nuevo ahorro</h3>
         <form method="POST" action="{{ url_for('ahorro_index') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="form-grid form-grid--3">
@@ -47,7 +47,7 @@
           </div>
           <div style="margin-top:1.2rem;">
             <button type="submit" class="button button--primary">
-              <i class="fa-solid fa-floppy-disk"></i> Guardar
+              <i data-lucide="save"></i> Guardar
             </button>
           </div>
         </form>
@@ -58,7 +58,7 @@
     {% if registros %}
     <div class="form-card">
       <div class="form-section">
-        <h3 class="form-section__title"><i class="fa-solid fa-clock-rotate-left"></i> Últimos registros</h3>
+        <h3 class="form-section__title"><i data-lucide="history"></i> Últimos registros</h3>
         <div class="table-wrap">
           <table class="data-table">
             <thead>
@@ -83,7 +83,7 @@
     </div>
     {% else %}
     <div class="empty-state">
-      <i class="fa-solid fa-piggy-bank empty-state__icon"></i>
+      <i data-lucide="piggy-bank" class="empty-state__icon"></i>
       <p>Aún no hay registros de ahorro.</p>
     </div>
     {% endif %}

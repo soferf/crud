@@ -4,14 +4,14 @@
 {% block content %}
 <div class="page-hero">
   <div class="container page-hero__inner">
-    <div class="page-hero__icon"><i class="fa-solid fa-user-pen"></i></div>
+    <div class="page-hero__icon"><i data-lucide="user-cog"></i></div>
     <div>
       <h1 class="page-hero__title">Editar Trabajador</h1>
       <p class="page-hero__sub">{{ worker.name }} {{ worker.lastname }}</p>
     </div>
     <div class="page-hero__actions">
       <a href="{{ url_for('lista_workers') }}" class="button button--ghost">
-        <i class="fa-solid fa-arrow-left"></i> Volver
+        <i data-lucide="arrow-left"></i> Volver
       </a>
     </div>
   </div>
@@ -21,10 +21,10 @@
   <div class="container" style="max-width:820px">
 
     {% if message %}
-    <div class="alert alert--success"><i class="fa-solid fa-circle-check"></i> {{ message }}</div>
+    <div class="alert alert--success"><i data-lucide="circle-check-big"></i> {{ message }}</div>
     {% endif %}
     {% if error %}
-    <div class="alert alert--danger"><i class="fa-solid fa-circle-xmark"></i> {{ error }}</div>
+    <div class="alert alert--danger"><i data-lucide="circle-x"></i> {{ error }}</div>
     {% endif %}
 
     <form method="POST" enctype="multipart/form-data" class="form-card">
@@ -32,13 +32,13 @@
 
       <!-- Foto actual + nueva -->
       <div class="form-section">
-        <h3 class="form-section__title"><i class="fa-solid fa-image"></i> Foto del trabajador</h3>
+        <h3 class="form-section__title"><i data-lucide="image-up"></i> Foto del trabajador</h3>
         <div style="display:flex;gap:var(--s4);align-items:center;flex-wrap:wrap">
           <div class="worker-avatar worker-avatar--lg">
             {% if worker.foto %}
               <img id="fotoPreview" src="{{ url_for('uploaded_file', filename=worker.foto) }}" alt="{{ worker.name }}">
             {% else %}
-              <i class="fa-solid fa-user" id="fotoIcon"></i>
+              <i data-lucide="user" id="fotoIcon"></i>
               <img id="fotoPreview" src="" alt="" style="display:none">
             {% endif %}
           </div>
@@ -52,7 +52,7 @@
 
       <!-- Datos personales -->
       <div class="form-section">
-        <h3 class="form-section__title"><i class="fa-solid fa-id-card"></i> Datos personales</h3>
+        <h3 class="form-section__title"><i data-lucide="id-card"></i> Datos personales</h3>
         <div class="form-grid form-grid--2">
           <div class="form-group">
             <label>Nombre <span class="req-star">*</span></label>
@@ -92,7 +92,7 @@
 
       <!-- Datos laborales -->
       <div class="form-section">
-        <h3 class="form-section__title"><i class="fa-solid fa-briefcase"></i> Datos laborales</h3>
+        <h3 class="form-section__title"><i data-lucide="briefcase-business"></i> Datos laborales</h3>
         <div class="form-grid form-grid--2">
           <div class="form-group">
             <label>Cargo / Función</label>
@@ -132,7 +132,7 @@
 
       <!-- Estado -->
       <div class="form-section">
-        <h3 class="form-section__title"><i class="fa-solid fa-toggle-on"></i> Estado</h3>
+        <h3 class="form-section__title"><i data-lucide="toggle-right"></i> Estado</h3>
         <label class="toggle-label">
           <input type="checkbox" name="activo" id="activoToggle"
                  {{ 'checked' if worker.activo }} onchange="updateEstadoBadge(this)">
@@ -149,7 +149,7 @@
       <div class="form-actions">
         <a href="{{ url_for('lista_workers') }}" class="button button--ghost-dark">Cancelar</a>
         <button type="submit" class="button button--primary">
-          <i class="fa-solid fa-floppy-disk"></i> Guardar cambios
+          <i data-lucide="save"></i> Guardar cambios
         </button>
       </div>
     </form>

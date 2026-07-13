@@ -4,23 +4,23 @@
 {% block content %}
 <div class="page-hero">
   <div class="container page-hero__inner">
-    <div class="page-hero__icon"><i class="fa-solid fa-seedling"></i></div>
+    <div class="page-hero__icon"><i data-lucide="sprout"></i></div>
     <div>
       <h1 class="page-hero__title">Labor por Cantidad</h1>
       <p class="page-hero__sub">Abonada, fumigación, corta, carga — pago por bulto, hectárea u otra unidad.</p>
     </div>
     <div class="page-hero__actions">
-      <a href="{{ url_for('lista_recibos') }}" class="button button--ghost"><i class="fa-solid fa-list"></i> Ver recibos</a>
-      <a href="{{ url_for('nuevo_recibo') }}" class="button button--ghost"><i class="fa-solid fa-file-invoice-dollar"></i> Individual</a>
-      <a href="{{ url_for('nuevo_recibo_lote') }}" class="button button--ghost"><i class="fa-solid fa-users-between-lines"></i> Por lote</a>
-      <a href="{{ url_for('labores_desague') }}" class="button button--ghost"><i class="fa-solid fa-droplet"></i> Desagüe</a>
+      <a href="{{ url_for('lista_recibos') }}" class="button button--ghost"><i data-lucide="list"></i> Ver recibos</a>
+      <a href="{{ url_for('nuevo_recibo') }}" class="button button--ghost"><i data-lucide="receipt-text"></i> Individual</a>
+      <a href="{{ url_for('nuevo_recibo_lote') }}" class="button button--ghost"><i data-lucide="users-round"></i> Por lote</a>
+      <a href="{{ url_for('labores_desague') }}" class="button button--ghost"><i data-lucide="droplets"></i> Desagüe</a>
     </div>
   </div>
 </div>
 
 <section class="section"><div class="container">
-  {% if success %}<div class="alert alert--success"><i class="fa-solid fa-circle-check"></i> {{ success }}</div>{% endif %}
-  {% if error %}<div class="alert alert--danger"><i class="fa-solid fa-circle-xmark"></i> {{ error }}</div>{% endif %}
+  {% if success %}<div class="alert alert--success"><i data-lucide="circle-check-big"></i> {{ success }}</div>{% endif %}
+  {% if error %}<div class="alert alert--danger"><i data-lucide="circle-x"></i> {{ error }}</div>{% endif %}
 
   <form method="POST" id="abonadaForm">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -34,7 +34,9 @@
           <label class="labor-type-card">
             <input type="radio" name="tipo_labor" value="{{ key }}" {% if loop.first %}checked{% endif %}
                    onchange="updateUnidad(this.value)">
-            <span class="labor-type-card__icon"><i class="fa-solid {{ info.icon }}"></i></span>
+            <span class="labor-type-card__icon">
+              <i data-lucide="{% if key == 'abonada' %}package{% elif key == 'fumigacion' %}spray-can{% elif key == 'corta' %}scissors{% elif key == 'carga' %}truck{% else %}briefcase{% endif %}"></i>
+            </span>
             <span class="labor-type-card__label">{{ info.label }}</span>
           </label>
           {% endfor %}
@@ -108,7 +110,7 @@
                data-nombre-display="{{ w.nombre_completo }}"
                data-vhabitual="{{ w.valor_habitual or 13000 }}"
                onclick="toggleWorker(this)">
-            <i class="fa-solid fa-check worker-card-sel__check"></i>
+            <i data-lucide="check" class="worker-card-sel__check"></i>
             <div class="worker-card-sel__name">{{ w.nombre_completo }}</div>
             <span class="worker-card-sel__cargo">{{ (w.cargo or 'sin cargo')|replace('_',' ')|title }}</span>
           </div>
@@ -116,7 +118,7 @@
         </div>
         {% else %}
         <div class="empty-state" style="padding:var(--s12)">
-          <i class="fa-solid fa-user-plus empty-state__icon"></i>
+          <i data-lucide="user-plus" class="empty-state__icon"></i>
           <h3>No hay trabajadores activos</h3>
           <a href="{{ url_for('create_worker') }}" class="button button--primary">Registrar trabajador</a>
         </div>
@@ -144,7 +146,7 @@
             <input type="text" id="lc_resultado" readonly style="background:var(--bg-subtle);min-width:130px">
           </div>
           <button type="button" class="button button--primary button--sm" onclick="aplicarLoteCalc()">
-            <i class="fa-solid fa-bolt"></i> Aplicar a todos
+            <i data-lucide="zap"></i> Aplicar a todos
           </button>
         </div>
 
@@ -209,7 +211,7 @@
         <div style="display:flex;gap:var(--s3);justify-content:flex-end;margin-top:var(--s4)">
           <a href="{{ url_for('lista_recibos') }}" class="button button--ghost">Cancelar</a>
           <button type="submit" id="btnSubmitLote" class="button button--primary" disabled>
-            <i class="fa-solid fa-paper-plane"></i> Generar recibos
+            <i data-lucide="send"></i> Generar recibos
           </button>
         </div>
       </div>
@@ -285,8 +287,9 @@ function addWorkerRow(card) {
     <td><input type="text" class="pw-vpunt" id="vpunt_${id}" name="vpunt_w_${id}" value="${formatCOP(vhab)}"
          oninput="fmtPW(this);recalcWorkerRow('${id}')" style="width:115px"></td>
     <td class="text-right pw-total" id="ptotal_${id}" style="font-weight:600;color:var(--clr-700)">$ 0</td>
-    <td><button type="button" class="cr-remove" onclick="deselect('${id}')" title="Quitar"><i class="fa-solid fa-xmark"></i></button></td>`;
+    <td><button type="button" class="cr-remove" onclick="deselect('${id}')" title="Quitar"><i data-lucide="x"></i></button></td>`;
   document.getElementById('workerDetailRows').appendChild(row);
+  if (window.renderLucideIcons) window.renderLucideIcons();
   recalcWorkerRow(id);
 }
 

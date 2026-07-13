@@ -4,14 +4,14 @@
 {% block content %}
 <div class="page-hero">
   <div class="container page-hero__inner">
-    <div class="page-hero__icon"><i class="fa-solid fa-user-plus"></i></div>
+    <div class="page-hero__icon"><i data-lucide="user-round-plus"></i></div>
     <div>
       <h1 class="page-hero__title">Registrar Trabajador</h1>
       <p class="page-hero__sub">Completa los datos del trabajador. Los campos con <span style="color:var(--gold-300)">*</span> son obligatorios.</p>
     </div>
     <div class="page-hero__actions">
       <a href="{{ url_for('lista_workers') }}" class="button button--ghost">
-        <i class="fa-solid fa-list"></i> Ver trabajadores
+        <i data-lucide="list"></i> Ver trabajadores
       </a>
     </div>
   </div>
@@ -21,10 +21,10 @@
   <div class="container">
 
     {% if message %}
-    <div class="alert alert--success"><i class="fa-solid fa-circle-check"></i> {{ message }}</div>
+    <div class="alert alert--success"><i data-lucide="circle-check-big"></i> {{ message }}</div>
     {% endif %}
     {% if error %}
-    <div class="alert alert--danger"><i class="fa-solid fa-circle-xmark"></i> {{ error }}</div>
+    <div class="alert alert--danger"><i data-lucide="circle-x"></i> {{ error }}</div>
     {% endif %}
 
     <form method="POST" enctype="multipart/form-data" class="form-card">
@@ -32,14 +32,14 @@
 
       <!-- FOTO -->
       <div class="form-section">
-        <h3 class="form-section__title"><i class="fa-solid fa-camera"></i> Foto del Trabajador <span class="badge-optional">Opcional</span></h3>
+        <h3 class="form-section__title"><i data-lucide="camera"></i> Foto del Trabajador <span class="badge-optional">Opcional</span></h3>
         <div class="foto-upload-area" id="fotoArea">
           <div class="foto-preview" id="fotoPreview">
-            <i class="fa-solid fa-user-circle foto-placeholder-icon"></i>
+            <i data-lucide="circle-user-round" class="foto-placeholder-icon"></i>
           </div>
           <div class="foto-upload-controls">
             <label for="foto" class="button button--ghost button--sm">
-              <i class="fa-solid fa-upload"></i> Seleccionar foto
+              <i data-lucide="upload"></i> Seleccionar foto
             </label>
             <input type="file" id="foto" name="foto" accept=".jpg,.jpeg,.png,.webp" class="foto-input-hidden">
             <p class="foto-hint">JPG, PNG o WEBP · Máx. 5 MB</p>
@@ -49,7 +49,7 @@
 
       <!-- DATOS PERSONALES -->
       <div class="form-section">
-        <h3 class="form-section__title"><i class="fa-solid fa-id-card"></i> Datos Personales</h3>
+        <h3 class="form-section__title"><i data-lucide="id-card"></i> Datos Personales</h3>
         <div class="form-grid form-grid--2">
           <div class="form-group">
             <label for="name">Nombre <span class="req-star">*</span></label>
@@ -81,7 +81,7 @@
 
       <!-- UBICACIÓN -->
       <div class="form-section">
-        <h3 class="form-section__title"><i class="fa-solid fa-map-marker-alt"></i> Ubicación</h3>
+        <h3 class="form-section__title"><i data-lucide="map-pinned"></i> Ubicación</h3>
         <div class="form-grid form-grid--2">
           <div class="form-group">
             <label for="direccion">Dirección</label>
@@ -96,7 +96,7 @@
 
       <!-- TRABAJO -->
       <div class="form-section">
-        <h3 class="form-section__title"><i class="fa-solid fa-briefcase"></i> Información Laboral</h3>
+        <h3 class="form-section__title"><i data-lucide="briefcase-business"></i> Información Laboral</h3>
         <div class="form-grid form-grid--2">
           <div class="form-group">
             <label for="trabajo_desarrolla">Tipo de trabajo <span class="req-star">*</span></label>
@@ -134,10 +134,10 @@
 
       <div class="form-actions">
         <button type="submit" class="button button--primary">
-          <i class="fa-solid fa-floppy-disk"></i> Registrar trabajador
+          <i data-lucide="save"></i> Registrar trabajador
         </button>
         <a href="{{ url_for('lista_recibos') }}" class="button button--ghost-dark">
-          <i class="fa-solid fa-file-invoice-dollar"></i> Ir a recibos
+          <i data-lucide="receipt-text"></i> Ir a recibos
         </a>
       </div>
 

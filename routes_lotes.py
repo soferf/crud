@@ -42,14 +42,14 @@ def cambiar_lote(lote_id):
 def setup_lote_nuevo():
     if 'user_id' not in session:
         return auth_redirect('login', 'Inicia sesion para continuar.', 'warning')
-    from ai_service import AI_ENABLED, GPT4ALL_MODEL, ai_client as _ai_client
+    from ai_service import AI_ENABLED, GEMINI_MODEL, ai_client as _ai_client
     if AI_ENABLED:
         ok_ai, ai_msg = _ai_client.health_check()
     else:
         ok_ai, ai_msg = False, 'IA deshabilitada'
     return render_template('setup_lote.html',
                            user_name=session.get('user_name', 'Usuario'),
-                           ai_available=ok_ai, ai_message=ai_msg, ai_model=GPT4ALL_MODEL)
+                           ai_available=ok_ai, ai_message=ai_msg, ai_model=GEMINI_MODEL)
 
 
 @csrf.exempt

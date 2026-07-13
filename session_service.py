@@ -12,14 +12,16 @@ def auth_redirect(form, message, message_type='info'):
 
 
 def render_auth_page(form='login', message=None, message_type='info', form_data=None):
-    if form not in {'login', 'signup', 'forgot', 'signup_code', 'reset_code'}:
+    if form not in {'login', 'signup', 'forgot', 'signup_confirm', 'signup_code', 'reset_code', 'recover_code'}:
         form = 'login'
     safe_form_data = {
-        'login':       {'email': '', 'remember_me': False},
-        'signup':      {'full_name': '', 'email': ''},
-        'forgot':      {'email': ''},
-        'signup_code': {'email': '', 'code': ''},
-        'reset_code':  {'email': '', 'code': ''}
+        'login':          {'email': '', 'remember_me': False},
+        'signup':         {'full_name': '', 'email': ''},
+        'forgot':         {'email': ''},
+        'signup_confirm': {'email': '', 'full_name': ''},
+        'signup_code':    {'email': '', 'code': ''},
+        'reset_code':     {'email': '', 'code': ''},
+        'recover_code':   {'email': '', 'code': ''}
     }
     if form_data:
         for key, values in form_data.items():

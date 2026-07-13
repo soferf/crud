@@ -53,12 +53,13 @@
       <table class="data-table" id="recibosTable">
         <thead>
           <tr>
-            <th class="col-serial">Serial</th>
-            <th class="col-fecha">Fecha</th>
-            <th>Proveedor</th>
+        <th class="col-serial" data-sort="serial">Serial <i class="fa-solid fa-arrow-up sort-icon"></i></th>
+            <th class="col-fecha" data-sort="fecha">Fecha <i class="fa-solid fa-arrow-up sort-icon"></i></th>
+            <th data-sort="proveedor">Proveedor <i class="fa-solid fa-arrow-up sort-icon"></i></th>
             <th class="col-nit">NIT</th>
             <th class="col-concepto">Concepto</th>
-            <th class="col-valor">Neto a pagar</th>
+            <th class="col-valor" data-sort="valor">Neto a pagar <i class="fa-solid fa-arrow-up sort-icon"></i></th>
+            <th class="row-action-cell"></th>
           </tr>
         </thead>
         <tbody id="recibosBody">
@@ -68,7 +69,9 @@
               data-proveedor="{{ r.proveedor | lower }}"
               data-nit="{{ r.nit or '' }}"
               data-concepto="{{ r.concepto | lower }}"
-              data-valor="{{ r.neto_a_pagar or 0 }}">
+              data-valor="{{ r.neto_a_pagar or 0 }}"
+              data-serial="{{ r.serial }}"
+              data-fecha="{{ r.fecha.strftime('%Y%m%d') if r.fecha else '0' }}">
             <td><span class="serial-badge">{{ r.serial }}</span></td>
             <td class="txt-muted">{{ r.fecha.strftime('%d/%m/%Y') if r.fecha else '—' }}</td>
             <td><strong>{{ r.proveedor }}</strong></td>
@@ -79,12 +82,18 @@
                 <strong>$ {{ "{:,.0f}".format(r.neto_a_pagar).replace(",",".") }}</strong>
               {% else %}—{% endif %}
             </td>
+            <td class="row-action-cell">
+              <a href="{{ url_for('detalle_recibo', serial=r.serial) }}"
+                 class="row-action-btn" onclick="event.stopPropagation()" title="Ver detalle">
+                <i class="fa-solid fa-eye"></i>
+              </a>
+            </td>
           </tr>
           {% endfor %}
         </tbody>
         <tfoot>
           <tr class="table-foot" id="tableFoot">
-            <td colspan="5" style="text-align:right;font-weight:600;color:var(--txt-muted)">Total visible:</td>
+            <td colspan="6" style="text-align:right;font-weight:600;color:var(--txt-muted)">Total visible:</td>
             <td class="valor-cell" id="footTotal">
               $ {{ "{:,.0f}".format(recibos | sum(attribute='neto_a_pagar') if recibos else 0).replace(",",".") }}
             </td>
@@ -149,6 +158,41 @@
     const fmt = suma.toLocaleString('es-CO', {minimumFractionDigits:0, maximumFractionDigits:0});
     footTot.textContent = '$ ' + fmt;
     sumVis.textContent  = '$ ' + fmt;
+  });
+})();
+
+// ── Ordenamiento por columna ──────────────────────────────────────────────────
+(function() {
+  const headers = document.querySelectorAll('th[data-sort]');
+  const tbody   = document.getElementById('recibosBody');
+  if (!tbody) return;
+  let currentSort = { col: null, dir: 'asc' };
+
+  headers.forEach(function(th) {
+    th.addEventListener('click', function() {
+      const field = th.dataset.sort;
+      const dir   = (currentSort.col === field && currentSort.dir === 'asc') ? 'desc' : 'asc';
+      currentSort  = { col: field, dir: dir };
+
+      headers.forEach(function(h) { h.classList.remove('sort-asc', 'sort-desc'); });
+      th.classList.add('sort-' + dir);
+
+      const rows = Array.from(document.querySelectorAll('.recibo-row'));
+      rows.sort(function(a, b) {
+        let va = a.dataset[field] || '';
+        let vb = b.dataset[field] || '';
+        if (field === 'valor' || field === 'serial') {
+          return dir === 'asc' ? (parseFloat(va)||0) - (parseFloat(vb)||0)
+                               : (parseFloat(vb)||0) - (parseFloat(va)||0);
+        }
+        if (field === 'fecha') {
+          return dir === 'asc' ? (parseInt(va)||0) - (parseInt(vb)||0)
+                               : (parseInt(vb)||0) - (parseInt(va)||0);
+        }
+        return dir === 'asc' ? va.localeCompare(vb, 'es') : vb.localeCompare(va, 'es');
+      });
+      rows.forEach(function(row) { tbody.appendChild(row); });
+    });
   });
 })();
 </script>

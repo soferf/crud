@@ -8,7 +8,7 @@
 
       <div class="d-flex align-items-center gap-3 mb-4">
         <div class="rounded-3 p-3" style="background:#1B4332">
-          <i class="bi bi-envelope-open fs-3 text-white"></i>
+          <i data-lucide="mail-open" class="text-white"></i>
         </div>
         <div>
           <h4 class="mb-0 fw-bold" style="color:#1B4332">Invitación a lote</h4>
@@ -30,12 +30,12 @@
 
       {% if 'user_id' not in session %}
       <div class="alert alert-warning rounded-3">
-        <i class="bi bi-exclamation-triangle me-2"></i>
+        <i data-lucide="triangle-alert" class="me-2"></i>
         Debes <a href="/?form=login" class="alert-link">iniciar sesión</a> o
         <a href="/?form=signup" class="alert-link">registrarte</a> para aceptar esta invitación.
       </div>
       <a href="/?form=login" class="btn btn-success w-100 mt-2">
-        <i class="bi bi-box-arrow-in-right me-2"></i>Ir al inicio de sesión
+        <i data-lucide="log-in" class="me-2"></i>Ir al inicio de sesión
       </a>
       {% else %}
       <p class="text-muted mb-3">
@@ -45,7 +45,7 @@
       <form method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-success w-100">
-          <i class="bi bi-check-circle me-2"></i>Aceptar invitación
+          <i data-lucide="circle-check-big" class="me-2"></i>Aceptar invitación
         </button>
       </form>
       <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary w-100 mt-2">

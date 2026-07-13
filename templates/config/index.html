@@ -3,30 +3,215 @@
 {% block content %}
 <div class="page-hero">
   <div class="container page-hero__inner">
-    <div class="page-hero__icon"><i class="fa-solid fa-gear"></i></div>
-    <div><h1 class="page-hero__title">Configuración</h1><p class="page-hero__sub">Parámetros del sistema</p></div>
-  </div>
-</div>
-<section class="section"><div class="container" style="max-width:580px">
-  {% if message %}<div class="alert alert--success"><i class="fa-solid fa-circle-check"></i> {{message}}</div>{% endif %}
-  {% if error %}<div class="alert alert--danger">{{error}}</div>{% endif %}
-  <div class="form-card">
-    <div class="form-section">
-      <h3 class="form-section__title"><i class="fa-solid fa-hashtag"></i> Seriales</h3>
-      <div class="config-info-box">
-        <i class="fa-solid fa-circle-info"></i>
-        <div><strong>Lote activo:</strong> {{lote_nombre}}<br><strong>Total de recibos:</strong> {{total_recibos}}<br><strong>Serial configurado:</strong> {{config.get('serial_inicial', '1')}}<br><strong>Próximo serial efectivo:</strong> {{next_serial_effective}}</div>
-      </div>
-      <form method="POST">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="form-group" style="max-width:280px;margin-top:1.5rem">
-          <label for="serial_inicial">Serial inicial para nuevos recibos</label>
-          <input type="number" id="serial_inicial" name="serial_inicial" value="{{config.get('serial_inicial', '1')}}" min="1" required>
-          <p class="field-hint">El sistema usará el mayor valor entre este número y el último serial registrado más uno.{% if total_recibos > 0 %} <strong>Ahora mismo</strong> el siguiente serial que se usará en este lote es {{next_serial_effective}}.{% endif %}</p>
-        </div>
-        <div class="form-actions"><button type="submit" class="button button--primary"><i class="fa-solid fa-floppy-disk"></i> Guardar configuración</button></div>
-      </form>
+    <div class="page-hero__icon"><i data-lucide="settings"></i></div>
+    <div>
+      <h1 class="page-hero__title">Configuración</h1>
+      <p class="page-hero__sub">Seguridad, respaldo y parámetros · {{ lote_nombre }}</p>
     </div>
   </div>
+</div>
+
+<section class="section"><div class="container cfg-wrap" id="cfgWrap" data-active="{{ active_tab }}">
+
+  {% if message %}<div class="alert alert--success"><i data-lucide="circle-check-big"></i> {{ message }}</div>{% endif %}
+  {% if error %}<div class="alert alert--danger"><i data-lucide="circle-alert"></i> {{ error }}</div>{% endif %}
+
+  <!-- Navegación por pestañas -->
+  <nav class="cfg-tabs" role="tablist">
+    <button class="cfg-tab" data-tab="seguridad" type="button"><i data-lucide="shield-check"></i> Seguridad</button>
+    <button class="cfg-tab" data-tab="respaldo" type="button"><i data-lucide="archive"></i> Respaldo</button>
+    <button class="cfg-tab" data-tab="seriales" type="button"><i data-lucide="hash"></i> Seriales</button>
+    <button class="cfg-tab" data-tab="preferencias" type="button"><i data-lucide="sliders-horizontal"></i> Preferencias</button>
+  </nav>
+
+  <!-- ── SEGURIDAD DE CUENTA ─────────────────────────────────────────────── -->
+  <div class="cfg-panel" data-panel="seguridad">
+    <div class="cfg-grid">
+      <div class="form-card">
+        <div class="form-section">
+          <h3 class="form-section__title"><i data-lucide="user-check"></i> Estado de la cuenta</h3>
+          <div class="config-info-box">
+            <i data-lucide="circle-help"></i>
+            <div>
+              <strong>Usuario:</strong> {{ cuenta.full_name or '—' }}<br>
+              <strong>Correo:</strong> {{ cuenta.email or '—' }}<br>
+              <strong>Verificación:</strong>
+              {% if cuenta.email_verified %}<span class="cfg-badge cfg-badge--ok">Verificado</span>
+              {% else %}<span class="cfg-badge cfg-badge--warn">Sin verificar</span>{% endif %}<br>
+              <strong>Códigos de recuperación:</strong> {{ recovery_disponibles }} disponibles de {{ recovery_total }}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3 class="form-section__title"><i data-lucide="key-round"></i> Cambiar contraseña</h3>
+          <form method="POST" action="{{ url_for('config_change_password') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group"><label for="current_password">Contraseña actual</label>
+              <input type="password" id="current_password" name="current_password" required autocomplete="current-password"></div>
+            <div class="form-group"><label for="new_password">Nueva contraseña</label>
+              <input type="password" id="new_password" name="new_password" required autocomplete="new-password"
+                     placeholder="Mín. 8, mayúscula, minúscula y número"></div>
+            <div class="form-group"><label for="confirm_password">Confirmar nueva contraseña</label>
+              <input type="password" id="confirm_password" name="confirm_password" required autocomplete="new-password"></div>
+            <div class="form-actions"><button type="submit" class="button button--primary"><i data-lucide="save"></i> Actualizar contraseña</button></div>
+          </form>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-section">
+          <h3 class="form-section__title"><i data-lucide="life-buoy"></i> Códigos de recuperación</h3>
+          <p class="field-hint">Códigos de un solo uso para recuperar el acceso si pierdes tu correo. Al regenerar, los anteriores quedan inválidos.</p>
+
+          {% if generated_codes %}
+          <div class="cfg-codes">
+            <p class="cfg-codes__warn"><i data-lucide="triangle-alert"></i> Guárdalos ahora. No se volverán a mostrar.</p>
+            <div class="cfg-codes__grid">
+              {% for c in generated_codes %}<code>{{ c }}</code>{% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          <form method="POST" action="{{ url_for('config_regenerate_codes') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-actions"><button type="submit" class="button button--ghost"><i data-lucide="refresh-cw"></i> Generar nuevos códigos</button></div>
+          </form>
+        </div>
+
+        <div class="form-section">
+          <h3 class="form-section__title"><i data-lucide="scroll-text"></i> Actividad reciente</h3>
+          <ul class="cfg-audit">
+            {% for e in eventos %}
+            <li><span class="cfg-audit__ev">{{ e.event }}</span>
+              <span class="cfg-audit__meta">{{ e.created_at.strftime('%d/%m %H:%M') if e.created_at else '' }}{% if e.ip %} · {{ e.ip }}{% endif %}</span></li>
+            {% else %}
+            <li class="cfg-audit__empty">Sin eventos registrados todavía.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RESPALDO Y RECUPERACIÓN ─────────────────────────────────────────── -->
+  <div class="cfg-panel" data-panel="respaldo">
+    <div class="form-card" style="max-width:620px">
+      <div class="form-section">
+        <h3 class="form-section__title"><i data-lucide="archive"></i> Respaldo de recuperación (.zip cifrado)</h3>
+        <p class="field-hint">Genera un archivo <strong>.zip cifrado con contraseña</strong> que incluye un respaldo de los datos del lote y nuevos códigos de recuperación de tu cuenta. Guárdalo en un lugar seguro.</p>
+        <form method="POST" action="{{ url_for('config_recovery_zip') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="form-group"><label for="zip_password">Contraseña del respaldo</label>
+            <input type="password" id="zip_password" name="zip_password" required minlength="8" placeholder="Mín. 8 caracteres" autocomplete="new-password"></div>
+          <div class="form-group"><label for="zip_password_confirm">Confirmar contraseña</label>
+            <input type="password" id="zip_password_confirm" name="zip_password_confirm" required minlength="8" autocomplete="new-password"></div>
+          <p class="field-hint"><i data-lucide="info"></i> Necesitarás esta contraseña para abrir el .zip. Si la pierdes, el archivo no se puede recuperar.</p>
+          <div class="form-actions"><button type="submit" class="button button--primary"><i data-lucide="download"></i> Generar y descargar</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SERIALES ────────────────────────────────────────────────────────── -->
+  <div class="cfg-panel" data-panel="seriales">
+    <div class="cfg-stats">
+      <div class="cfg-stat"><span class="cfg-stat__num">{{ total_recibos }}</span><span class="cfg-stat__lbl">Recibos del lote</span></div>
+      <div class="cfg-stat"><span class="cfg-stat__num">{{ next_serial_effective }}</span><span class="cfg-stat__lbl">Próximo serial</span></div>
+      <div class="cfg-stat"><span class="cfg-stat__num">{{ config.get('serial_inicial', '1') }}</span><span class="cfg-stat__lbl">Serial configurado</span></div>
+      <div class="cfg-stat"><span class="cfg-stat__num">{{ lote_ha|int if lote_ha else '—' }}</span><span class="cfg-stat__lbl">Hectáreas</span></div>
+    </div>
+    <div class="form-card" style="max-width:520px">
+      <div class="form-section">
+        <h3 class="form-section__title"><i data-lucide="hash"></i> Serial de recibos</h3>
+        <form method="POST" action="{{ url_for('config_app') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="form-group">
+            <label for="serial_inicial">Serial inicial para nuevos recibos</label>
+            <input type="number" id="serial_inicial" name="serial_inicial" value="{{ config.get('serial_inicial', '1') }}" min="1" required>
+            <p class="field-hint">El sistema usará el mayor valor entre este número y el último serial registrado más uno.{% if total_recibos > 0 %} Ahora mismo el siguiente serial es <strong>{{ next_serial_effective }}</strong>.{% endif %}</p>
+          </div>
+          <div class="form-actions"><button type="submit" class="button button--primary"><i data-lucide="save"></i> Guardar</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PREFERENCIAS ────────────────────────────────────────────────────── -->
+  <div class="cfg-panel" data-panel="preferencias">
+    <div class="form-card" style="max-width:560px">
+      <div class="form-section">
+        <h3 class="form-section__title"><i data-lucide="bell"></i> Alertas por correo</h3>
+        <form method="POST" action="{{ url_for('config_preferences') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="cfg-toggle">
+            <input type="checkbox" name="pref_alert_login" {{ 'checked' if prefs.pref_alert_login }}>
+            <span><strong>Alerta de inicio de sesión</strong><small>Recibe un correo cada vez que se accede a tu cuenta.</small></span>
+          </label>
+          <label class="cfg-toggle">
+            <input type="checkbox" name="pref_alert_security" {{ 'checked' if prefs.pref_alert_security }}>
+            <span><strong>Alertas de eventos sensibles</strong><small>Cambio de contraseña, códigos de recuperación y descarga de respaldos.</small></span>
+          </label>
+          <div class="form-actions"><button type="submit" class="button button--primary"><i data-lucide="save"></i> Guardar preferencias</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
 </div></section>
+
+<style>
+  .cfg-wrap{ max-width:1000px; }
+  .cfg-tabs{ display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:1.4rem; border-bottom:2px solid var(--border,#e3e8ef); }
+  .cfg-tab{ display:inline-flex; align-items:center; gap:.45rem; padding:.7rem 1.1rem; border:none; background:none;
+    cursor:pointer; font-size:.92rem; font-weight:600; color:var(--txt-muted,#6b7a90); border-bottom:2px solid transparent; margin-bottom:-2px; }
+  .cfg-tab i{ width:17px; height:17px; }
+  .cfg-tab:hover{ color:var(--clr-700,#2d6a4f); }
+  .cfg-tab.is-active{ color:var(--clr-700,#2d6a4f); border-bottom-color:var(--clr-600,#40916c); }
+  .cfg-panel{ display:none; }
+  .cfg-panel.is-active{ display:block; animation:cfgFade .2s ease; }
+  @keyframes cfgFade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
+  .cfg-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:1.2rem; align-items:start; }
+  .cfg-badge{ display:inline-block; padding:.1rem .55rem; border-radius:20px; font-size:.72rem; font-weight:700; }
+  .cfg-badge--ok{ background:#d8f3dc; color:#1b4332; }
+  .cfg-badge--warn{ background:#fff3cd; color:#7a5a00; }
+  .cfg-codes{ background:#f6fbf8; border:1px solid #cfe9da; border-radius:12px; padding:1rem; margin-bottom:1rem; }
+  .cfg-codes__warn{ display:flex; align-items:center; gap:.4rem; color:#a15c00; font-size:.82rem; font-weight:600; margin:0 0 .7rem; }
+  .cfg-codes__warn i{ width:16px; height:16px; }
+  .cfg-codes__grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:.5rem; }
+  .cfg-codes__grid code{ background:#fff; border:1px solid #cfe9da; border-radius:8px; padding:.5rem; text-align:center;
+    font-family:ui-monospace,Menlo,monospace; font-size:.95rem; letter-spacing:1px; color:#1b4332; }
+  .cfg-audit{ list-style:none; margin:0; padding:0; }
+  .cfg-audit li{ display:flex; justify-content:space-between; gap:.6rem; padding:.5rem 0; border-bottom:1px solid var(--border,#eef2f7); font-size:.85rem; }
+  .cfg-audit__ev{ font-weight:600; color:var(--txt,#2a3b4d); }
+  .cfg-audit__meta{ color:var(--txt-muted,#8595a8); font-size:.78rem; white-space:nowrap; }
+  .cfg-audit__empty{ color:var(--txt-muted,#8595a8); justify-content:flex-start; }
+  .cfg-stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:.8rem; margin-bottom:1.2rem; }
+  .cfg-stat{ background:#fff; border:1px solid var(--border,#e3e8ef); border-radius:14px; padding:1rem 1.2rem; text-align:center; }
+  .cfg-stat__num{ display:block; font-size:1.8rem; font-weight:800; color:var(--clr-700,#2d6a4f); line-height:1; }
+  .cfg-stat__lbl{ display:block; margin-top:.35rem; font-size:.74rem; text-transform:uppercase; letter-spacing:.05em; color:var(--txt-muted,#8595a8); }
+  .cfg-toggle{ display:flex; align-items:flex-start; gap:.7rem; padding:.7rem 0; border-bottom:1px solid var(--border,#eef2f7); cursor:pointer; }
+  .cfg-toggle input{ margin-top:.25rem; width:18px; height:18px; flex:none; }
+  .cfg-toggle span{ display:flex; flex-direction:column; }
+  .cfg-toggle small{ color:var(--txt-muted,#8595a8); font-size:.8rem; margin-top:.15rem; }
+</style>
+
+<script>
+(function(){
+  const wrap = document.getElementById('cfgWrap');
+  const tabs = wrap.querySelectorAll('.cfg-tab');
+  const panels = wrap.querySelectorAll('.cfg-panel');
+  function activate(name){
+    tabs.forEach(t => t.classList.toggle('is-active', t.dataset.tab === name));
+    panels.forEach(p => p.classList.toggle('is-active', p.dataset.panel === name));
+    try { history.replaceState(null, '', '#' + name); } catch(e){}
+  }
+  tabs.forEach(t => t.addEventListener('click', () => activate(t.dataset.tab)));
+  const hash = (location.hash || '').replace('#','');
+  const initial = ['seguridad','respaldo','seriales','preferencias'].includes(hash)
+    ? hash : (wrap.dataset.active || 'seguridad');
+  activate(initial);
+  if (window.lucide) lucide.createIcons();
+})();
+</script>
 {% endblock %}

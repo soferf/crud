@@ -4,23 +4,23 @@
 {% block content %}
 <div class="page-hero">
   <div class="container page-hero__inner">
-    <div class="page-hero__icon"><i class="fa-solid fa-droplet"></i></div>
+    <div class="page-hero__icon"><i data-lucide="droplets"></i></div>
     <div>
       <h1 class="page-hero__title">Nómina de Jornales</h1>
       <p class="page-hero__sub">Desagüe · Despalillada · Bordeada — marca asistencia y días por trabajador.</p>
     </div>
     <div class="page-hero__actions">
-      <a href="{{ url_for('lista_recibos') }}" class="button button--ghost"><i class="fa-solid fa-list"></i> Ver recibos</a>
-      <a href="{{ url_for('nuevo_recibo') }}" class="button button--ghost"><i class="fa-solid fa-file-invoice-dollar"></i> Individual</a>
-      <a href="{{ url_for('nuevo_recibo_lote') }}" class="button button--ghost"><i class="fa-solid fa-users-between-lines"></i> Por lote</a>
-      <a href="{{ url_for('labores_abonada') }}" class="button button--ghost"><i class="fa-solid fa-seedling"></i> Abonada</a>
+      <a href="{{ url_for('lista_recibos') }}" class="button button--ghost"><i data-lucide="list"></i> Ver recibos</a>
+      <a href="{{ url_for('nuevo_recibo') }}" class="button button--ghost"><i data-lucide="receipt-text"></i> Individual</a>
+      <a href="{{ url_for('nuevo_recibo_lote') }}" class="button button--ghost"><i data-lucide="users-round"></i> Por lote</a>
+      <a href="{{ url_for('labores_abonada') }}" class="button button--ghost"><i data-lucide="sprout"></i> Abonada</a>
     </div>
   </div>
 </div>
 
 <section class="section"><div class="container">
-  {% if success %}<div class="alert alert--success"><i class="fa-solid fa-circle-check"></i> {{ success }}</div>{% endif %}
-  {% if error %}<div class="alert alert--danger"><i class="fa-solid fa-circle-xmark"></i> {{ error }}</div>{% endif %}
+  {% if success %}<div class="alert alert--success"><i data-lucide="circle-check-big"></i> {{ success }}</div>{% endif %}
+  {% if error %}<div class="alert alert--danger"><i data-lucide="circle-x"></i> {{ error }}</div>{% endif %}
 
   <form method="POST" id="nomForm">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -34,7 +34,9 @@
           {% for key, info in tipos_labor.items() %}
           <label class="labor-type-card">
             <input type="radio" name="tipo_labor" value="{{ key }}" {% if loop.first %}checked{% endif %}>
-            <span class="labor-type-card__icon"><i class="fa-solid {{ info.icon }}"></i></span>
+            <span class="labor-type-card__icon">
+              <i data-lucide="{% if key == 'desague' %}droplets{% elif key == 'despalillada' %}shovel{% elif key == 'bordeada' %}ruler{% else %}briefcase{% endif %}"></i>
+            </span>
             <span class="labor-type-card__label">{{ info.label }}</span>
           </label>
           {% endfor %}
@@ -89,7 +91,7 @@
         <!-- ── Buscador desplegable ── -->
         <div class="worker-add-bar" style="position:relative;max-width:520px;margin-bottom:var(--s5)">
           <label style="font-weight:600;margin-bottom:.4rem;display:block">
-            <i class="fa-solid fa-user-plus" style="color:var(--clr-500)"></i> Añadir trabajador
+            <i data-lucide="user-plus" style="color:var(--clr-500)"></i> Añadir trabajador
           </label>
           <div style="display:flex;gap:var(--s2)">
             <div style="position:relative;flex:1">
@@ -100,7 +102,7 @@
               <div id="workerDropdown" class="worker-dropdown" style="display:none"></div>
             </div>
             <button type="button" class="button button--primary" onclick="addSelectedWorker()" id="btnAddWorker" disabled>
-              <i class="fa-solid fa-plus"></i> Añadir
+              <i data-lucide="plus"></i> Añadir
             </button>
           </div>
           <p class="field-hint">Selecciona del menú, luego «Añadir» — o haz doble clic en el nombre.</p>
@@ -108,7 +110,7 @@
 
         <!-- ── Mensaje vacío ── -->
         <div id="emptyMsg" style="text-align:center;padding:var(--s6) 0;color:var(--txt-muted)">
-          <i class="fa-solid fa-user-plus" style="font-size:2rem;opacity:.3;display:block;margin-bottom:.6rem"></i>
+          <i data-lucide="user-plus" style="font-size:2rem;opacity:.3;display:block;margin-bottom:.6rem"></i>
           Usa el buscador para añadir trabajadores a la nómina
         </div>
 
@@ -143,7 +145,7 @@
         {% endif %}
 
         <div id="selResumen" style="display:none;margin-top:var(--s4);padding:var(--s3) var(--s4);background:var(--bg-subtle);border-radius:var(--radius-md);font-size:.9rem">
-          <i class="fa-solid fa-receipt" style="color:var(--clr-500)"></i>
+          <i data-lucide="receipt-text" style="color:var(--clr-500)"></i>
           Se generarán <strong id="numRecibos">0</strong> recibos — seriales <strong id="serialRange">–</strong>
         </div>
 
@@ -183,7 +185,7 @@
         <div style="display:flex;gap:var(--s3);justify-content:flex-end;margin-top:var(--s4)">
           <a href="{{ url_for('lista_recibos') }}" class="button button--ghost">Cancelar</a>
           <button type="submit" id="btnSubmit" class="button button--primary" disabled>
-            <i class="fa-solid fa-paper-plane"></i> Generar recibos
+            <i data-lucide="send"></i> Generar recibos
           </button>
         </div>
       </div>
@@ -303,10 +305,11 @@ function addWorker(id){
     <td class="att-total text-right" id="total_${id}" style="font-weight:600;color:var(--clr-700)">$ 0</td>
     <td>
       <button type="button" class="cr-remove" onclick="removeWorker(${id})" title="Quitar">
-        <i class="fa-solid fa-xmark"></i>
+        <i data-lucide="x"></i>
       </button>
     </td>`;
   document.getElementById('attBody').appendChild(tr);
+  if (window.renderLucideIcons) window.renderLucideIcons();
   document.getElementById('attTableWrap').style.display='block';
   document.getElementById('emptyMsg').style.display='none';
   recalcRow(id);
