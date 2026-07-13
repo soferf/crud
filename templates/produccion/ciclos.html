@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% import "produccion/_stepper.html" as steppers %}
+{% block title %}Campañas de producción | Contabilidad Arroceras{% endblock %}
+{% block content %}
+<div class="page-hero">
+  <div class="container page-hero__inner">
+    <div class="page-hero__icon"><i class="fa-solid fa-seedling"></i></div>
+    <div>
+      <h1 class="page-hero__title">Campañas de producción</h1>
+      <p class="page-hero__sub">Ciclo de cada siembra &rarr; cosecha, con su costo por separado</p>
+    </div>
+    <div class="page-hero__actions">
+      <a href="{{url_for('nueva_cosecha')}}" class="button button--primary"><i class="fa-solid fa-plus"></i> Registrar siembra/cosecha</a>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="container">
+
+  {% macro fmt_cop(v) %}${{ "{:,.0f}".format(v or 0) }}{% endmacro %}
+
+  {% if activo %}
+  <!-- ── Campaña activa ─────────────────────────────────────────────── -->
+  <div class="form-card" style="border-left:5px solid var(--clr-700);margin-bottom:var(--s6)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:var(--s3)">
+      <div>
+        <span class="badge badge--green"><i class="fa-solid fa-circle-play"></i> Campaña activa</span>
+        <h2 style="margin:.4rem 0 .1rem">{{ activo.variedad_semilla or 'Arroz (variedad sin especificar)' }}</h2>
+        <p class="txt-muted" style="margin:0">
+          Sembrada el {{ activo.fecha_siembra.strftime('%d/%m/%Y') if activo.fecha_siembra else '—' }}
+          · {{ activo.hectareas or '?' }} ha · {{ activo.total_bultos or '?' }} bultos
+        </p>
+      </div>
+      <div style="text-align:right">
+        <div class="txt-muted small">Gasto acumulado en la campaña</div>
+        <div style="font-size:1.6rem;font-weight:700;color:var(--clr-700)">{{ fmt_cop(activo.costos.gasto_total) }}</div>
+        <div class="txt-muted small">{{ activo.costos.total_recibos }} recibos cargados</div>
+      </div>
+    </div>
+
+    <!-- Etapa fenológica -->
+    <div style="margin-top:var(--s4)">
+      {{ steppers.etapa_stepper(activo) }}
+
+      <div style="display:flex;justify-content:space-between;font-size:.85rem;margin:.6rem 0 .3rem">
+        <span><strong>Etapa {{ activo.etapa.n }}/9 — {{ activo.etapa.nombre }}</strong>
+              <span class="txt-muted">(fase {{ activo.etapa.fase }})</span></span>
+        <span class="txt-muted">Día {{ activo.dias_transcurridos }} de ~{{ activo.duracion_estimada_dias }}</span>
+      </div>
+      <div class="gauge-bar-wrap">
+        <div class="gauge-bar {% if activo.progreso_pct >= 75 %}gauge-bar--green{% elif activo.progreso_pct >= 40 %}gauge-bar--yellow{% else %}gauge-bar--red{% endif %}"
+             style="width:{{ [activo.progreso_pct, 5]|max }}%">{{ activo.progreso_pct }}%</div>
+      </div>
+      <p style="margin:.6rem 0 0;font-size:.9rem"><i class="fa-solid fa-lightbulb" style="color:var(--clr-700)"></i>
+        <strong>Labor clave ahora:</strong> {{ activo.etapa.clave }}</p>
+      {% if activo.fecha_cosecha_estimada %}
+      <p class="txt-muted small" style="margin:.3rem 0 0">
+        <i class="fa-regular fa-calendar"></i> Cosecha estimada: {{ activo.fecha_cosecha_estimada.strftime('%d/%m/%Y') }}
+        {% if activo.dias_restantes is not none %}
+          ({% if activo.dias_restantes >= 0 %}faltan {{ activo.dias_restantes }} días{% else %}vencida hace {{ -activo.dias_restantes }} días{% endif %})
+        {% endif %}
+      </p>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="alert alert--info" style="margin-bottom:var(--s5)">
+    <i class="fa-solid fa-circle-info"></i> No hay ninguna campaña activa. Registra una <strong>siembra</strong> para iniciar una.
+  </div>
+  {% endif %}
+
+  <!-- ── Historial de campañas ──────────────────────────────────────── -->
+  {% if ciclos %}
+  <h3 style="margin:0 0 var(--s3)">Historial de campañas</h3>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Estado</th><th>Variedad</th><th>Siembra</th><th>Cierre</th>
+          <th>Etapa</th><th>Cargas</th><th>Gasto</th><th>Ingreso</th><th>Margen</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in ciclos %}
+        {% set margen = (c.costos.ingreso or 0) - (c.costos.gasto_total or 0) %}
+        <tr>
+          <td>
+            {% if c.estado == 'activo' %}
+              <span class="badge badge--green">Activa</span>
+            {% else %}
+              <span class="badge badge--gold">Cerrada</span>
+            {% endif %}
+          </td>
+          <td><strong>{{ c.variedad_semilla or '—' }}</strong></td>
+          <td class="txt-muted">{{ c.fecha_siembra.strftime('%d/%m/%Y') if c.fecha_siembra else '—' }}</td>
+          <td class="txt-muted">{{ c.fecha_cierre.strftime('%d/%m/%Y') if c.fecha_cierre else '—' }}</td>
+          <td>{{ c.etapa.n }}. {{ c.etapa.nombre }}</td>
+          <td><strong>{{ c.costos.cargas or '—' }}</strong></td>
+          <td>{{ fmt_cop(c.costos.gasto_total) }}</td>
+          <td>{{ fmt_cop(c.costos.ingreso) }}</td>
+          <td style="color:{% if margen >= 0 %}var(--clr-700){% else %}#c0392b{% endif %};font-weight:600">
+            {{ fmt_cop(margen) }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% elif not activo %}
+  <div class="empty-state">
+    <span class="empty-state__icon"><i class="fa-solid fa-seedling"></i></span>
+    <h3>Aún no hay campañas</h3>
+    <p class="txt-muted">Registra una siembra para abrir tu primera campaña de producción.</p>
+    <a href="{{url_for('nueva_cosecha')}}" class="button button--primary"><i class="fa-solid fa-plus"></i> Registrar siembra</a>
+  </div>
+  {% endif %}
+
+</div></section>
+{% endblock %}

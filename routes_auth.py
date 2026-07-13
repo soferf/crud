@@ -9,7 +9,11 @@ import mysql.connector
 from flask import request, session, redirect, url_for, render_template, send_from_directory, abort
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash
+
+def generate_password_hash(password):
+    from werkzeug.security import generate_password_hash as _gen
+    return _gen(password, method='pbkdf2:sha256')
 
 from extensions import app, UPLOAD_FOLDER
 from config import EMAIL_REGEX, AUTH_SEND_LOGIN_ALERT, APP_URL
@@ -24,6 +28,8 @@ from email_utils import (
     render_reset_code_email,
     render_password_changed_email,
 )
+import security_service as sec
+from ciclo_service import get_ciclo_activo, estado_ciclo, costos_ciclo
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +113,13 @@ def dashboard():
 
     cursor.execute("SELECT COALESCE(SUM(monto),0) as ti FROM presupuesto_recargas WHERE lote_id=%s", (lote_id,))
     total_ingresado_dash = float(cursor.fetchone()['ti'])
+
+    # Campaña (ciclo) activa para la tarjeta del dashboard
+    _ciclo_row = get_ciclo_activo(lote_id, conn)
+    ciclo = estado_ciclo(_ciclo_row) if _ciclo_row else None
+    if ciclo:
+        ciclo['costos'] = costos_ciclo(_ciclo_row['id'], conn)
+
     cursor.close(); conn.close()
 
     presupuesto_saldo   = total_ingresado_dash - total_gastos
@@ -150,6 +163,7 @@ def dashboard():
         presupuesto_pct=presupuesto_pct,
         total_ingresado_dash=total_ingresado_dash,
         recibos_recientes=recibos_recientes,
+        ciclo=ciclo,
         user_perms=session.get('user_perms', []),
     )
 
@@ -186,23 +200,49 @@ def signup():
     if existing and existing.get('email_verified'):
         return render_auth_page('signup', 'Ese correo ya esta registrado y verificado.', 'warning', form_data)
 
+    # Hardening: NO se envia el codigo automaticamente. Se guardan los datos
+    # pendientes y se pide al usuario que confirme el envio del codigo.
+    session['pending_signup'] = {
+        'full_name': full_name,
+        'email': email,
+        'password_hash': generate_password_hash(password),
+    }
+    return render_auth_page('signup_confirm',
+        f'Revisa que tu correo sea correcto: {email}. '
+        'Cuando estes listo, solicita el envio del codigo de verificacion.',
+        'info', {'signup_confirm': {'email': email, 'full_name': full_name}})
+
+
+@app.route('/auth/send-signup-code', methods=['POST'])
+@limiter.limit('10 per hour')
+def send_signup_code():
+    pending = session.get('pending_signup')
+    if not pending or not pending.get('email'):
+        return render_auth_page('signup',
+            'Tu solicitud expiro. Vuelve a completar el formulario de registro.', 'warning')
+
+    email     = pending['email']
+    full_name = pending.get('full_name', '')
     code = generate_6_digit_code()
-    payload = {'full_name': full_name, 'email': email, 'password_hash': generate_password_hash(password)}
+    payload = {'full_name': full_name, 'email': email,
+               'password_hash': pending.get('password_hash', '')}
     try:
         save_auth_code(email, 'signup', code, payload)
     except mysql.connector.Error as err:
-        logger.error('[signup] save_auth_code error: %s', err)
-        return render_auth_page('signup', 'No se pudo generar el codigo. Intentalo de nuevo.', 'danger', form_data)
+        logger.error('[send_signup_code] save_auth_code error: %s', err)
+        return render_auth_page('signup_confirm',
+            'No se pudo generar el codigo. Intentalo de nuevo.', 'danger',
+            {'signup_confirm': {'email': email, 'full_name': full_name}})
 
     html_body = render_signup_code_email(full_name, code)
     sent_ok, send_err = send_email(email, 'Codigo de verificacion - Contabilidad Arroceras', html_body)
     if sent_ok:
         return render_auth_page('signup_code',
-            f'Revisamos tu correo {email}. Ingresa el codigo de 6 digitos para activar la cuenta.',
+            f'Enviamos un codigo de 6 digitos a {email}. Ingresalo para activar la cuenta.',
             'success', {'signup_code': {'email': email, 'code': ''}})
-    return render_auth_page('signup',
+    return render_auth_page('signup_confirm',
         f'No se pudo enviar el codigo de verificacion a {email}. Detalle: {send_err}',
-        'warning', form_data)
+        'warning', {'signup_confirm': {'email': email, 'full_name': full_name}})
 
 
 @app.route('/auth/verify-signup-code', methods=['POST'])
@@ -252,6 +292,7 @@ def verify_signup_code():
         logger.error('[verify_signup_code] DB error: %s', err)
         return render_auth_page('signup_code', 'Error interno al verificar la cuenta. Intentalo de nuevo.', 'danger', form_data)
 
+    session.pop('pending_signup', None)
     return render_auth_page('login', 'Cuenta verificada correctamente. Ya puedes iniciar sesion.', 'success')
 
 
@@ -266,6 +307,13 @@ def login():
     if not email or not password:
         return render_auth_page('login', 'Ingresa correo y contrasena.', 'warning', form_data)
 
+    # Hardening: bloqueo temporal tras varios intentos fallidos.
+    locked, mins_left = sec.is_locked(email)
+    if locked:
+        return render_auth_page('login',
+            f'Cuenta bloqueada temporalmente por seguridad. Intenta de nuevo en {mins_left} minuto(s).',
+            'danger', form_data)
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -277,6 +325,17 @@ def login():
         return render_auth_page('login', 'Error interno de acceso. Intentalo de nuevo.', 'danger', form_data)
 
     if not user or not check_password_hash(user['password_hash'], password):
+        result = sec.record_failed_login(email) if user else {}
+        sec.log_security_event('login_failed', user['id_user'] if user else None,
+                               detail=f'Intento fallido para {email}')
+        if result.get('locked'):
+            return render_auth_page('login',
+                f'Demasiados intentos fallidos. Cuenta bloqueada por {result.get("minutes")} minutos.',
+                'danger', form_data)
+        if user and result.get('remaining') is not None:
+            return render_auth_page('login',
+                f'Credenciales invalidas. Te quedan {result["remaining"]} intento(s) antes del bloqueo.',
+                'danger', form_data)
         return render_auth_page('login', 'Credenciales invalidas.', 'danger', form_data)
     if not user['is_active']:
         return render_auth_page('login', 'Tu cuenta esta desactivada.', 'warning', form_data)
@@ -287,10 +346,12 @@ def login():
             f'<a href="{resend_url}" class="alert-link">Reenviar correo</a>',
             'warning', form_data)
 
+    sec.clear_failures(email)
     session.clear()
     session['user_id']   = user['id_user']
     session['user_name'] = user['full_name']
     session.permanent    = remember
+    sec.log_security_event('login_success', user['id_user'], detail=f'Inicio de sesion {email}')
 
     if AUTH_SEND_LOGIN_ALERT:
         try:
@@ -380,7 +441,52 @@ def reset_with_code():
     except Exception:
         pass
 
+    sec.log_security_event('password_reset', user_id, detail='Contrasena restablecida con codigo por email')
     return render_auth_page('login', 'Contrasena actualizada correctamente. Ya puedes iniciar sesion.', 'success')
+
+
+@app.route('/auth/recover-with-code', methods=['POST'])
+@limiter.limit('10 per hour')
+def recover_with_code():
+    """Recuperacion de acceso usando un codigo de recuperacion (del .zip)."""
+    email    = (request.form.get('email') or '').strip().lower()
+    code     = (request.form.get('code') or '').strip().upper()
+    password = request.form.get('password') or ''
+    confirm  = request.form.get('confirm_password') or ''
+    form_data = {'recover_code': {'email': email, 'code': code}}
+
+    if not EMAIL_REGEX.match(email):
+        return render_auth_page('recover_code', 'Correo no valido.', 'warning', form_data)
+    if not code:
+        return render_auth_page('recover_code', 'Ingresa un codigo de recuperacion.', 'warning', form_data)
+    if not password or password != confirm:
+        return render_auth_page('recover_code', 'Las contrasenas no coinciden.', 'warning', form_data)
+    if not is_valid_password(password):
+        return render_auth_page('recover_code', 'La contrasena debe tener minimo 8 caracteres, mayuscula, minuscula y numero.', 'warning', form_data)
+
+    ok, user = sec.verify_recovery_code(email, code)
+    if not ok:
+        sec.log_security_event('recovery_code_failed', detail=f'Codigo invalido para {email}')
+        return render_auth_page('recover_code', 'Codigo de recuperacion invalido o ya utilizado.', 'danger', form_data)
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET password_hash=%s, failed_attempts=0, locked_until=NULL WHERE id_user=%s",
+                       (generate_password_hash(password), user['id_user']))
+        conn.commit(); cursor.close(); conn.close()
+    except mysql.connector.Error as err:
+        logger.error('[recover_with_code] DB error: %s', err)
+        return render_auth_page('recover_code', 'Error interno al actualizar la contrasena. Intentalo de nuevo.', 'danger', form_data)
+
+    sec.log_security_event('password_recovered', user['id_user'], detail='Contrasena restablecida con codigo de recuperacion')
+    try:
+        send_email(email, 'Contrasena actualizada - Contabilidad Arroceras',
+                   render_password_changed_email(user.get('full_name') or 'Usuario'))
+    except Exception:
+        pass
+
+    return render_auth_page('login', 'Acceso recuperado. Tu nueva contrasena ya quedo activa, inicia sesion.', 'success')
 
 
 @app.route('/auth/logout')

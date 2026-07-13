@@ -3,27 +3,39 @@
 {% block content %}
 <div class="page-hero">
   <div class="container page-hero__inner">
-    <div class="page-hero__icon"><i class="fa-solid fa-seedling"></i></div>
+    <div class="page-hero__icon"><i data-lucide="sprout"></i></div>
     <div>
       <h1 class="page-hero__title">Registrar Producción</h1>
       <p class="page-hero__sub">Siembra o cosecha &mdash; Lote El Mangón</p>
     </div>
     <div class="page-hero__actions">
-      <a href="{{url_for('lista_produccion')}}" class="button button--ghost"><i class="fa-solid fa-wheat-awn"></i> Ver producción</a>
+      <a href="{{url_for('lista_produccion')}}" class="button button--ghost"><i data-lucide="chart-column"></i> Ver producción</a>
     </div>
   </div>
 </div>
 
 <section class="section"><div class="container" style="max-width:720px">
-  {% if success %}<div class="alert alert--success"><i class="fa-solid fa-circle-check"></i> {{success}}</div>{% endif %}
-  {% if error %}<div class="alert alert--danger"><i class="fa-solid fa-circle-xmark"></i> {{error}}</div>{% endif %}
+  {% if success %}<div class="alert alert--success"><i data-lucide="circle-check-big"></i> {{success}}</div>{% endif %}
+  {% if error %}<div class="alert alert--danger"><i data-lucide="circle-x"></i> {{error}}</div>{% endif %}
+
+  {% if ciclo %}
+  <div class="alert alert--info" style="margin-bottom:var(--s4)">
+    <i data-lucide="sprout"></i>
+    <span>
+      <strong>Campaña activa:</strong> {{ ciclo.variedad_semilla or 'Arroz' }}
+      — etapa {{ ciclo.etapa.n }}/9 ({{ ciclo.etapa.nombre }}), día {{ ciclo.dias_transcurridos }}.
+      Registra la <strong>cosecha</strong> para cerrarla. (No puedes abrir otra siembra hasta cerrar esta.)
+      <a href="{{url_for('lista_ciclos')}}">Ver campaña →</a>
+    </span>
+  </div>
+  {% endif %}
 
   <form method="POST" class="form-card" id="formProduccion">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <!-- ── TIPO DE REGISTRO ─────────────────────────────────────── -->
     <div class="form-section">
-      <h3 class="form-section__title"><i class="fa-solid fa-toggle-on"></i> Tipo de registro</h3>
+      <h3 class="form-section__title"><i data-lucide="toggle-right"></i> Tipo de registro</h3>
       <div class="form-group">
         <label>¿Qué vas a registrar?</label>
         <div style="display:flex;gap:var(--s3);flex-wrap:wrap;margin-top:.3rem;">
@@ -33,7 +45,7 @@
                  id="lbl-cosecha">
             <input type="radio" name="fase" value="cosecha" checked
                    onchange="toggleFase()" style="accent-color:var(--clr-700);">
-            <i class="fa-solid fa-wheat-awn" style="color:var(--clr-500);"></i> Cosecha
+            <i data-lucide="wheat"></i> Cosecha
           </label>
           <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;
                         background:var(--clr-50);border:2px solid var(--border);
@@ -41,7 +53,7 @@
                  id="lbl-siembra">
             <input type="radio" name="fase" value="siembra"
                    onchange="toggleFase()" style="accent-color:var(--clr-700);">
-            <i class="fa-solid fa-seedling" style="color:var(--clr-500);"></i> Siembra
+            <i data-lucide="sprout"></i> Siembra
           </label>
         </div>
       </div>
@@ -49,7 +61,7 @@
 
     <!-- ── DATOS GENERALES ──────────────────────────────────────── -->
     <div class="form-section">
-      <h3 class="form-section__title"><i class="fa-solid fa-circle-info"></i> Datos generales</h3>
+      <h3 class="form-section__title"><i data-lucide="circle-help"></i> Datos generales</h3>
       <div class="form-grid form-grid--2">
         <div class="form-group">
           <label for="fecha">Fecha <span class="req-star">*</span></label>
@@ -70,7 +82,7 @@
 
     <!-- ── DATOS DE SEMILLA (visible siempre, obligatorio en siembra) ── -->
     <div class="form-section" id="sec-semilla">
-      <h3 class="form-section__title"><i class="fa-solid fa-leaf"></i> Datos de semilla</h3>
+      <h3 class="form-section__title"><i data-lucide="leaf"></i> Datos de semilla</h3>
       <div class="form-grid form-grid--2">
         <div class="form-group">
           <label for="variedad_semilla">Variedad / Línea</label>
@@ -112,7 +124,7 @@
 
     <!-- ── DATOS DE COSECHA (oculto en siembra) ─────────────────── -->
     <div class="form-section" id="sec-cosecha">
-      <h3 class="form-section__title"><i class="fa-solid fa-wheat-awn"></i> Datos de cosecha</h3>
+      <h3 class="form-section__title"><i data-lucide="wheat"></i> Datos de cosecha</h3>
       <div class="form-grid form-grid--2">
         <div class="form-group">
           <label for="cargas">Cargas recolectadas</label>
@@ -148,7 +160,7 @@
 
     <div class="form-actions">
       <button type="submit" class="button button--primary">
-        <i class="fa-solid fa-floppy-disk"></i> Guardar registro
+        <i data-lucide="save"></i> Guardar registro
       </button>
       <a href="{{url_for('lista_produccion')}}" class="button button--ghost-dark">Cancelar</a>
     </div>

@@ -1,418 +1,420 @@
 {% extends "base.html" %}
+{% import "produccion/_stepper.html" as steppers %}
 {% block title %}Dashboard | Contabilidad Arroceras{% endblock %}
 
 {% block content %}
-
-<!-- ── PAGE HERO ──────────────────────────────────────────────────────────── -->
 <div class="page-hero">
-  <div class="container page-hero__inner">
-    <div class="page-hero__icon">
-      <i class="fa-solid fa-gauge"></i>
-    </div>
-    <div>
-      <h1 class="page-hero__title">
-        Bienvenido, <em style="color:var(--gold-300);font-style:normal;">{{ user_name }}</em>
-      </h1>
-      <p class="page-hero__sub" id="dashDate">{{ today }}</p>
-    </div>
-    <div class="page-hero__actions">
-      <a href="{{ url_for('nuevo_recibo') }}" class="button button--primary">
-        <i class="fa-solid fa-plus"></i> Nuevo recibo
-      </a>
-      <a href="{{ url_for('reportes') }}" class="button button--ghost">
-        <i class="fa-solid fa-chart-bar"></i> Reportes
-      </a>
+  <div class="container">
+    <div class="dashboard-hero-card">
+      <div class="dashboard-hero-card__content">
+        <div>
+          <span class="dashboard-hero-card__eyebrow">
+            <i class="fa-solid fa-seedling"></i> Centro de control agrícola
+          </span>
+          <h1 class="dashboard-hero-card__title">Bienvenido, {{ user_name }}</h1>
+          <p class="dashboard-hero-card__lead">
+            Supervisa en un solo lugar el estado financiero, operativo y productivo de
+            <strong>{{ lote_nombre or 'tu lote activo' }}</strong>.
+          </p>
+
+          <div class="dashboard-hero-card__meta">
+            <span class="status-pill status-pill--success">
+              <i class="fa-solid fa-location-dot"></i> {{ lote_nombre or 'Sin lote activo' }}
+            </span>
+            <span class="status-pill status-pill--neutral">
+              <i class="fa-solid fa-user-shield"></i> {{ rol_lote or 'Operador' }}
+            </span>
+            <span class="status-pill status-pill--warning" id="dashDate">{{ today }}</span>
+          </div>
+
+          <div class="dashboard-hero-card__actions">
+            <a href="{{ url_for('nuevo_recibo') }}" class="button button--primary">
+              <i class="fa-solid fa-plus"></i> Nuevo recibo
+            </a>
+            <a href="{{ url_for('reportes') }}" class="button button--ghost">
+              <i class="fa-solid fa-chart-line"></i> Ver reportes
+            </a>
+            <a href="{{ url_for('presupuesto_view') }}" class="button button--ghost">
+              <i class="fa-solid fa-wallet"></i> Presupuesto
+            </a>
+          </div>
+        </div>
+
+        <div>
+          {% if presupuesto_activo %}
+          <div class="overview-balance">
+            <div class="overview-balance__label">Saldo operativo disponible</div>
+            <div class="overview-balance__value">
+              $ {{ '{:,.0f}'.format(presupuesto_saldo).replace(',','.') }}
+            </div>
+            <p class="overview-balance__sub">
+              {{ presupuesto_pct }}% del capital del lote ya fue utilizado.
+            </p>
+          </div>
+          {% else %}
+          <div class="overview-balance overview-balance--empty">
+            <div class="overview-balance__label">Presupuesto pendiente</div>
+            <div class="overview-balance__value">Actívalo</div>
+            <p class="overview-balance__sub">
+              Registra el capital inicial o las recargas para empezar a medir saldo y consumo.
+            </p>
+          </div>
+          {% endif %}
+
+          <div class="mini-stat-grid" style="margin-top:1rem;">
+            <div class="mini-stat-card">
+              <div class="mini-stat-card__label">Esta semana</div>
+              <div class="mini-stat-card__value">{{ stats.gasto_semana_fmt }}</div>
+            </div>
+            <div class="mini-stat-card">
+              <div class="mini-stat-card__label">Este mes</div>
+              <div class="mini-stat-card__value">{{ stats.gasto_mes_fmt }}</div>
+            </div>
+            <div class="mini-stat-card">
+              <div class="mini-stat-card__label">Producción</div>
+              <div class="mini-stat-card__value">{{ stats.total_cargas }} cargas</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ── MAIN CONTENT ───────────────────────────────────────────────────────── -->
 <section class="section">
-<div class="container">
-
-  <!-- PRESUPUESTO DEL LOTE -->
-  <div style="margin-bottom:var(--s8);">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--s3);margin-bottom:var(--s4);flex-wrap:wrap;">
-      <h2 style="font-family:var(--ff-heading);font-size:1.55rem;color:var(--clr-900);display:flex;align-items:center;gap:.55rem;margin:0;">
-        <i class="fa-solid fa-wallet" style="color:var(--clr-500);"></i> Presupuesto del lote
-      </h2>
-      <a href="{{ url_for('presupuesto_view') }}" class="button button--ghost-dark button--sm">
-        <i class="fa-solid fa-arrow-up-right-from-square"></i> Gestionar presupuesto
-      </a>
-    </div>
-
-    {% if presupuesto_activo %}
-    <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-bottom:0;">
-      <a href="{{ url_for('presupuesto_view') }}" style="text-decoration:none;color:inherit;">
-        <div class="stat-card" style="min-height:160px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;">
-          <div class="stat-card__label">
-            <i class="fa-solid fa-circle-plus" style="color:var(--clr-500);margin-right:.3rem;"></i>Total ingresado
-          </div>
-          <div class="stat-card__value" style="font-size:2.2rem;line-height:1.05;">$ {{ '{:,.0f}'.format(total_ingresado_dash).replace(',','.') }}</div>
-          <div class="stat-card__sub">capital registrado para el lote</div>
-        </div>
-      </a>
-
+  <div class="container dashboard-shell">
+    <div class="kpi-grid">
       <a href="{{ url_for('lista_recibos') }}" style="text-decoration:none;color:inherit;">
-        <div class="stat-card" style="min-height:160px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;">
-          <div class="stat-card__label">
-            <i class="fa-solid fa-circle-minus" style="color:#8B6000;margin-right:.3rem;"></i>Total gastado
-          </div>
-          <div class="stat-card__value" style="font-size:2.2rem;line-height:1.05;color:#c87400;">{{ stats.total_gastos_fmt }}</div>
-          <div class="stat-card__sub">{{ presupuesto_pct }}% del presupuesto usado</div>
+        <div class="kpi-card kpi-card--receipts">
+          <div class="kpi-card__icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+          <div class="kpi-card__label">Recibos del ciclo</div>
+          <div class="kpi-card__value">{{ stats.total_recibos }}</div>
+          <div class="kpi-card__sub">{{ stats.gasto_semana_fmt }} gastado esta semana</div>
         </div>
       </a>
 
-      <a href="{{ url_for('presupuesto_view') }}" style="text-decoration:none;color:inherit;">
-        <div class="stat-card {{ 'stat-card--warning' if presupuesto_pct >= 60 else 'stat-card--success' }}" style="min-height:160px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;">
-          <div class="stat-card__label">
-            <i class="fa-solid fa-wallet" style="color:var(--clr-500);margin-right:.3rem;"></i>Saldo disponible
-          </div>
-          <div class="stat-card__value" style="font-size:2.2rem;line-height:1.05;{% if presupuesto_saldo < 0 %}color:#c0392b;{% endif %}">$ {{ '{:,.0f}'.format(presupuesto_saldo).replace(',','.') }}</div>
-          <div class="stat-card__sub">
-            {% if presupuesto_saldo < 0 %}
-              presupuesto excedido
-            {% else %}
-              {{ (100 - presupuesto_pct) if presupuesto_pct <= 100 else 0 }}% disponible
-            {% endif %}
-          </div>
+      <div class="kpi-card kpi-card--expenses">
+        <div class="kpi-card__icon"><i class="fa-solid fa-money-bill-wave"></i></div>
+        <div class="kpi-card__label">Gasto acumulado</div>
+        <div class="kpi-card__value">{{ stats.total_gastos_fmt }}</div>
+        <div class="kpi-card__sub">{{ stats.gasto_pct }}% del límite por hectárea</div>
+      </div>
+
+      <a href="{{ url_for('lista_workers') }}" style="text-decoration:none;color:inherit;">
+        <div class="kpi-card kpi-card--workers">
+          <div class="kpi-card__icon"><i class="fa-solid fa-users"></i></div>
+          <div class="kpi-card__label">Equipo activo</div>
+          <div class="kpi-card__value">{{ stats.total_workers }}</div>
+          <div class="kpi-card__sub">Trabajadores del lote</div>
+        </div>
+      </a>
+
+      <a href="{{ url_for('lista_produccion') }}" style="text-decoration:none;color:inherit;">
+        <div class="kpi-card kpi-card--production">
+          <div class="kpi-card__icon"><i class="fa-solid fa-wheat-awn"></i></div>
+          <div class="kpi-card__label">Producción</div>
+          <div class="kpi-card__value">{{ stats.total_cargas }}</div>
+          <div class="kpi-card__sub">{{ stats.cargas_pct }}% de {{ stats.meta_cargas }} cargas meta</div>
         </div>
       </a>
     </div>
-    {% else %}
-    <div class="card" style="padding:var(--s6);border:1px solid color-mix(in srgb, var(--clr-500) 28%, white);background:linear-gradient(135deg,#f5fbf7 0%,#eef7f1 100%);">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s4);flex-wrap:wrap;">
+
+    <div class="progress-grid">
+      <div class="progress-card">
+        <div class="panel-card__header" style="margin-bottom:.85rem;">
+          <div>
+            <div class="panel-card__eyebrow"><i class="fa-solid fa-gauge-high"></i> Eficiencia de gasto</div>
+            <div class="progress-card__title">Gasto por hectárea</div>
+          </div>
+          <span class="status-pill {{ 'status-pill--warning' if stats.alerta_gasto else 'status-pill--success' }}">
+            {{ stats.gasto_pct }}%
+          </span>
+        </div>
+        <div class="summary-list__item" style="margin-bottom:1rem;">
+          <span class="summary-list__label">Actual</span>
+          <span class="summary-list__value">{{ stats.gasto_x_ha_fmt }}</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-bar__fill {{ 'progress-bar__fill--danger' if stats.alerta_gasto else '' }}"
+               style="width:{{ [stats.gasto_pct, 100]|min }}%;">
+          </div>
+        </div>
+        <p class="progress-card__footnote">
+          Límite de referencia por hectárea: <strong>{{ stats.limite_ha_fmt }}</strong>.
+        </p>
+      </div>
+
+      <div class="progress-card">
+        <div class="panel-card__header" style="margin-bottom:.85rem;">
+          <div>
+            <div class="panel-card__eyebrow"><i class="fa-solid fa-wheat-awn"></i> Cumplimiento de meta</div>
+            <div class="progress-card__title">Producción proyectada</div>
+          </div>
+          <span class="status-pill {{ 'status-pill--success' if stats.total_cargas >= stats.meta_cargas else 'status-pill--warning' }}">
+            {{ stats.cargas_pct }}%
+          </span>
+        </div>
+        <div class="summary-list__item" style="margin-bottom:1rem;">
+          <span class="summary-list__label">Avance actual</span>
+          <span class="summary-list__value">{{ stats.total_cargas }} / {{ stats.meta_cargas }}</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-bar__fill {{ 'progress-bar__fill--warning' if stats.total_cargas < stats.meta_cargas else '' }}"
+               style="width:{{ [stats.cargas_pct, 100]|min }}%;">
+          </div>
+        </div>
+        <p class="progress-card__footnote">
+          {% if stats.total_cargas >= stats.meta_cargas %}
+            La meta mínima del lote ya fue alcanzada.
+          {% else %}
+            Faltan <strong>{{ stats.meta_cargas - stats.total_cargas }}</strong> cargas para completar el objetivo.
+          {% endif %}
+        </p>
+      </div>
+    </div>
+
+    <!-- ── Campaña de producción activa ─────────────────────────────── -->
+    <div class="panel-card" style="margin-bottom:1.2rem;">
+      <div class="panel-card__header">
         <div>
-          <div style="font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--clr-700);margin-bottom:var(--s2);">Función principal</div>
-          <h3 style="font-family:var(--ff-heading);font-size:1.4rem;color:var(--clr-900);margin:0 0 var(--s2);">Activa el presupuesto del lote</h3>
-          <p style="margin:0;color:var(--txt-muted);max-width:58ch;">Registra el capital inicial o las recargas del lote para ver arriba el total ingresado, el gasto acumulado y el saldo disponible en tiempo real.</p>
+          <div class="panel-card__eyebrow"><i class="fa-solid fa-seedling"></i> Ciclo de producción</div>
+          <h2 class="panel-card__title">Campaña activa</h2>
         </div>
-        <a href="{{ url_for('presupuesto_view') }}" class="button button--primary">
-          <i class="fa-solid fa-plus"></i> Configurar presupuesto
+        <a href="{{ url_for('lista_ciclos') }}" class="panel-link">
+          Ver campañas <i class="fa-solid fa-arrow-right"></i>
         </a>
       </div>
-    </div>
-    {% endif %}
-  </div>
 
-  <!-- KPI STATS GRID -->
-  <div class="stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr));margin-bottom:var(--s8);">
-
-    <a href="{{ url_for('lista_recibos') }}" style="text-decoration:none;color:inherit;">
-      <div class="stat-card">
-        <div class="stat-card__label">
-          <i class="fa-solid fa-file-invoice-dollar" style="color:var(--clr-500);margin-right:.3rem;"></i>Recibos
+      {% if ciclo %}
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:.5rem;margin-bottom:.4rem;">
+        <div>
+          <strong style="font-size:1.05rem;">{{ ciclo.variedad_semilla or 'Arroz (sin variedad)' }}</strong>
+          <span class="txt-muted"> · sembrada {{ ciclo.fecha_siembra.strftime('%d/%m/%Y') if ciclo.fecha_siembra else '—' }}
+            · día {{ ciclo.dias_transcurridos }}/{{ ciclo.duracion_estimada_dias }}</span>
         </div>
-        <div class="stat-card__value">{{ stats.total_recibos }}</div>
-        <div class="stat-card__sub">registrados en total</div>
-      </div>
-    </a>
-
-    <div class="stat-card">
-      <div class="stat-card__label">
-        <i class="fa-solid fa-coins" style="color:var(--clr-500);margin-right:.3rem;"></i>Total gastado
-      </div>
-      <div class="stat-card__value" style="font-size:1.4rem;">{{ stats.total_gastos_fmt }}</div>
-      <div class="stat-card__sub">acumulado histórico</div>
-    </div>
-
-    <a href="{{ url_for('lista_workers') }}" style="text-decoration:none;color:inherit;">
-      <div class="stat-card">
-        <div class="stat-card__label">
-          <i class="fa-solid fa-users" style="color:var(--clr-500);margin-right:.3rem;"></i>Trabajadores
-        </div>
-        <div class="stat-card__value">{{ stats.total_workers }}</div>
-        <div class="stat-card__sub">activos en el sistema</div>
-      </div>
-    </a>
-
-    <div class="stat-card">
-      <div class="stat-card__label">
-        <i class="fa-solid fa-calendar-week" style="color:var(--clr-500);margin-right:.3rem;"></i>Esta semana
-      </div>
-      <div class="stat-card__value" style="font-size:1.4rem;">{{ stats.gasto_semana_fmt }}</div>
-      <div class="stat-card__sub">{{ stats.recibos_semana }} recibo(s) emitidos</div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-card__label">
-        <i class="fa-solid fa-calendar-days" style="color:var(--clr-500);margin-right:.3rem;"></i>Este mes
-      </div>
-      <div class="stat-card__value" style="font-size:1.4rem;">{{ stats.gasto_mes_fmt }}</div>
-      <div class="stat-card__sub">gasto mensual</div>
-    </div>
-
-    <a href="{{ url_for('lista_produccion') }}" style="text-decoration:none;color:inherit;">
-      <div class="stat-card {{ 'stat-card--success' if stats.total_cargas >= 2000 else 'stat-card--warning' }}">
-        <div class="stat-card__label">
-          <i class="fa-solid fa-wheat-awn" style="color:var(--clr-500);margin-right:.3rem;"></i>Producción
-        </div>
-        <div class="stat-card__value">{{ stats.total_cargas }}</div>
-        <div class="stat-card__sub">cargas cosechadas</div>
-      </div>
-    </a>
-
-  </div>
-
-  <!-- PROGRESS GAUGES -->
-  <div class="charts-row" style="margin-bottom:var(--s8);">
-
-    <div class="gauge-section" style="margin-bottom:0;">
-      <div class="gauge-header">
-        <div class="gauge-title">
-          <i class="fa-solid fa-gauge-high"></i> Gasto por hectárea
-        </div>
-        <div class="gauge-amount">
-          <strong>{{ stats.gasto_x_ha_fmt }}</strong> &nbsp;/&nbsp; $11.000.000 límite
+        <div style="text-align:right;">
+          <div class="txt-muted" style="font-size:.75rem;">Gasto de la campaña</div>
+          <strong style="color:var(--clr-700);">$ {{ '{:,.0f}'.format(ciclo.costos.gasto_total or 0).replace(',','.') }}</strong>
         </div>
       </div>
-      <div class="gauge-bar-wrap">
-        <div class="gauge-bar {{ 'gauge-bar--red' if stats.alerta_gasto else 'gauge-bar--green' }}"
-             style="width:{{ [stats.gasto_pct, 100]|min }}%;">
-          {{ stats.gasto_pct }}%
-        </div>
-      </div>
-      <p class="gauge-footnote">
-        {% if stats.alerta_gasto %}
-          <i class="fa-solid fa-triangle-exclamation" style="color:#c0392b;"></i>
-          Límite superado — revisar gastos.
-        {% else %}
-          <i class="fa-solid fa-circle-check" style="color:var(--clr-500);"></i>
-          Dentro del límite permitido por hectárea.
+
+      {{ steppers.etapa_stepper(ciclo) }}
+
+      <p style="margin:.55rem 0 0;font-size:.88rem;">
+        <i class="fa-solid fa-lightbulb" style="color:var(--clr-700);"></i>
+        <strong>Etapa {{ ciclo.etapa.n }}/9 — {{ ciclo.etapa.nombre }}:</strong> {{ ciclo.etapa.clave }}
+      </p>
+      {% if ciclo.fecha_cosecha_estimada %}
+      <p class="txt-muted" style="margin:.25rem 0 0;font-size:.8rem;">
+        <i class="fa-regular fa-calendar"></i> Cosecha estimada {{ ciclo.fecha_cosecha_estimada.strftime('%d/%m/%Y') }}
+        {% if ciclo.dias_restantes is not none %}
+          ({% if ciclo.dias_restantes >= 0 %}faltan {{ ciclo.dias_restantes }} días{% else %}vencida hace {{ -ciclo.dias_restantes }} días{% endif %})
         {% endif %}
       </p>
-    </div>
-
-    <div class="gauge-section" style="margin-bottom:0;">
-      <div class="gauge-header">
-        <div class="gauge-title">
-          <i class="fa-solid fa-wheat-awn"></i> Meta de producción
-        </div>
-        <div class="gauge-amount">
-          <strong>{{ stats.total_cargas }}</strong> &nbsp;/&nbsp; 2 000 cargas mínimas
-        </div>
-      </div>
-      <div class="gauge-bar-wrap">
-        <div class="gauge-bar {{ 'gauge-bar--green' if stats.total_cargas >= 2000 else 'gauge-bar--yellow' }}"
-             style="width:{{ [stats.cargas_pct, 100]|min }}%;">
-          {{ stats.cargas_pct }}%
-        </div>
-      </div>
-      <p class="gauge-footnote">
-        {% if stats.total_cargas >= 2000 %}
-          <i class="fa-solid fa-circle-check" style="color:var(--clr-500);"></i>
-          Meta alcanzada (100 cargas/Ha en 20 Ha).
-        {% else %}
-          <i class="fa-solid fa-circle-xmark" style="color:#c77f00;"></i>
-          Faltan <strong>{{ 2000 - stats.total_cargas }}</strong> cargas para la meta mínima.
-        {% endif %}
-      </p>
-    </div>
-
-  </div>
-
-  <!-- TWO COLUMNS: acciones rápidas + últimos recibos -->
-  <div class="charts-row">
-
-    <!-- ── ACCIONES RÁPIDAS ── -->
-    <div>
-      <h2 style="font-family:var(--ff-heading);font-size:1.25rem;color:var(--clr-900);
-                 margin-bottom:var(--s4);display:flex;align-items:center;gap:.5rem;">
-        <i class="fa-solid fa-bolt" style="color:var(--clr-500);"></i> Acciones rápidas
-      </h2>
-
-      <div style="display:grid;gap:var(--s3);">
-
-        <!-- Recibos -->
-        <div class="card" style="padding:var(--s4) var(--s6);">
-          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
-                      color:var(--txt-muted);margin-bottom:var(--s3);display:flex;align-items:center;gap:.4rem;">
-            <i class="fa-solid fa-file-invoice-dollar" style="color:var(--clr-500);"></i> Recibos
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:var(--s2);">
-            <a href="{{ url_for('nuevo_recibo') }}" class="button button--sm button--ghost-dark">
-              <i class="fa-solid fa-plus"></i> Individual
-            </a>
-            <a href="{{ url_for('nuevo_recibo_lote') }}" class="button button--sm button--ghost-dark">
-              <i class="fa-solid fa-users-between-lines"></i> Por lote
-            </a>
-            <a href="{{ url_for('lista_recibos') }}" class="button button--sm button--ghost-dark">
-              <i class="fa-solid fa-list"></i> Ver todos
-            </a>
-          </div>
-        </div>
-
-        <!-- Labores -->
-        <div class="card" style="padding:var(--s4) var(--s6);">
-          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
-                      color:var(--txt-muted);margin-bottom:var(--s3);display:flex;align-items:center;gap:.4rem;">
-            <i class="fa-solid fa-hard-hat" style="color:var(--clr-500);"></i> Labores del lote
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:var(--s2);">
-            <a href="{{ url_for('labores_desague') }}" class="button button--sm button--ghost-dark">
-              <i class="fa-solid fa-droplet"></i> Desagüe / Despalillada
-            </a>
-            <a href="{{ url_for('labores_abonada') }}" class="button button--sm button--ghost-dark">
-              <i class="fa-solid fa-seedling"></i> Abonada / Fumigación
-            </a>
-          </div>
-        </div>
-
-        <!-- Trabajadores -->
-        <div class="card" style="padding:var(--s4) var(--s6);">
-          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
-                      color:var(--txt-muted);margin-bottom:var(--s3);display:flex;align-items:center;gap:.4rem;">
-            <i class="fa-solid fa-users" style="color:var(--clr-500);"></i> Trabajadores
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:var(--s2);">
-            <a href="{{ url_for('create_worker') }}" class="button button--sm button--ghost-dark">
-              <i class="fa-solid fa-user-plus"></i> Registrar
-            </a>
-            <a href="{{ url_for('lista_workers') }}" class="button button--sm button--ghost-dark">
-              <i class="fa-solid fa-list"></i> Ver todos
-            </a>
-          </div>
-        </div>
-
-        <!-- Reportes y producción -->
-        <div class="card" style="padding:var(--s4) var(--s6);">
-          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
-                      color:var(--txt-muted);margin-bottom:var(--s3);display:flex;align-items:center;gap:.4rem;">
-            <i class="fa-solid fa-chart-bar" style="color:var(--clr-500);"></i> Reportes y producción
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:var(--s2);">
-            <a href="{{ url_for('reportes') }}" class="button button--sm button--ghost-dark">
-              <i class="fa-solid fa-chart-pie"></i> Reportes
-            </a>
-            <a href="{{ url_for('presupuesto_view') }}" class="button button--sm button--ghost-dark">
-              <i class="fa-solid fa-wallet"></i> Presupuesto
-            </a>
-            <a href="{{ url_for('generar_pdf', tipo='gastos') }}" class="button button--sm button--ghost-dark" target="_blank">
-              <i class="fa-solid fa-file-pdf"></i> PDF
-            </a>
-            <a href="{{ url_for('generar_excel', tipo='recibos') }}" class="button button--sm button--ghost-dark" target="_blank">
-              <i class="fa-solid fa-file-excel"></i> Excel
-            </a>
-            <a href="{{ url_for('nueva_cosecha') }}" class="button button--sm button--ghost-dark">
-              <i class="fa-solid fa-plus"></i> Cosecha
-            </a>
-            <a href="{{ url_for('config_app') }}" class="button button--sm button--ghost-dark">
-              <i class="fa-solid fa-gear"></i> Config
-            </a>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- ── ÚLTIMOS RECIBOS ── -->
-    <div>
-      <h2 style="font-family:var(--ff-heading);font-size:1.25rem;color:var(--clr-900);
-                 margin-bottom:var(--s4);display:flex;align-items:center;gap:.5rem;">
-        <i class="fa-solid fa-clock-rotate-left" style="color:var(--clr-500);"></i> Últimos recibos
-        <a href="{{ url_for('lista_recibos') }}"
-           style="margin-left:auto;font-size:.82rem;font-weight:600;color:var(--clr-500);font-family:var(--ff-body);">
-          Ver todos <i class="fa-solid fa-arrow-right"></i>
-        </a>
-      </h2>
-
-      {% if recibos_recientes %}
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th class="col-serial">#</th>
-              <th class="col-fecha">Fecha</th>
-              <th>Proveedor</th>
-              <th style="text-align:right;">Neto a pagar</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for r in recibos_recientes %}
-            <tr style="cursor:pointer;"
-                onclick="location.href='{{ url_for('detalle_recibo', serial=r.serial) }}'">
-              <td><span class="serial-badge">{{ r.serial }}</span></td>
-              <td class="txt-muted">{{ r.fecha.strftime('%d/%m/%Y') if r.fecha else '—' }}</td>
-              <td><strong>{{ (r.proveedor or '—')[:28] }}</strong></td>
-              <td class="valor-cell">
-                $ {{ '{:,.0f}'.format(r.neto_a_pagar or 0).replace(',','.') }}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+      {% endif %}
       {% else %}
-      <div class="empty-state" style="padding:var(--s12) var(--s6);">
-        <span class="empty-state__icon"><i class="fa-solid fa-file-circle-xmark"></i></span>
-        <h3>Sin recibos aún</h3>
-        <p>Crea tu primer recibo para empezar a registrar los gastos del lote.</p>
-        <a href="{{ url_for('nuevo_recibo') }}" class="button button--primary">
-          <i class="fa-solid fa-plus"></i> Nuevo recibo
+      <div class="empty-state" style="padding:1.2rem;">
+        <span class="empty-state__icon"><i class="fa-solid fa-seedling"></i></span>
+        <h3>Sin campaña activa</h3>
+        <p>Registra una siembra para abrir un ciclo y costear la campaña por separado.</p>
+        <a href="{{ url_for('nueva_cosecha') }}" class="button button--primary button--sm">
+          <i class="fa-solid fa-plus"></i> Registrar siembra
         </a>
       </div>
       {% endif %}
+    </div>
 
-      <!-- Resumen financiero debajo de la tabla -->
-      <div style="margin-top:var(--s4);background:var(--surface);border:1px solid var(--border);
-                  border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-sm);">
-        <div style="padding:var(--s3) var(--s6);background:var(--clr-50);border-bottom:1px solid var(--border);
-                    font-family:var(--ff-heading);font-size:.95rem;color:var(--clr-900);
-                    display:flex;align-items:center;gap:.4rem;">
-          <i class="fa-solid fa-scale-balanced" style="color:var(--clr-500);"></i> Resumen financiero
-          <a href="{{ url_for('reportes') }}"
-             style="margin-left:auto;font-size:.78rem;font-weight:600;color:var(--clr-500);font-family:var(--ff-body);">
-            Detalles <i class="fa-solid fa-arrow-right"></i>
-          </a>
+    <div class="dashboard-grid">
+      <div class="panel-card">
+        <div class="panel-card__header">
+          <div>
+            <div class="panel-card__eyebrow"><i class="fa-solid fa-bolt"></i> Operación diaria</div>
+            <h2 class="panel-card__title">Acciones rápidas</h2>
+          </div>
         </div>
-        {% for label, icon, val in [
-          ('Gasto total',      'fa-arrow-trend-up',   stats.total_gastos_fmt),
-          ('Esta semana',      'fa-calendar-week',    stats.gasto_semana_fmt),
-          ('Este mes',         'fa-calendar-days',    stats.gasto_mes_fmt),
-          ('Gasto / hectárea', 'fa-gauge-high',       stats.gasto_x_ha_fmt),
-        ] %}
-        <div style="display:flex;justify-content:space-between;align-items:center;
-                    padding:.6rem var(--s6);border-bottom:1px solid var(--border);">
-          <span style="font-size:.875rem;color:var(--txt-muted);display:flex;align-items:center;gap:.4rem;">
-            <i class="fa-solid {{ icon }}" style="color:var(--clr-500);"></i> {{ label }}
-          </span>
-          <span style="font-weight:700;font-family:var(--ff-heading);color:var(--clr-700);">{{ val }}</span>
-        </div>
-        {% endfor %}
-        <div style="display:flex;justify-content:space-between;align-items:center;
-                    padding:.6rem var(--s6);">
-          <span style="font-size:.875rem;color:var(--txt-muted);display:flex;align-items:center;gap:.4rem;">
-            <i class="fa-solid fa-wheat-awn" style="color:var(--clr-500);"></i> Producción
-          </span>
-          <span style="font-weight:700;font-family:var(--ff-heading);color:var(--clr-700);">
-            {{ stats.total_cargas }} / 2 000 cargas
-          </span>
-        </div>
-        <div style="padding:.8rem var(--s6);text-align:center;background:var(--clr-50);border-top:1px solid var(--border);">
-          <a href="{{ url_for('presupuesto_view') }}" style="font-size:.85rem;color:var(--clr-500);font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:.45rem;">
-            <i class="fa-solid fa-wallet"></i>
-            Ver presupuesto detallado
-            <i class="fa-solid fa-arrow-right"></i>
-          </a>
+
+        <div class="quick-actions">
+          <div class="action-card">
+            <div class="action-card__header">
+              <div class="action-card__title">
+                <i class="fa-solid fa-file-invoice-dollar"></i> Recibos
+              </div>
+            </div>
+            <div class="action-card__buttons">
+              <a href="{{ url_for('nuevo_recibo') }}" class="button button--primary button--sm">
+                <i class="fa-solid fa-plus"></i> Individual
+              </a>
+              <a href="{{ url_for('nuevo_recibo_lote') }}" class="button button--ghost-dark button--sm">
+                <i class="fa-solid fa-users-between-lines"></i> Por lote
+              </a>
+              <a href="{{ url_for('lista_recibos') }}" class="button button--ghost-dark button--sm">
+                <i class="fa-solid fa-list"></i> Historial
+              </a>
+            </div>
+          </div>
+
+          <div class="action-card">
+            <div class="action-card__header">
+              <div class="action-card__title">
+                <i class="fa-solid fa-users"></i> Talento humano
+              </div>
+            </div>
+            <div class="action-card__buttons">
+              <a href="{{ url_for('create_worker') }}" class="button button--primary button--sm">
+                <i class="fa-solid fa-user-plus"></i> Registrar
+              </a>
+              <a href="{{ url_for('lista_workers') }}" class="button button--ghost-dark button--sm">
+                <i class="fa-solid fa-address-book"></i> Directorio
+              </a>
+            </div>
+          </div>
+
+          <div class="action-card">
+            <div class="action-card__header">
+              <div class="action-card__title">
+                <i class="fa-solid fa-seedling"></i> Labores del lote
+              </div>
+            </div>
+            <div class="action-card__buttons">
+              <a href="{{ url_for('labores_desague') }}" class="button button--ghost-dark button--sm">
+                <i class="fa-solid fa-droplet"></i> Desagüe
+              </a>
+              <a href="{{ url_for('labores_abonada') }}" class="button button--ghost-dark button--sm">
+                <i class="fa-solid fa-flask"></i> Abonada
+              </a>
+              <a href="{{ url_for('nueva_cosecha') }}" class="button button--ghost-dark button--sm">
+                <i class="fa-solid fa-plus"></i> Cosecha
+              </a>
+            </div>
+          </div>
+
+          <div class="action-card">
+            <div class="action-card__header">
+              <div class="action-card__title">
+                <i class="fa-solid fa-chart-pie"></i> Analítica y salida
+              </div>
+            </div>
+            <div class="action-card__buttons">
+              <a href="{{ url_for('reportes') }}" class="button button--ghost-dark button--sm">
+                <i class="fa-solid fa-chart-column"></i> Reportes
+              </a>
+              <a href="{{ url_for('generar_pdf', tipo='gastos') }}" class="button button--ghost-dark button--sm" target="_blank">
+                <i class="fa-solid fa-file-pdf"></i> PDF
+              </a>
+              <a href="{{ url_for('generar_excel', tipo='recibos') }}" class="button button--ghost-dark button--sm" target="_blank">
+                <i class="fa-solid fa-file-excel"></i> Excel
+              </a>
+              <a href="{{ url_for('config_app') }}" class="button button--ghost-dark button--sm">
+                <i class="fa-solid fa-gear"></i> Configuración
+              </a>
+            </div>
+          </div>
         </div>
       </div>
 
-    </div><!-- /últimos recibos col -->
+      <div style="display:grid;gap:1.2rem;">
+        <div class="panel-card">
+          <div class="panel-card__header">
+            <div>
+              <div class="panel-card__eyebrow"><i class="fa-solid fa-clock-rotate-left"></i> Último movimiento</div>
+              <h2 class="panel-card__title">Recibos recientes</h2>
+              <p class="panel-card__sub">Últimas operaciones registradas en el lote activo.</p>
+            </div>
+            <a href="{{ url_for('lista_recibos') }}" class="panel-link">
+              Ver todo <i class="fa-solid fa-arrow-right"></i>
+            </a>
+          </div>
 
-  </div><!-- /charts-row -->
+          {% if recibos_recientes %}
+          <div class="table-wrap" style="padding:0.35rem;">
+            <table class="data-table activity-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Fecha</th>
+                  <th>Proveedor</th>
+                  <th style="text-align:right;">Neto</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in recibos_recientes %}
+                <tr style="cursor:pointer;" onclick="location.href='{{ url_for('detalle_recibo', serial=r.serial) }}'">
+                  <td><span class="badge badge--green">{{ r.serial }}</span></td>
+                  <td class="txt-muted">{{ r.fecha.strftime('%d/%m/%Y') if r.fecha else '—' }}</td>
+                  <td><strong>{{ (r.proveedor or '—')[:28] }}</strong></td>
+                  <td style="text-align:right;"><strong>$ {{ '{:,.0f}'.format(r.neto_a_pagar or 0).replace(',','.') }}</strong></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="empty-state">
+            <span class="empty-state__icon"><i class="fa-solid fa-file-circle-plus"></i></span>
+            <h3>Tu panel está listo para empezar</h3>
+            <p>Crea el primer recibo del lote para activar el historial financiero.</p>
+            <a href="{{ url_for('nuevo_recibo') }}" class="button button--primary">
+              <i class="fa-solid fa-plus"></i> Crear primer recibo
+            </a>
+          </div>
+          {% endif %}
+        </div>
 
-</div>
+        <div class="panel-card">
+          <div class="panel-card__header">
+            <div>
+              <div class="panel-card__eyebrow"><i class="fa-solid fa-scale-balanced"></i> Panorama financiero</div>
+              <h2 class="panel-card__title">Resumen ejecutivo</h2>
+            </div>
+          </div>
+
+          <div class="summary-list">
+            {% if presupuesto_activo %}
+            <div class="summary-list__item {{ 'summary-list__item--alert' if presupuesto_pct > 85 else '' }}">
+              <span class="summary-list__label"><i class="fa-solid fa-wallet" style="margin-right:.35rem;"></i>Saldo disponible</span>
+              <span class="summary-list__value">$ {{ '{:,.0f}'.format(presupuesto_saldo).replace(',','.') }}</span>
+            </div>
+            <div class="summary-list__item">
+              <span class="summary-list__label">Presupuesto consumido</span>
+              <span class="summary-list__value">{{ presupuesto_pct }}%</span>
+            </div>
+            {% else %}
+            <div class="summary-list__item">
+              <span class="summary-list__label"><i class="fa-solid fa-wallet" style="margin-right:.35rem;"></i>Presupuesto</span>
+              <span class="summary-list__value">Sin activar</span>
+            </div>
+            {% endif %}
+            <div class="summary-list__item">
+              <span class="summary-list__label">Gasto / hectárea</span>
+              <span class="summary-list__value">{{ stats.gasto_x_ha_fmt }}</span>
+            </div>
+            <div class="summary-list__item">
+              <span class="summary-list__label">Límite referencial / ha</span>
+              <span class="summary-list__value">{{ stats.limite_ha_fmt }}</span>
+            </div>
+            <div class="summary-list__item">
+              <span class="summary-list__label">Meta de producción</span>
+              <span class="summary-list__value">{{ stats.total_cargas }} / {{ stats.meta_cargas }} cargas</span>
+            </div>
+            <div class="summary-list__item">
+              <span class="summary-list__label">Gasto acumulado</span>
+              <span class="summary-list__value">{{ stats.total_gastos_fmt }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
-
 {% endblock %}
 
 {% block scripts %}
 <script>
 (function(){
-  const d    = new Date();
-  const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
-  const el   = document.getElementById('dashDate');
-  if(el) el.textContent = d.toLocaleDateString('es-CO', opts);
+  const d = new Date();
+  const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  const el = document.getElementById('dashDate');
+  if (el) el.textContent = d.toLocaleDateString('es-CO', opts);
 })();
 </script>
 {% endblock %}

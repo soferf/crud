@@ -310,6 +310,57 @@ def init_database():
         except Exception:
             pass
 
+    # ── Ciclos de producción (campañas: siembra → etapas → cosecha) ──────────
+    ensure_table("ciclos_produccion", """
+        CREATE TABLE IF NOT EXISTS ciclos_produccion (
+            id                      INT AUTO_INCREMENT PRIMARY KEY,
+            lote_id                 INT NOT NULL,
+            nombre                  VARCHAR(120) NOT NULL,
+            variedad_semilla        VARCHAR(100),
+            origen_semilla          VARCHAR(100),
+            metodo_siembra          ENUM('al_voleo','sembradora','labranza_minima','otro') DEFAULT 'al_voleo',
+            hectareas               DECIMAL(8,2),
+            bultos_ha               DECIMAL(8,2),
+            total_bultos            DECIMAL(8,2),
+            fecha_siembra           DATE NOT NULL,
+            duracion_estimada_dias  INT DEFAULT 120,
+            fecha_cosecha_estimada  DATE,
+            fecha_cierre            DATE,
+            estado                  ENUM('activo','cerrado') DEFAULT 'activo',
+            cargas_total            INT DEFAULT 0,
+            kg_total                DECIMAL(12,2) DEFAULT 0,
+            valor_cosecha           DECIMAL(14,2) DEFAULT 0,
+            observaciones           TEXT,
+            creado_en               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_ciclo_lote_estado (lote_id, estado)
+        )
+    """)
+
+    # Enlazar recibos y cosechas al ciclo de producción al que pertenecen.
+    for tbl in ('recibos', 'cosechas'):
+        try:
+            cursor.execute(f"ALTER TABLE {tbl} ADD COLUMN ciclo_id INT DEFAULT NULL")
+        except Exception:
+            pass
+
+    # Triggers: al insertar un recibo/cosecha, asignar el ciclo ACTIVO del lote
+    # si no se indicó uno explícitamente. Así el costeo por campaña es automático
+    # sin tocar cada punto de inserción del código.
+    for tbl in ('recibos', 'cosechas'):
+        try:
+            cursor.execute(f"DROP TRIGGER IF EXISTS trg_{tbl}_ciclo")
+            cursor.execute(f"""
+                CREATE TRIGGER trg_{tbl}_ciclo BEFORE INSERT ON {tbl}
+                FOR EACH ROW
+                SET NEW.ciclo_id = COALESCE(
+                    NEW.ciclo_id,
+                    (SELECT c.id FROM ciclos_produccion c
+                     WHERE c.lote_id = NEW.lote_id AND c.estado = 'activo'
+                     ORDER BY c.id DESC LIMIT 1))
+            """)
+        except Exception as _te:
+            print(f"[db-migrate] trigger trg_{tbl}_ciclo omitido: {_te}")
+
     ensure_table("lotes", """
         CREATE TABLE IF NOT EXISTS lotes (
             id                    INT AUTO_INCREMENT PRIMARY KEY,
@@ -491,6 +542,108 @@ def init_database():
         )
     """)
 
+    # ── Módulo de humedad / riego (sensores simulados, listo para Arduino) ────
+    ensure_table("humedad_sensores", """
+        CREATE TABLE IF NOT EXISTS humedad_sensores (
+            id             INT AUTO_INCREMENT PRIMARY KEY,
+            lote_id        INT NOT NULL,
+            codigo         VARCHAR(20) NOT NULL,
+            nombre         VARCHAR(80),
+            pos_x          DECIMAL(5,1) DEFAULT 50.0,
+            pos_y          DECIMAL(5,1) DEFAULT 50.0,
+            profundidad_cm INT DEFAULT 20,
+            factor_secado  DECIMAL(4,2) DEFAULT 1.00,
+            activo         BOOLEAN DEFAULT TRUE,
+            created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_sensor_codigo (lote_id, codigo),
+            INDEX idx_sensor_lote (lote_id),
+            FOREIGN KEY (lote_id) REFERENCES lotes(id) ON DELETE CASCADE
+        )
+    """)
+
+    ensure_table("humedad_lecturas", """
+        CREATE TABLE IF NOT EXISTS humedad_lecturas (
+            id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+            sensor_id     INT NOT NULL,
+            lote_id       INT NOT NULL,
+            humedad_pct   DECIMAL(5,1) NOT NULL,
+            temperatura_c DECIMAL(4,1),
+            fuente        ENUM('simulado','arduino') DEFAULT 'simulado',
+            fecha_hora    DATETIME NOT NULL,
+            INDEX idx_lect_sensor (sensor_id, fecha_hora),
+            INDEX idx_lect_lote (lote_id, fecha_hora),
+            FOREIGN KEY (sensor_id) REFERENCES humedad_sensores(id) ON DELETE CASCADE
+        )
+    """)
+
+    ensure_table("humedad_config", """
+        CREATE TABLE IF NOT EXISTS humedad_config (
+            lote_id        INT PRIMARY KEY,
+            fecha_siembra  DATE,
+            umbral_min_pct DECIMAL(5,1) DEFAULT 75.0,
+            umbral_max_pct DECIMAL(5,1) DEFAULT 95.0,
+            modo_auto      BOOLEAN DEFAULT TRUE,
+            riego_activo   BOOLEAN DEFAULT FALSE,
+            forma_lote     VARCHAR(20) DEFAULT 'rectangular',
+            ancho_m        DECIMAL(8,1) DEFAULT 200.0,
+            largo_m        DECIMAL(8,1) DEFAULT 400.0,
+            updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (lote_id) REFERENCES lotes(id) ON DELETE CASCADE
+        )
+    """)
+
+    ensure_table("riego_eventos", """
+        CREATE TABLE IF NOT EXISTS riego_eventos (
+            id           INT AUTO_INCREMENT PRIMARY KEY,
+            lote_id      INT NOT NULL,
+            sensor_id    INT DEFAULT NULL,
+            tipo         ENUM('inicio','fin') NOT NULL,
+            modo         ENUM('manual','automatico') DEFAULT 'manual',
+            umbral_pct   DECIMAL(5,1),
+            humedad_prom DECIMAL(5,1),
+            usuario_id   INT DEFAULT NULL,
+            nota         VARCHAR(200),
+            fecha_hora   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_riego_lote (lote_id, fecha_hora),
+            FOREIGN KEY (lote_id) REFERENCES lotes(id) ON DELETE CASCADE
+        )
+    """)
+
+    # ── Hardening: auditoría, códigos de recuperación y lockout ──────────────
+    ensure_table("security_audit", """
+        CREATE TABLE IF NOT EXISTS security_audit (
+            id         INT AUTO_INCREMENT PRIMARY KEY,
+            user_id    INT DEFAULT NULL,
+            lote_id    INT DEFAULT NULL,
+            event      VARCHAR(60) NOT NULL,
+            detail     TEXT,
+            ip         VARCHAR(45),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_audit_user (user_id, created_at),
+            INDEX idx_audit_event (event)
+        )
+    """)
+
+    ensure_table("recovery_codes", """
+        CREATE TABLE IF NOT EXISTS recovery_codes (
+            id         INT AUTO_INCREMENT PRIMARY KEY,
+            user_id    INT NOT NULL,
+            code_hash  VARCHAR(255) NOT NULL,
+            used       BOOLEAN DEFAULT FALSE,
+            used_at    DATETIME DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_recovery_user (user_id, used),
+            FOREIGN KEY (user_id) REFERENCES users(id_user) ON DELETE CASCADE
+        )
+    """)
+
+    for col_name, col_def in [("failed_attempts", "INT DEFAULT 0"),
+                              ("locked_until", "DATETIME DEFAULT NULL")]:
+        try:
+            cursor.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_def}")
+        except Exception:
+            pass
+
     for tbl in ['recibos', 'workers', 'cosechas']:
         try:
             cursor.execute(f"ALTER TABLE {tbl} ADD COLUMN lote_id INT DEFAULT NULL")
@@ -514,6 +667,7 @@ def init_database():
     _seed_roles_and_permissions()
     _import_trabajadores_from_json()
     _migrate_existing_data_to_initial_lote()
+    _seed_humedad_sensores()
 
 
 def _seed_roles_and_permissions():
@@ -550,6 +704,8 @@ def _seed_roles_and_permissions():
             ('produccion.create', 'Registrar producción/cosechas'),
             ('produccion.edit',   'Editar registros de producción'),
             ('report.view',       'Ver reportes y estadísticas'),
+            ('humedad.view',      'Ver el módulo de humedad y riego'),
+            ('humedad.manage',    'Gestionar sensores y controlar el riego'),
             ('user.invite',       'Invitar usuarios al lote'),
             ('user.assign_role',  'Asignar roles a usuarios del lote'),
             ('config.manage',     'Gestionar configuración de la aplicación'),
@@ -568,15 +724,17 @@ def _seed_roles_and_permissions():
                 'lote.view','lote.manage','worker.view','worker.create','worker.edit',
                 'worker.toggle','recibo.view','recibo.create','recibo.edit','recibo.delete',
                 'produccion.view','produccion.create','produccion.edit','report.view',
-                'user.invite','config.manage',
+                'humedad.view','humedad.manage','user.invite','config.manage',
             ],
             'operador_lote': [
                 'lote.view','worker.view','worker.create','worker.edit',
                 'recibo.view','recibo.create','recibo.edit',
                 'produccion.view','produccion.create','report.view',
+                'humedad.view','humedad.manage',
             ],
             'consulta_lote': [
                 'lote.view','worker.view','recibo.view','produccion.view','report.view',
+                'humedad.view',
             ],
         }
         for rol_nombre, perm_claves in role_perm_map.items():
@@ -657,6 +815,29 @@ def _migrate_existing_data_to_initial_lote():
         print(f'[migration] Datos existentes asignados al lote_id={lote_id} (El Mangon).')
     except Exception as e:
         print(f'[migration] Error: {e}')
+
+
+def _seed_humedad_sensores():
+    """Crea una malla de sensores simulados + historial para lotes que no tengan."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id, hectareas FROM lotes WHERE estado!='inactivo'")
+        lotes = cursor.fetchall()
+        cursor.close(); conn.close()
+
+        from humedad_sim import get_config, get_sensores, crear_sensores
+        for lote in lotes:
+            get_config(lote['id'])  # asegura fila de configuración
+            if get_sensores(lote['id']):
+                continue
+            ha = float(lote.get('hectareas') or 20)
+            # ~1 sensor por cada 2.5 ha, acotado entre 4 y 12 sensores.
+            n = max(4, min(12, round(ha / 2.5)))
+            crear_sensores(lote['id'], n, forma='rectangular')
+            print(f"[seed] Lote {lote['id']}: {n} sensores de humedad simulados creados.")
+    except Exception as e:
+        print(f"[seed-humedad] Error: {e}")
 
 
 def _import_trabajadores_from_json():

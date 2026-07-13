@@ -1,0 +1,16 @@
+{# Stepper visual de las 9 etapas fenológicas. Requiere el global ETAPAS_ARROZ y un dict `ciclo` con `etapa.n`. #}
+{% macro etapa_stepper(ciclo) %}
+<div class="ciclo-stepper">
+  {% for e in ETAPAS_ARROZ %}
+  {% set done    = e.n <  ciclo.etapa.n %}
+  {% set current = e.n == ciclo.etapa.n %}
+  <div class="ciclo-step {% if done %}is-done{% elif current %}is-current{% endif %}"
+       title="Etapa {{ e.n }} — {{ e.nombre }} ({{ e.fase }}): {{ e.clave }}">
+    <span class="ciclo-step__dot">
+      {% if done %}<i class="fa-solid fa-check"></i>{% else %}{{ e.n }}{% endif %}
+    </span>
+    <span class="ciclo-step__label">{{ e.nombre }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endmacro %}
