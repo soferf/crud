@@ -28,6 +28,12 @@ uploads/
 # Logs
 *.log
 
+# Backups locales y config local del asistente
+*.bak
+*.bak_*
+*.legacy_backup_*
+.claude/
+
 # Test/build caches
 .pytest_cache/
 .mypy_cache/
